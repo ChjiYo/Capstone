@@ -9,9 +9,11 @@ AWeapon::AWeapon()
 	Mesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Mesh"));
 	RootComponent = Mesh;
 
-    AttackTraceChannel = ECC_Visibility;
+	CollisionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("CollisionBox"));
+	CollisionBox->SetupAttachment(RootComponent);
 
-    BaseDamage = 10.f;
+	CollisionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	CollisionBox->SetBoxExtent(WeaponInfo.CollisionBoxSize);
 
 }
 
@@ -20,6 +22,16 @@ AWeapon::AWeapon()
 void AWeapon::BeginPlay()
 {
 	Super::BeginPlay();
+
+	CollisionBox->SetCollisionProfileName(WeaponInfo.CollisionType);
+
+
+	CollisionBox->OnComponentBeginOverlap.AddDynamic(this, &AWeapon::WepaonBeginOverlap);
+	CollisionBox->OnComponentEndOverlap.AddDynamic(this, &AWeapon::WeaponEndOverlap);
+
+	CollisionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	CollisionBox->SetBoxExtent(WeaponInfo.CollisionBoxSize);
+	
 	
 }
 
@@ -27,16 +39,6 @@ void AWeapon::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-}
-
-void AWeapon::SetAttackState(bool bActive)
-{
-    bIsAttacking = bActive;
-
-    if (bIsAttacking)
-    {
-        DamagedActors.Empty();
-    }
 }
 
 void AWeapon::LoadMesh(const FString& strPath)
@@ -47,47 +49,69 @@ void AWeapon::LoadMesh(const FString& strPath)
 		Mesh->SetSkeletalMesh(mesh);
 }
 
-void AWeapon::TraceWeapon()
+void AWeapon::EnableWeaponCollision(bool bEnable)
 {
-    if (!bIsAttacking) return;
+	if (bEnable)
+	{
+		CollisionBox->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	}
+	else
+	{
+		CollisionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+}
 
-    FVector Start = Mesh->GetSocketLocation(TEXT("Weapon_Start_Socket"));
-    FVector End = Mesh->GetSocketLocation(TEXT("Weapon_End_Socket"));
-    FHitResult Hit;
+void AWeapon::WepaonBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	FDamageEvent	DamageEvent;
 
-    FCollisionQueryParams CollisionParams;
-    CollisionParams.AddIgnoredActor(this);
 
-    AActor* WeaponOwner = GetOwner();
-    if (IsValid(WeaponOwner))
-    {
-        CollisionParams.AddIgnoredActor(WeaponOwner);
-    }
+	FName StartSocket = WeaponInfo.StartSocket;
+	FName EndSocket = WeaponInfo.EndSocket;
+		
+	FVector vStart = CollisionBox->GetSocketLocation(StartSocket);
+	FVector vEnd = CollisionBox->GetSocketLocation(EndSocket);
 
-    bool bResult = GetWorld()->LineTraceSingleByChannel(
-        Hit,
-        Start,
-        End,
-        AttackTraceChannel,
-        CollisionParams);
+	FVector vDir = vEnd - vStart;
+	vDir.Normalize();
 
-    if (bResult)
-    {
-        AActor* HitActor = Hit.GetActor();
+	FCollisionQueryParams tColParams(NAME_None, false, this);
+	TArray<FHitResult> HitArray;
+	bool bCollision = GetWorld()->SweepMultiByProfile(HitArray, vStart, vEnd, vDir.ToOrientationQuat(), WeaponInfo.CollisionType, FCollisionShape::MakeBox(WeaponInfo.CollisionBoxSize),
+		tColParams);
 
-        if (IsValid(HitActor) && !DamagedActors.Contains(HitActor))
-        {
-            DamagedActors.Add(HitActor);
 
-            FDamageEvent DamageEvent;
-            AController* InstigatorController = WeaponOwner ? WeaponOwner->GetInstigatorController() : nullptr;
+	FVector		vImpactPoint = FVector::ZeroVector;
+	FVector		vImpactNormal = FVector::ZeroVector;
 
-            HitActor->TakeDamage(
-                BaseDamage,
-                DamageEvent,
-                InstigatorController,
-                this);
-        }
-    }
+
+	for (auto hit : HitArray)
+	{
+		if (hit.GetActor() == OtherActor)
+		{
+			vImpactPoint = hit.ImpactPoint;
+			vImpactNormal = hit.ImpactNormal;
+			break;
+		}
+	}
+
+
+	if (HitArray.Num() > 0)
+		float fDamage = OtherActor->TakeDamage(WeaponInfo.BaseDamage, DamageEvent, this->GetInstigatorController(), this);
+
+#if ENABLE_DRAW_DEBUG
+	FVector vCenter = (vStart + vEnd) / 2.f;
+	FColor	DrawColor = HitArray.Num() > 0 ? FColor::Yellow : FColor::Black;
+
+	DrawDebugBox(GetWorld(), vCenter, FVector(15.0f, 50.f, 15.f), vDir.ToOrientationQuat(), DrawColor, false, 1.5f);
+
+#endif
+
+	FActorSpawnParameters params;
+	params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+}
+
+void AWeapon::WeaponEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
 }
 

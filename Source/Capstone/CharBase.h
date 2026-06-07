@@ -47,8 +47,7 @@ public:
 protected:
 	UPROPERTY(Category = "Rigging", VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	FRigging m_tRigging;
-
-	
+		
 protected:
 	virtual void BeginPlay() override;
 
@@ -59,6 +58,9 @@ public:
 protected:
 	float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser);
 
+
+public:
+	const FRigging Get_RiggingInfo() { return m_tRigging; }
 	
 protected:
 	FINFO m_tInfo;

@@ -1,4 +1,5 @@
 ﻿#include "CharBase.h"
+#include "Weapon.h"
 
 ACharBase::ACharBase()
 {

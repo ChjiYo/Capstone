@@ -23,11 +23,6 @@ protected:
 public:
 	virtual void Tick(float DeltaTime) override;
 
-
-public:
-	void EnableWeaponCollision(bool bEnable);
-
-
 public:
 	UFUNCTION()
 	void  WepaonBeginOverlap(UPrimitiveComponent* OverlappedComponent,

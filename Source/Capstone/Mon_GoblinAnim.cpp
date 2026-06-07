@@ -1,5 +1,6 @@
 ﻿#include "Mon_GoblinAnim.h"
 #include "Mon_Goblin.h"
+#include "Weapon.h"
 
 UMon_GoblinAnim::UMon_GoblinAnim()
 {
@@ -59,10 +60,12 @@ void UMon_GoblinAnim::AnimNotify_AttackStart()
 		bNextAttack = true;
 	}
 
-	AMon_Goblin* pOwner = Cast<AMon_Goblin>(TryGetPawnOwner());
+	AMonster* pOwner = Cast<AMonster>(TryGetPawnOwner());
 
 	if (IsValid(pOwner))
-		pOwner->EnableWeaponCollision(true);
+	{
+		pOwner->Get_RiggingInfo().m_pRightWeapon->EnableWeaponCollision(true);
+	}
 }
 
 void UMon_GoblinAnim::AnimNotify_AttackEnd()
@@ -72,17 +75,11 @@ void UMon_GoblinAnim::AnimNotify_AttackEnd()
 	NextAttackIndex = 0;
 
 	AMonster* pOwner = Cast<AMonster>(TryGetPawnOwner());
-	AMon_Goblin* pNarbashOwner = Cast<AMon_Goblin>(TryGetPawnOwner());
 
 	if (IsValid(pOwner))
 	{
 		pOwner->AttackEnd();
-
-	}
-
-	if (IsValid(pNarbashOwner))
-	{
-		pNarbashOwner->EnableWeaponCollision(false);
+		pOwner->Get_RiggingInfo().m_pRightWeapon->EnableWeaponCollision(false);
 	}
 }
 
