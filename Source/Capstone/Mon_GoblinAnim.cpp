@@ -6,6 +6,8 @@ UMon_GoblinAnim::UMon_GoblinAnim()
 {
 	eAnimType = EBaseAnim::Idle;
 	eDir = EDir::Front;
+
+	NextAttackMax = 1;
 }
 
 void UMon_GoblinAnim::NativeInitializeAnimation()
@@ -81,6 +83,7 @@ void UMon_GoblinAnim::AnimNotify_AttackEnd()
 		pOwner->AttackEnd();
 		pOwner->Get_RiggingInfo().m_pRightWeapon->EnableWeaponCollision(false);
 	}
+
 }
 
 void UMon_GoblinAnim::InherAttackStartNotify()

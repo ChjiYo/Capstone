@@ -3,6 +3,9 @@
 
 UMon_NarbashAnim::UMon_NarbashAnim()
 {
+	eAnimType = EBaseAnim::Idle;
+	eDir = EDir::Front;
+
 	NextAttackMax = 3;
 }
 
