@@ -19,6 +19,11 @@ protected:
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory);
 	virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds);
 
+private:
+	// 💡 블랙보드에서 NextAction(0: 평타, 1: 스킬)을 읽어오기 위한 키
+	UPROPERTY(EditAnywhere, Category = "Blackboard")
+	FBlackboardKeySelector NextActionKey;
+
 public:
 	void AttackEnd();
 	
