@@ -32,7 +32,7 @@ float ACharBase::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent,
 	if (m_tInfo.iHp <= 0)
 	{
 		LOG(TEXT("Death"));
-		//Destroy();
+		Destroy();
 	}
 
 

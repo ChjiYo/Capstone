@@ -8,7 +8,7 @@ APy_Grey::APy_Grey()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	m_tInfo = { 100, 10 };
+	m_tInfo = { 100000, 10 };
 
 	pArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("Arm"));
 	pCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
