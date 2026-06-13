@@ -7,6 +7,28 @@ UMon_NarbashAnim::UMon_NarbashAnim()
 	eDir = EDir::Front;
 
 	NextAttackMax = 3;
+
+
+	static ConstructorHelpers::FObjectFinder <UAnimMontage> SkillAAssetA(TEXT("AnimMontage'/Game/UE_Asset/Character/Player/Grey/MTG_PyGrey_SkillSlotA.MTG_PyGrey_SkillSlotA'"));
+
+	if (SkillAAssetA.Succeeded())
+	{
+		m_pMTGSkillSlotA = SkillAAssetA.Object;
+	}
+
+	static ConstructorHelpers::FObjectFinder <UAnimMontage> SkillAAssetB(TEXT("AnimMontage'/Game/UE_Asset/Character/Player/Grey/MTG_PyGrey_SkillSlotB.MTG_PyGrey_SkillSlotB'"));
+
+	if (SkillAAssetB.Succeeded())
+	{
+		m_pMTGSkillSlotB = SkillAAssetB.Object;
+	}
+
+	static ConstructorHelpers::FObjectFinder <UAnimMontage> SkillAAssetC(TEXT("AnimMontage'/Game/UE_Asset/Character/Player/Grey/MTG_PyGrey_SkillSlotC.MTG_PyGrey_SkillSlotC'"));
+
+	if (SkillAAssetC.Succeeded())
+	{
+		m_pMTGSkillSlotC = SkillAAssetC.Object;
+	}
 }
 
 void UMon_NarbashAnim::NativeInitializeAnimation()
@@ -51,6 +73,24 @@ void UMon_NarbashAnim::NativeUpdateAnimation(float DeltaSeconds)
 void UMon_NarbashAnim::ChangeAnim(EBaseAnim eAnim)
 {
 	eAnimType = eAnim;
+}
+
+void UMon_NarbashAnim::SkillSlotA()
+{
+	if (!Montage_IsPlaying(m_pMTGSkillSlotA))
+			Montage_Play(m_pMTGSkillSlotA);
+}
+
+void UMon_NarbashAnim::SkillSlotB()
+{
+	if (!Montage_IsPlaying(m_pMTGSkillSlotB))
+		Montage_Play(m_pMTGSkillSlotB);
+}
+
+void UMon_NarbashAnim::SkillSlotC()
+{
+	if (!Montage_IsPlaying(m_pMTGSkillSlotC))
+		Montage_Play(m_pMTGSkillSlotC);
 }
 
 void UMon_NarbashAnim::AnimNotify_AttackStart()

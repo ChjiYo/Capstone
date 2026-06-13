@@ -13,11 +13,28 @@ public:
 
 
 protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	UAnimMontage* m_pMTGSkillSlotA;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	UAnimMontage* m_pMTGSkillSlotB;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	UAnimMontage* m_pMTGSkillSlotC;
+
+
+protected:
 	virtual void NativeInitializeAnimation();
 	virtual void NativeUpdateAnimation(float DeltaSeconds);
 
 public:
 	void ChangeAnim(EBaseAnim eAnim);
+
+public:
+	void SkillSlotA();
+	void SkillSlotB();
+	void SkillSlotC();
+
 
 private:
 	virtual void AnimNotify_AttackStart() override;

@@ -21,12 +21,6 @@ bool UBTDecorator_AttackDist::CalculateRawConditionValue(UBehaviorTreeComponent&
 	if (!IsValid(pMonster))
 		return false;
 
-	//if (pMonster->GetAttack())
-	//{
-	//	pController->StopMovement();
-	//	return true;
-	//}
-
 	ACharacter* pTarget = pController->GetTarget();
 
 	if (!IsValid(pTarget))
