@@ -1,5 +1,6 @@
 ﻿#include "Mon_NarbashAnim.h"
 #include "Mon_Narbash.h"
+#include "EffectDestroy.h"
 
 UMon_NarbashAnim::UMon_NarbashAnim()
 {
@@ -141,9 +142,38 @@ void UMon_NarbashAnim::AnimNotify_AttackEnd()
 	}
 }
 
+void UMon_NarbashAnim::AnimNotify_SkillAStart()
+{
+	ACharacter* pPlayer = UGameplayStatics::GetPlayerCharacter(GetWorld(), 0);
+
+	if (IsValid(pPlayer))
+	{
+		FVector PlayerLocation = pPlayer->GetActorLocation();
+
+		float CapsuleHalfHeight = pPlayer->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+
+		FVector vImpactPoint = PlayerLocation - FVector(0.f, 0.f, CapsuleHalfHeight);
+
+		FVector vImpactNormal = FVector::UpVector;
+
+		FActorSpawnParameters params;
+		params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+		AEffectDestroy* Effect = GetWorld()->SpawnActor<AEffectDestroy>(
+			vImpactPoint,
+			FRotator::ZeroRotator,
+			params
+		);
+
+
+		Effect->SetEffectPath("ParticleSystem'/Game/FXVarietyPack/Particles/P_ky_fireStorm.P_ky_fireStorm'",
+			"SoundWave'/Game/UE_Asset/Sounds/Portal_Sound.Portal_Sound'");
+	}
+}
+
 void UMon_NarbashAnim::InherAttackStartNotify()
 {
-	
+
 }
 
 void UMon_NarbashAnim::InherNextAttackEndNotify()
@@ -153,4 +183,8 @@ void UMon_NarbashAnim::InherNextAttackEndNotify()
 
 void UMon_NarbashAnim::InherAttackEndNotify()
 {
+
 }
+
+void UMon_NarbashAnim::InherSkillAStartNotify()
+{}

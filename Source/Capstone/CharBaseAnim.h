@@ -74,7 +74,10 @@ private:
 	virtual void AnimNotify_AttackEnd();
 
 	UFUNCTION()
-	void AnimNotify_ReturnIdle();
+	virtual void AnimNotify_ReturnIdle();
+
+	UFUNCTION()
+	virtual void AnimNotify_SkillAStart();
 
 
 
@@ -84,7 +87,7 @@ protected:
 	virtual void InherNextAttackEndNotify() {};
 	virtual void InherAttackEndNotify() {};
 	virtual void InherReturnIdleNotify() {};
-
+	virtual void InherSkillAStartNotify() {};
 
 public:
 	void SetAnimType(EBaseAnim _eType)

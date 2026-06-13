@@ -51,6 +51,9 @@ protected:
 		const FHitResult& Hit);
 
 public:
+	void SetAttackEnd();
+
+public:
 	const float& GetTraceRange() const
 	{
 		return fTraceRange;

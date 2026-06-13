@@ -134,3 +134,7 @@ void UCharBaseAnim::AnimNotify_ReturnIdle()
 
 	InherReturnIdleNotify();
 }
+
+void UCharBaseAnim::AnimNotify_SkillAStart()
+{
+}

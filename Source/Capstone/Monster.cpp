@@ -24,6 +24,14 @@ void AMonster::NotifyHit(UPrimitiveComponent* MyComp, AActor* Other, UPrimitiveC
 
 }
 
+void AMonster::SetAttackEnd()
+{
+	if (OnAttackEnd.IsBound())
+	{
+		OnAttackEnd.Broadcast();
+	}
+}
+
 void AMonster::BeginPlay()
 {
 	Super::BeginPlay();
