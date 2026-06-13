@@ -14,5 +14,17 @@ public:
 
 protected:
 	virtual bool CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const;
-	
+	virtual void OnNodeActivation(FBehaviorTreeSearchData& SearchData) override;
+public:
+		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill Condition")
+		float MinAttackDist;
+
+		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill Condition")
+		float MaxAttackDist;
+
+		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill Condition")
+		float CooldownTime;
+
+private:
+	float LastExecutionTime;
 };

@@ -40,9 +40,11 @@ private:
 	virtual void AnimNotify_AttackStart() override;
 	virtual void AnimNotify_NextAttackEnd() override;
 	virtual void AnimNotify_AttackEnd() override;	
+	virtual void AnimNotify_SkillAStart() override;
 
 protected:
 	virtual void InherAttackStartNotify();
 	virtual void InherNextAttackEndNotify();
 	virtual void InherAttackEndNotify();
+	virtual void InherSkillAStartNotify();
 };
