@@ -3,6 +3,9 @@
 
 UPy_GreyAnim::UPy_GreyAnim()
 {
+	eAnimType = EBaseAnim::Idle;
+	eDir = EDir::Front;
+
 	NextAttackMax = 4;
 
 	static ConstructorHelpers::FObjectFinder <UAnimMontage> SkillAAssetA(TEXT("AnimMontage'/Game/UE_Asset/Character/Player/Grey/MTG_PyGrey_SkillSlotA.MTG_PyGrey_SkillSlotA'"));
@@ -25,6 +28,10 @@ UPy_GreyAnim::UPy_GreyAnim()
 	{
 		m_pMTGSkillSlotC = SkillAAssetC.Object;
 	}
+
+
+
+
 }
 
 void UPy_GreyAnim::NativeInitializeAnimation()
