@@ -5,7 +5,7 @@
 UBTDecorator_AttackDist::UBTDecorator_AttackDist()
 {
 	NodeName = TEXT("AttackDist");
-	// 쿨타임, 활성화 체크 등 불필요한 것 삭제
+
 	MinAttackDist = 0.f;
 	MaxAttackDist = 200.f;
 }
@@ -23,7 +23,6 @@ bool UBTDecorator_AttackDist::CalculateRawConditionValue(UBehaviorTreeComponent&
 	ACharacter* pTarget = pController->GetTarget();
 	if (!IsValid(pTarget)) return false;
 
-	// 거리 계산 (Z축 무시)
 	FVector vAILoc = pMonster->GetActorLocation();
 	FVector vTargetLoc = pTarget->GetActorLocation();
 	vAILoc.Z = 0.f;
@@ -31,15 +30,7 @@ bool UBTDecorator_AttackDist::CalculateRawConditionValue(UBehaviorTreeComponent&
 
 	float fDist = FVector::Distance(vAILoc, vTargetLoc);
 
-	// 사거리 체크
 	return (fDist >= MinAttackDist && fDist <= MaxAttackDist);
-}
-
-void UBTDecorator_AttackDist::OnNodeActivation(FBehaviorTreeSearchData& SearchData)
-{
-	Super::OnNodeActivation(SearchData);
-
-	LastExecutionTime = GetWorld()->GetTimeSeconds();
 }
 
 

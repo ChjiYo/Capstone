@@ -19,7 +19,6 @@ EBTNodeResult::Type UBTTask_Attack::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 {
 	EBTNodeResult::Type eResult = Super::ExecuteTask(OwnerComp, NodeMemory);
 
-	// 컨트롤러, 폰, 애님 인스턴스 가져오기 (이전과 동일)
 	AMonsterAIController* pController = Cast<AMonsterAIController>(OwnerComp.GetAIOwner());
 	if (!IsValid(pController)) return EBTNodeResult::Failed;
 
@@ -29,19 +28,15 @@ EBTNodeResult::Type UBTTask_Attack::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 	UMonsterAnim* pMonsterAnim = Cast<UMonsterAnim>(pMonster->GetMesh()->GetAnimInstance());
 	if (!IsValid(pMonsterAnim)) return EBTNodeResult::Failed;
 
-	// 공격 종료 델리게이트 바인딩
 	pMonster->AddAttackEndDelegate<UBTTask_Attack>(this, &UBTTask_Attack::AttackEnd);
 
-	// ⭐️ 여기서 공격 방식(PlayType)에 따라 로직을 나눕니다 ⭐️
 	if (PlayType == EAttackPlayType::UseAnimState)
 	{
-		// 1. 애님 스테이트 머신 방식 (기본 공격)
 		pMonsterAnim->ChangeAnim(AttackAnimState);
 		pMonsterAnim->NormalAttack(true);
 	}
 	else if (PlayType == EAttackPlayType::UseMontage)
 	{
-		// 2. 애님 몽타주 방식 (스킬)
 		if (IsValid(AttackMontage))
 		{
 			pMonsterAnim->Montage_Play(AttackMontage, 1.0f);

@@ -27,11 +27,6 @@ protected:
 	virtual void NativeInitializeAnimation();
 	virtual void NativeUpdateAnimation(float DeltaSeconds);
 
-	public:
-	void SkillSlotA();
-	void SkillSlotB();
-	void SkillSlotC();
-
 public:
 	void ChangeAnim(EBaseAnim eAnim);
 
