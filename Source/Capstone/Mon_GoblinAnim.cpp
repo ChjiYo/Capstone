@@ -7,61 +7,31 @@ UMon_GoblinAnim::UMon_GoblinAnim()
 	eAnimType = EBaseAnim::Idle;
 	eDir = EDir::Front;
 
-	NextAttackMax = 1;
+	CurrentCombo = 1;
+	NextAttackMax = 2;
+	bIsComboInputOn = true;
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> NormalAttackAsset(TEXT("AnimMontage'/Game/UE_Asset/Character/Monster/Goblin/MTG_MonGoblin_Attack.MTG_MonGoblin_Attack'"));
+
+	if (NormalAttackAsset.Succeeded())
+	{
+		m_pMTGNormalAttack = NormalAttackAsset.Object;
+	}
+	
 }
 
 void UMon_GoblinAnim::NativeInitializeAnimation()
 {
+	Super::NativeInitializeAnimation();
 }
 
 void UMon_GoblinAnim::NativeUpdateAnimation(float DeltaSeconds)
 {
 	Super::NativeUpdateAnimation(DeltaSeconds);
-
-	AMon_Goblin* pOnwer = Cast<AMon_Goblin>(TryGetPawnOwner());
-
-	if (IsValid(pOnwer))
-	{
-		UCharacterMovementComponent* pMovement = pOnwer->GetCharacterMovement();
-
-		if (IsValid(pMovement))
-		{
-			IsGround = pMovement->IsMovingOnGround();
-			if (IsGround)
-			{
-				if (pMovement->Velocity.Size() > 0)
-				{
-					if (eAnimType == EBaseAnim::Attack)
-					{
-						InherAttackEndNotify();
-					}
-
-					eAnimType = EBaseAnim::Run;
-					bMoveStop = false;
-				}
-				else
-				{
-					bMoveStop = true;
-				}
-			}
-		}
-	}
 }
 
-void UMon_GoblinAnim::ChangeAnim(EBaseAnim eAnim)
+void UMon_GoblinAnim::InherAttackStartNotify()
 {
-	eAnimType = eAnim;
-}
-
-void UMon_GoblinAnim::AnimNotify_AttackStart()
-{
-	bNextAttackInputEnable = true;
-
-	if (NextAttackIndex + 1 < NextAttackMax)
-	{
-		bNextAttack = true;
-	}
-
 	AMonster* pOwner = Cast<AMonster>(TryGetPawnOwner());
 
 	if (IsValid(pOwner))
@@ -70,11 +40,26 @@ void UMon_GoblinAnim::AnimNotify_AttackStart()
 	}
 }
 
-void UMon_GoblinAnim::AnimNotify_AttackEnd()
+void UMon_GoblinAnim::InherNextAttackEndNotify()
 {
-	bNextAttack = false;
-	bNextAttackInputEnable = false;
-	NextAttackIndex = 0;
+	bIsComboInputOn = (FMath::RandRange(1, 100) <= 60);
+	if (bIsComboInputOn && (CurrentCombo < NextAttackMax))
+	{
+		CurrentCombo++;
+		FName NextSection = *FString::Printf(TEXT("Attack%d"), CurrentCombo);
+		Montage_JumpToSection(NextSection, m_pMTGNormalAttack);
+
+	}
+	else
+	{
+		bIsComboInputOn = false;
+	}
+}
+
+void UMon_GoblinAnim::InherAttackEndNotify()
+{
+	CurrentCombo = 1;
+	bIsComboInputOn = true;
 
 	AMonster* pOwner = Cast<AMonster>(TryGetPawnOwner());
 
@@ -83,13 +68,4 @@ void UMon_GoblinAnim::AnimNotify_AttackEnd()
 		pOwner->AttackEnd();
 		pOwner->Get_RiggingInfo().m_pRightWeapon->EnableWeaponCollision(false);
 	}
-
-}
-
-void UMon_GoblinAnim::InherAttackStartNotify()
-{
-}
-
-void UMon_GoblinAnim::InherAttackEndNotify()
-{
 }

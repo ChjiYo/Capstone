@@ -15,16 +15,9 @@ protected:
 	virtual void NativeInitializeAnimation();
 	virtual void NativeUpdateAnimation(float DeltaSeconds);
 
-public:
-	void ChangeAnim(EBaseAnim eAnim);
-
-private:
-	virtual void AnimNotify_AttackStart() override;
-	virtual void AnimNotify_AttackEnd() override;
-
-
 protected:
 	virtual void InherAttackStartNotify();
+	virtual void InherNextAttackEndNotify();
 	virtual void InherAttackEndNotify();
 
 

@@ -37,11 +37,11 @@ public:
 	virtual void NormalAttack() override;
 
 protected:
-	virtual void InherMoveStopNotify();
-	virtual void InherAttackStartNotify();
-	virtual void InherNextAttackEndNotify();
-	virtual void InherAttackEndNotify();
-	virtual void InherReturnIdleNotify();
+	virtual void InherMoveStopNotify() override;
+	virtual void InherAttackStartNotify() override;
+	virtual void InherNextAttackEndNotify() override;
+	virtual void InherAttackEndNotify() override;
+	virtual void InherReturnIdleNotify() override;
 
 	
 };

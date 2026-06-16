@@ -36,26 +36,20 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
 	bool bMoveStop;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	uint8 NextAttackIndex;
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	bool IsGround;
 	
-	uint8 NextAttackMax;
-	bool bNextAttack;
-	bool bNextAttackInputEnable;
-
 protected:
-	int32 CurrentCombo;
 	bool bIsComboInputOn;
+	uint8 NextAttackMax;
+	int32 CurrentCombo;
 
 protected:
 	virtual void NativeInitializeAnimation();
 	virtual void NativeUpdateAnimation(float DeltaSeconds);
 
 public:
-	virtual void NormalAttack();
+	virtual void NormalAttack() {};
 	void JumpKey();
 
 public:

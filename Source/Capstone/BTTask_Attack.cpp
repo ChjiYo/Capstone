@@ -10,9 +10,6 @@ UBTTask_Attack::UBTTask_Attack()
 	bNotifyTick = true;
 	bCreateNodeInstance = true;
 	bIsAttacking = false;
-
-	PlayType = EAttackPlayType::UseAnimState;
-	AttackAnimState = EBaseAnim::Attack;
 }
 
 EBTNodeResult::Type UBTTask_Attack::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
@@ -40,8 +37,6 @@ EBTNodeResult::Type UBTTask_Attack::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 			return EBTNodeResult::Failed;
 	}
 	
-
-	pMonster->SetAttack(true);
 	bIsAttacking = true;
 
 	return EBTNodeResult::InProgress;

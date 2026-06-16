@@ -8,7 +8,7 @@ public class Capstone : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "ApexDestruction", "Niagara" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "ApexDestruction", "Niagara", "GameplayTags" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] {  });
 

@@ -38,7 +38,6 @@ void UBTTask_TargetMove::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Node
 	ACharacter* pTarget = pController->GetTarget();
 	AMonster* pMonster = Cast<AMonster>(pController->GetPawn()); // 몬스터 위치를 알기 위해 추가
 
-	// 1. 타겟이나 몬스터가 유효하지 않으면 실패로 빠져나감
 	if (!IsValid(pTarget) || !IsValid(pMonster))
 	{
 		pController->StopMovement();

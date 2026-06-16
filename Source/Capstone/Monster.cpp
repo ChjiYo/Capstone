@@ -4,7 +4,6 @@ AMonster::AMonster()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	pSpawnPoint = nullptr;
-	bAttack = false;
 
 	fTraceRange = 1000.f;
 	fAttackDist = 200.f;
@@ -49,7 +48,6 @@ void AMonster::Tick(float DeltaTime)
 
 void AMonster::AttackEnd()
 {
-	bAttack = false; 
 	OnAttackEnd.Broadcast();
 
 	for (FDelegateHandle& handle : AttackEndHandle)

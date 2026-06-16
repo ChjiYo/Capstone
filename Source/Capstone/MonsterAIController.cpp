@@ -3,34 +3,49 @@
 #include "BehaviorTree/BehaviorTreeComponent.h"
 #include "BehaviorTree/BlackboardData.h"
 #include "BehaviorTree/BlackboardComponent.h"
+#include "GameplayTagContainer.h"
 #include "Monster.h"
 
 AMonsterAIController::AMonsterAIController()
 {
-	static ConstructorHelpers::FObjectFinder <UBehaviorTree> BTAsset (TEXT("BehaviorTree'/Game/UE_Asset/Character/Monster/BT_Monster.BT_Monster'"));
-	
-	if (BTAsset.Succeeded())
-		m_pBTAsset = BTAsset.Object;
+	m_pBTAsset = nullptr;
 
-	static ConstructorHelpers::FObjectFinder <UBlackboardData> BBAsset(TEXT("BlackboardData'/Game/UE_Asset/Character/Monster/BB_Monster.BB_Monster'"));
+    static ConstructorHelpers::FObjectFinder <UBehaviorTree> BTAsset(TEXT("BehaviorTree'/Game/UE_Asset/Character/Monster/BT_Monster.BT_Monster'"));
+    if (BTAsset.Succeeded())
+    {
+        m_pBTAsset = BTAsset.Object;
+    }
 
-	if (BTAsset.Succeeded())
-		m_pBBAsset = BBAsset.Object;
+    static ConstructorHelpers::FObjectFinder <UBlackboardData> BBAsset(TEXT("BlackboardData'/Game/UE_Asset/Character/Monster/BB_Monster.BB_Monster'"));
+    if (BBAsset.Succeeded())
+    {
+        m_pBBAsset = BBAsset.Object;
+    }
 
 }
 
 void AMonsterAIController::OnPossess(APawn* InPawn)
 {
-	Super::OnPossess(InPawn);
+    Super::OnPossess(InPawn);
 
-	UBlackboardComponent* BBCom = nullptr;
-	if (UseBlackboard(m_pBBAsset, BBCom))
-	{
-		if (!RunBehaviorTree(m_pBTAsset))
-		{
+    AMonster* pMonster = Cast<AMonster>(InPawn);
+    if (IsValid(pMonster))
+    {
+        UBlackboardComponent* BBCom = nullptr;
+        if (UseBlackboard(m_pBBAsset, BBCom))
+        {
+            if (RunBehaviorTree(m_pBTAsset))
+            {
+                UBehaviorTreeComponent* BTComp = Cast<UBehaviorTreeComponent>(BrainComponent);
 
-		}
-	}
+                if (IsValid(BTComp) && IsValid(pMonster->BehaviorTreeAsset))
+                {
+                    FGameplayTag InjectionTag = FGameplayTag::RequestGameplayTag(TEXT("AI.Subtree.Combat"));
+                    BTComp->SetDynamicSubtree(InjectionTag, pMonster->BehaviorTreeAsset);
+                }
+            }
+        }
+    }
 }
 
 void AMonsterAIController::OnUnPossess()

@@ -9,6 +9,7 @@ UMon_NarbashAnim::UMon_NarbashAnim()
 
 	CurrentCombo = 1;
 	NextAttackMax = 3;
+	bIsComboInputOn = true;
 
 	static ConstructorHelpers::FObjectFinder <UAnimMontage> SkillAAssetA(TEXT("AnimMontage'/Game/UE_Asset/Character/Player/Grey/MTG_PyGrey_SkillSlotA.MTG_PyGrey_SkillSlotA'"));
 
@@ -38,7 +39,7 @@ UMon_NarbashAnim::UMon_NarbashAnim()
 		m_pMTGNormalAttack = NormalAttackAsset.Object;
 	}
 
-	bIsComboInputOn = true;
+
 }
 
 void UMon_NarbashAnim::NativeInitializeAnimation()
@@ -49,55 +50,6 @@ void UMon_NarbashAnim::NativeInitializeAnimation()
 void UMon_NarbashAnim::NativeUpdateAnimation(float DeltaSeconds)
 {
 	Super::NativeUpdateAnimation(DeltaSeconds);
-
-	AMon_Narbash* pOnwer = Cast<AMon_Narbash>(TryGetPawnOwner());
-
-	if (IsValid(pOnwer))
-	{
-		UCharacterMovementComponent* pMovement = pOnwer->GetCharacterMovement();
-
-		if (IsValid(pMovement))
-		{
-			IsGround = pMovement->IsMovingOnGround();
-			if (IsGround)
-			{
-				if (pMovement->Velocity.Size() > 0)
-				{
-					if (eAnimType == EBaseAnim::Attack)
-					{
-						InherAttackEndNotify();
-					}
-
-					eAnimType = EBaseAnim::Run;
-					bMoveStop = false;
-				}
-				else
-				{
-					bMoveStop = true;
-				}
-			}
-		}
-	}
-}
-
-void UMon_NarbashAnim::ChangeAnim(EBaseAnim eAnim)
-{
-	eAnimType = eAnim;
-}
-
-void UMon_NarbashAnim::NormalAttack(bool bAttack)
-{
-	//if (!bAttack) return;
-	//
-	//if (!Montage_IsPlaying(m_pMTGNormalAttack))
-	//{
-	//	CurrentCombo = 1;
-	//	Montage_Play(m_pMTGNormalAttack);
-	//	Montage_JumpToSection(FName("Attack1"), m_pMTGNormalAttack);
-	//
-	//	// AI 콤보 결정 로직: 예시로 60% 확률로 다음 콤보를 이어나가도록 예약합니다.
-	//	bIsComboInputOn = (FMath::RandRange(1, 100) <= 60);
-	//}
 }
 
 void UMon_NarbashAnim::SkillSlotA()
@@ -118,30 +70,22 @@ void UMon_NarbashAnim::SkillSlotC()
 		Montage_Play(m_pMTGSkillSlotC);
 }
 
-void UMon_NarbashAnim::AnimNotify_AttackStart()
+void UMon_NarbashAnim::InherAttackStartNotify()
 {
-	//bNextAttackInputEnable = true;
-	//
-	//if (NextAttackIndex + 1 < NextAttackMax)
-	//{
-	//	bNextAttack = true;
-	//}
-	//
 	AMon_Narbash* pOwner = Cast<AMon_Narbash>(TryGetPawnOwner());
 
 	if (IsValid(pOwner))
 		pOwner->EnableWeaponCollision(true);
 }
 
-void UMon_NarbashAnim::AnimNotify_NextAttackEnd()
+void UMon_NarbashAnim::InherNextAttackEndNotify()
 {
+	bIsComboInputOn = (FMath::RandRange(1, 100) <= 60);
 	if (bIsComboInputOn && (CurrentCombo < NextAttackMax))
 	{
 		CurrentCombo++;
 		FName NextSection = *FString::Printf(TEXT("Attack%d"), CurrentCombo);
-		Montage_JumpToSection(NextSection, m_pMTGNormalAttack);
-	
-		bIsComboInputOn = (FMath::RandRange(1, 100) <= 60);
+		Montage_JumpToSection(NextSection, m_pMTGNormalAttack);	
 	}
 	else
 	{
@@ -149,7 +93,7 @@ void UMon_NarbashAnim::AnimNotify_NextAttackEnd()
 	}
 }
 
-void UMon_NarbashAnim::AnimNotify_AttackEnd()
+void UMon_NarbashAnim::InherAttackEndNotify()
 {
 	CurrentCombo = 1;
 	bIsComboInputOn = true;
@@ -157,7 +101,6 @@ void UMon_NarbashAnim::AnimNotify_AttackEnd()
 	AMonster* pOwner = Cast<AMonster>(TryGetPawnOwner());
 	if (IsValid(pOwner))
 	{
-	
 		pOwner->AttackEnd();
 	}
 
@@ -168,7 +111,7 @@ void UMon_NarbashAnim::AnimNotify_AttackEnd()
 	}
 }
 
-void UMon_NarbashAnim::AnimNotify_SkillAStart()
+void UMon_NarbashAnim::InherSkillAStartNotify()
 {
 	ACharacter* pPlayer = UGameplayStatics::GetPlayerCharacter(GetWorld(), 0);
 
@@ -191,26 +134,7 @@ void UMon_NarbashAnim::AnimNotify_SkillAStart()
 			params
 		);
 
-
 		Effect->SetEffectPath("ParticleSystem'/Game/FXVarietyPack/Particles/P_ky_fireStorm.P_ky_fireStorm'",
 			"SoundWave'/Game/UE_Asset/Sounds/Portal_Sound.Portal_Sound'");
 	}
 }
-
-void UMon_NarbashAnim::InherAttackStartNotify()
-{
-
-}
-
-void UMon_NarbashAnim::InherNextAttackEndNotify()
-{
-
-}
-
-void UMon_NarbashAnim::InherAttackEndNotify()
-{
-
-}
-
-void UMon_NarbashAnim::InherSkillAStartNotify()
-{}

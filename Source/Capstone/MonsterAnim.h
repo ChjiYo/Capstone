@@ -11,24 +11,7 @@ class CAPSTONE_API UMonsterAnim : public UCharBaseAnim
 public:
 	UMonsterAnim();
 
-public:
-	void ChangeAnim(EBaseAnim _eAnim)
-	{
-		eAnimType = _eAnim;
-	}
-
-	void AttackReset()
-	{
-		if (NextAttackIndex >= NextAttackMax)
-		{
-
-			bNextAttack = false;
-			bNextAttackInputEnable = false;
-			NextAttackIndex = 0;
-		}
-	}
-
-public:
-	virtual void NormalAttack(bool bAttack) {};
-	
+protected:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimMontage* m_pMTGNormalAttack;
 };

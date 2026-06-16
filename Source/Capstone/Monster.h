@@ -16,6 +16,10 @@ public:
 	~AMonster();
 
 protected:
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI")
+	class UBehaviorTree* BehaviorTreeAsset;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
 	ASpawnPoint* pSpawnPoint;
 
@@ -24,8 +28,6 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
 	float fAttackDist;
-
-	bool bAttack;
 
 	FOnAttackEndDelegate OnAttackEnd;
 	TArray<FDelegateHandle> AttackEndHandle;
@@ -64,23 +66,11 @@ public:
 		return fAttackDist;
 	}
 
-	const bool& GetAttack() const
-	{
-		return bAttack;
-	}
-
 public:
 	void SetSpawnPoint(ASpawnPoint* _Point)
 	{
 		pSpawnPoint = _Point;
 	}
-
-	void SetAttack(bool _bAttack)
-	{
-		bAttack = _bAttack;
-	}
-
-
 
 protected:
 	virtual void BeginPlay() override;
