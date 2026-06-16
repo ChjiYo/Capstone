@@ -29,6 +29,6 @@ public:
 	}
 
 public:
-	virtual void NormalAttack(bool bCombo);
+	virtual void NormalAttack(bool bAttack) {};
 	
 };

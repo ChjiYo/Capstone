@@ -22,6 +22,8 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	UAnimMontage* m_pMTGSkillSlotC;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimMontage* m_pMTGNormalAttack;
 
 protected:
 	virtual void NativeInitializeAnimation();
@@ -29,6 +31,7 @@ protected:
 
 public:
 	void ChangeAnim(EBaseAnim eAnim);
+	virtual void NormalAttack(bool bAttack = true) override;
 
 public:
 	void SkillSlotA();

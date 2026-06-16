@@ -7,8 +7,8 @@ UMon_NarbashAnim::UMon_NarbashAnim()
 	eAnimType = EBaseAnim::Idle;
 	eDir = EDir::Front;
 
+	CurrentCombo = 1;
 	NextAttackMax = 3;
-
 
 	static ConstructorHelpers::FObjectFinder <UAnimMontage> SkillAAssetA(TEXT("AnimMontage'/Game/UE_Asset/Character/Player/Grey/MTG_PyGrey_SkillSlotA.MTG_PyGrey_SkillSlotA'"));
 
@@ -30,6 +30,15 @@ UMon_NarbashAnim::UMon_NarbashAnim()
 	{
 		m_pMTGSkillSlotC = SkillAAssetC.Object;
 	}
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> NormalAttackAsset(TEXT("AnimMontage'/Game/UE_Asset/Character/Monster/Narbash/MTG_Narbash_Attack.MTG_Narbash_Attack'"));
+
+	if (NormalAttackAsset.Succeeded())
+	{
+		m_pMTGNormalAttack = NormalAttackAsset.Object;
+	}
+
+	bIsComboInputOn = true;
 }
 
 void UMon_NarbashAnim::NativeInitializeAnimation()
@@ -76,6 +85,21 @@ void UMon_NarbashAnim::ChangeAnim(EBaseAnim eAnim)
 	eAnimType = eAnim;
 }
 
+void UMon_NarbashAnim::NormalAttack(bool bAttack)
+{
+	//if (!bAttack) return;
+	//
+	//if (!Montage_IsPlaying(m_pMTGNormalAttack))
+	//{
+	//	CurrentCombo = 1;
+	//	Montage_Play(m_pMTGNormalAttack);
+	//	Montage_JumpToSection(FName("Attack1"), m_pMTGNormalAttack);
+	//
+	//	// AI 콤보 결정 로직: 예시로 60% 확률로 다음 콤보를 이어나가도록 예약합니다.
+	//	bIsComboInputOn = (FMath::RandRange(1, 100) <= 60);
+	//}
+}
+
 void UMon_NarbashAnim::SkillSlotA()
 {
 	if (!Montage_IsPlaying(m_pMTGSkillSlotA))
@@ -96,13 +120,13 @@ void UMon_NarbashAnim::SkillSlotC()
 
 void UMon_NarbashAnim::AnimNotify_AttackStart()
 {
-	bNextAttackInputEnable = true;
-
-	if (NextAttackIndex + 1 < NextAttackMax)
-	{
-		bNextAttack = true;
-	}
-
+	//bNextAttackInputEnable = true;
+	//
+	//if (NextAttackIndex + 1 < NextAttackMax)
+	//{
+	//	bNextAttack = true;
+	//}
+	//
 	AMon_Narbash* pOwner = Cast<AMon_Narbash>(TryGetPawnOwner());
 
 	if (IsValid(pOwner))
@@ -111,31 +135,33 @@ void UMon_NarbashAnim::AnimNotify_AttackStart()
 
 void UMon_NarbashAnim::AnimNotify_NextAttackEnd()
 {
-	bNextAttackInputEnable = false;
-
-	if (bNextAttack)
+	if (bIsComboInputOn && (CurrentCombo < NextAttackMax))
 	{
-		bNextAttack = false;
-
-		++NextAttackIndex;
+		CurrentCombo++;
+		FName NextSection = *FString::Printf(TEXT("Attack%d"), CurrentCombo);
+		Montage_JumpToSection(NextSection, m_pMTGNormalAttack);
+	
+		bIsComboInputOn = (FMath::RandRange(1, 100) <= 60);
+	}
+	else
+	{
+		bIsComboInputOn = false;
 	}
 }
 
 void UMon_NarbashAnim::AnimNotify_AttackEnd()
 {
-	bNextAttack = false;
-	bNextAttackInputEnable = false;
-	NextAttackIndex = 0;
+	CurrentCombo = 1;
+	bIsComboInputOn = true;
 
 	AMonster* pOwner = Cast<AMonster>(TryGetPawnOwner());
-	AMon_Narbash* pNarbashOwner = Cast<AMon_Narbash>(TryGetPawnOwner());
-
 	if (IsValid(pOwner))
 	{
+	
 		pOwner->AttackEnd();
-		
 	}
 
+	AMon_Narbash* pNarbashOwner = Cast<AMon_Narbash>(TryGetPawnOwner());
 	if (IsValid(pNarbashOwner))
 	{
 		pNarbashOwner->EnableWeaponCollision(false);

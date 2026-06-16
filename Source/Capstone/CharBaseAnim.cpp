@@ -64,14 +64,14 @@ void UCharBaseAnim::NativeUpdateAnimation(float DeltaSeconds)
 
 void UCharBaseAnim::NormalAttack()
 {
-	eAnimType = EBaseAnim::Attack;
-	
-	if (bNextAttackInputEnable)
-	{
-		bNextAttack = true;
-	}
-		
-	bNextAttackInputEnable = true;
+	//eAnimType = EBaseAnim::Attack;
+	//
+	//if (bNextAttackInputEnable)
+	//{
+	//	bNextAttack = true;
+	//}
+	//	
+	//bNextAttackInputEnable = true;
 	
 }
 

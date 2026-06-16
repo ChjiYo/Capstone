@@ -47,11 +47,15 @@ protected:
 	bool bNextAttackInputEnable;
 
 protected:
+	int32 CurrentCombo;
+	bool bIsComboInputOn;
+
+protected:
 	virtual void NativeInitializeAnimation();
 	virtual void NativeUpdateAnimation(float DeltaSeconds);
 
 public:
-	void NormalAttack();
+	virtual void NormalAttack();
 	void JumpKey();
 
 public:

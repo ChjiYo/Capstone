@@ -29,24 +29,17 @@ EBTNodeResult::Type UBTTask_Attack::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 	if (!IsValid(pMonsterAnim)) return EBTNodeResult::Failed;
 
 	pMonster->AddAttackEndDelegate<UBTTask_Attack>(this, &UBTTask_Attack::AttackEnd);
-
-	if (PlayType == EAttackPlayType::UseAnimState)
+		
+	if (IsValid(AttackMontage))
 	{
-		pMonsterAnim->ChangeAnim(AttackAnimState);
-		pMonsterAnim->NormalAttack(true);
+		pMonsterAnim->Montage_Play(AttackMontage, 1.0f);
 	}
-	else if (PlayType == EAttackPlayType::UseMontage)
+	else
 	{
-		if (IsValid(AttackMontage))
-		{
-			pMonsterAnim->Montage_Play(AttackMontage, 1.0f);
-		}
-		else
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Montage is missing on BT Node!"));
+		UE_LOG(LogTemp, Warning, TEXT("Montage is missing on BT Node!"));
 			return EBTNodeResult::Failed;
-		}
 	}
+	
 
 	pMonster->SetAttack(true);
 	bIsAttacking = true;

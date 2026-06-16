@@ -7,6 +7,8 @@ UPy_GreyAnim::UPy_GreyAnim()
 	eDir = EDir::Front;
 
 	NextAttackMax = 4;
+	CurrentCombo = 0;
+	bIsComboInputOn = false;
 
 	static ConstructorHelpers::FObjectFinder <UAnimMontage> SkillAAssetA(TEXT("AnimMontage'/Game/UE_Asset/Character/Player/Grey/MTG_PyGrey_SkillSlotA.MTG_PyGrey_SkillSlotA'"));
 
@@ -30,7 +32,12 @@ UPy_GreyAnim::UPy_GreyAnim()
 	}
 
 
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> NormalAttackAsset(TEXT("AnimMontage'/Game/UE_Asset/Character/Player/Grey/MTG_PyGrey_Attack.MTG_PyGrey_Attack'"));
 
+	if (NormalAttackAsset.Succeeded())
+	{
+		m_pMTGNormalAttack = NormalAttackAsset.Object;
+	}
 
 }
 
@@ -62,6 +69,22 @@ void UPy_GreyAnim::SkillSlotC()
 		Montage_Play(m_pMTGSkillSlotC);
 }
 
+void UPy_GreyAnim::NormalAttack()
+{
+	if (!Montage_IsPlaying(m_pMTGNormalAttack))
+	{
+		CurrentCombo = 1;
+		bIsComboInputOn = false;
+
+		Montage_Play(m_pMTGNormalAttack);
+		Montage_JumpToSection(FName("Attack1"), m_pMTGNormalAttack);
+	}
+	else
+	{
+		bIsComboInputOn = true;
+	}
+}
+
 void UPy_GreyAnim::InherMoveStopNotify()
 {
 }
@@ -76,6 +99,15 @@ void UPy_GreyAnim::InherAttackStartNotify()
 
 void UPy_GreyAnim::InherNextAttackEndNotify()
 {
+	if (bIsComboInputOn && CurrentCombo < NextAttackMax)
+	{
+		bIsComboInputOn = false;
+		CurrentCombo++;         
+
+		FName NextSection = *FString::Printf(TEXT("Attack%d"), CurrentCombo);
+
+		Montage_JumpToSection(NextSection, m_pMTGNormalAttack);
+	}
 }
 
 void UPy_GreyAnim::InherAttackEndNotify()
@@ -88,4 +120,6 @@ void UPy_GreyAnim::InherAttackEndNotify()
 
 void UPy_GreyAnim::InherReturnIdleNotify()
 {
+	CurrentCombo = 0;
+	bIsComboInputOn = false;
 }
