@@ -24,7 +24,7 @@ void ACharBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 float ACharBase::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
 
-	m_tInfo.iHp -= DamageAmount;
+	m_tInfo.iHp -= Super:: TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 
 	LOG(TEXT("Hit Character : %s"), *CharacterName);
 	LOG(TEXT("HP : %d"), m_tInfo.iHp);

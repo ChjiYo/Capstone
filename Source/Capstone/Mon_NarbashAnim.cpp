@@ -11,35 +11,12 @@ UMon_NarbashAnim::UMon_NarbashAnim()
 	NextAttackMax = 3;
 	bIsComboInputOn = true;
 
-	static ConstructorHelpers::FObjectFinder <UAnimMontage> SkillAAssetA(TEXT("AnimMontage'/Game/UE_Asset/Character/Player/Grey/MTG_PyGrey_SkillSlotA.MTG_PyGrey_SkillSlotA'"));
-
-	if (SkillAAssetA.Succeeded())
-	{
-		m_pMTGSkillSlotA = SkillAAssetA.Object;
-	}
-
-	static ConstructorHelpers::FObjectFinder <UAnimMontage> SkillAAssetB(TEXT("AnimMontage'/Game/UE_Asset/Character/Player/Grey/MTG_PyGrey_SkillSlotB.MTG_PyGrey_SkillSlotB'"));
-
-	if (SkillAAssetB.Succeeded())
-	{
-		m_pMTGSkillSlotB = SkillAAssetB.Object;
-	}
-
-	static ConstructorHelpers::FObjectFinder <UAnimMontage> SkillAAssetC(TEXT("AnimMontage'/Game/UE_Asset/Character/Player/Grey/MTG_PyGrey_SkillSlotC.MTG_PyGrey_SkillSlotC'"));
-
-	if (SkillAAssetC.Succeeded())
-	{
-		m_pMTGSkillSlotC = SkillAAssetC.Object;
-	}
-
 	static ConstructorHelpers::FObjectFinder<UAnimMontage> NormalAttackAsset(TEXT("AnimMontage'/Game/UE_Asset/Character/Monster/Narbash/MTG_Narbash_Attack.MTG_Narbash_Attack'"));
 
 	if (NormalAttackAsset.Succeeded())
 	{
 		m_pMTGNormalAttack = NormalAttackAsset.Object;
 	}
-
-
 }
 
 void UMon_NarbashAnim::NativeInitializeAnimation()
@@ -50,24 +27,6 @@ void UMon_NarbashAnim::NativeInitializeAnimation()
 void UMon_NarbashAnim::NativeUpdateAnimation(float DeltaSeconds)
 {
 	Super::NativeUpdateAnimation(DeltaSeconds);
-}
-
-void UMon_NarbashAnim::SkillSlotA()
-{
-	if (!Montage_IsPlaying(m_pMTGSkillSlotA))
-			Montage_Play(m_pMTGSkillSlotA);
-}
-
-void UMon_NarbashAnim::SkillSlotB()
-{
-	if (!Montage_IsPlaying(m_pMTGSkillSlotB))
-		Montage_Play(m_pMTGSkillSlotB);
-}
-
-void UMon_NarbashAnim::SkillSlotC()
-{
-	if (!Montage_IsPlaying(m_pMTGSkillSlotC))
-		Montage_Play(m_pMTGSkillSlotC);
 }
 
 void UMon_NarbashAnim::InherAttackStartNotify()
@@ -111,30 +70,44 @@ void UMon_NarbashAnim::InherAttackEndNotify()
 	}
 }
 
-void UMon_NarbashAnim::InherSkillAStartNotify()
+/*void UMon_NarbashAnim::InherSkillAStartNotify()
 {
+	// 1. 에디터에서 블루프린트가 제대로 할당되었는지 안전 검사
+	if (!FireStormClass)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("FireStormClass is empty! Please assign it in the AnimBlueprint."));
+		return;
+	}m_pMTGSkillSlotC
+
 	ACharacter* pPlayer = UGameplayStatics::GetPlayerCharacter(GetWorld(), 0);
 
-	if (IsValid(pPlayer))
+	// 2. 이 애니메이션을 실행 중인 몬스터(자신)를 가져옵니다.
+	APawn* MonsterOwner = TryGetPawnOwner();
+
+	if (IsValid(pPlayer) && IsValid(MonsterOwner))
 	{
 		FVector PlayerLocation = pPlayer->GetActorLocation();
-
 		float CapsuleHalfHeight = pPlayer->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
-
 		FVector vImpactPoint = PlayerLocation - FVector(0.f, 0.f, CapsuleHalfHeight);
-
-		FVector vImpactNormal = FVector::UpVector;
 
 		FActorSpawnParameters params;
 		params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
-		AEffectDestroy* Effect = GetWorld()->SpawnActor<AEffectDestroy>(
+		// 3. ★핵심: 이펙트를 깐 주인을 몬스터로 지정 (OnOverlapBegin에서 피아 식별용)
+		params.Instigator = MonsterOwner;
+
+		// 4. 경로를 적는 대신, 에디터에서 할당한 FireStormClass(블루프린트)를 스폰합니다.
+		AEffect_Dot* Effect = GetWorld()->SpawnActor<AEffect_DoT>(
+			FireStormClass,
 			vImpactPoint,
 			FRotator::ZeroRotator,
 			params
 		);
 
-		Effect->SetEffectPath("ParticleSystem'/Game/FXVarietyPack/Particles/P_ky_fireStorm.P_ky_fireStorm'",
-			"SoundWave'/Game/UE_Asset/Sounds/Portal_Sound.Portal_Sound'");
-	}
-}
+		// 5. 앞서 만든 초기화 함수 호출 (파티클, 사운드 재생)
+		if (IsValid(Effect))
+		{
+			Effect->InitializeEffect();
+		}
+	}*/
+//}

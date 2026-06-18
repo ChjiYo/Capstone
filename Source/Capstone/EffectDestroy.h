@@ -16,6 +16,12 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	UParticleSystemComponent* Particle;
 
+	UPROPERTY(EditAnywhere, Category = "Effect")
+	UParticleSystem* ParticleTemplate;
+
+	UPROPERTY(EditAnywhere, Category = "Effect")
+	USoundBase* SoundTemplate;
+
 public:
 	static void SpawnVFX(
 		USceneComponent* AttachComp,
@@ -40,4 +46,6 @@ public:
 	UFUNCTION()
 	void Finish(UParticleSystemComponent* Component);
 
+public:
+	virtual void InitializeEffect() {};
 };

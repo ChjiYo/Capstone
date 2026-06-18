@@ -11,29 +11,13 @@ class CAPSTONE_API UMon_NarbashAnim : public UMonsterAnim
 public:
 	UMon_NarbashAnim();
 
-
-protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	UAnimMontage* m_pMTGSkillSlotA;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	UAnimMontage* m_pMTGSkillSlotB;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	UAnimMontage* m_pMTGSkillSlotC;
-
 protected:
 	virtual void NativeInitializeAnimation();
 	virtual void NativeUpdateAnimation(float DeltaSeconds);
-
-public:
-	void SkillSlotA();
-	void SkillSlotB();
-	void SkillSlotC();
 
 protected:
 	virtual void InherAttackStartNotify();
 	virtual void InherNextAttackEndNotify();
 	virtual void InherAttackEndNotify();
-	virtual void InherSkillAStartNotify();
+	//virtual void InherSkillAStartNotify();
 };
