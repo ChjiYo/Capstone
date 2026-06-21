@@ -19,5 +19,4 @@ protected:
 	virtual void InherAttackStartNotify();
 	virtual void InherNextAttackEndNotify();
 	virtual void InherAttackEndNotify();
-	//virtual void InherSkillAStartNotify();
 };
