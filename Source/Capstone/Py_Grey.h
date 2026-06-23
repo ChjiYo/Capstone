@@ -34,6 +34,7 @@ private:
 	void MoveFront(float _fScale);
 	void MoveSide(float _fScale);
 	void RotationZ(float _fScale);
+	void RotationX(float _fScale);
 
 private:
 	void JumpKey();

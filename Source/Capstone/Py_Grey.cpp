@@ -8,7 +8,9 @@ APy_Grey::APy_Grey()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	m_tInfo = { 100000, 10 };
+	m_tInfo.iMaxHp = 10000;
+	m_tInfo.iHp = 10000;
+	m_tInfo.iAttack = 10;
 
 	pArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("Arm"));
 	pCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
@@ -61,6 +63,8 @@ void  APy_Grey::SetupPlayerInputComponent(class UInputComponent* PlayerInputComp
 	PlayerInputComponent->BindAxis(TEXT("MoveFront"), this, &APy_Grey::MoveFront);
 	PlayerInputComponent->BindAxis(TEXT("MoveSide"), this, &APy_Grey::MoveSide);
 	PlayerInputComponent->BindAxis(TEXT("RotationZ"), this, &APy_Grey::RotationZ);
+	PlayerInputComponent->BindAxis(TEXT("RotationX"), this, &APy_Grey::RotationX);
+	
 
 	PlayerInputComponent->BindAction(TEXT("JumpKey"),EInputEvent::IE_Pressed,this, &APy_Grey::JumpKey);
 	PlayerInputComponent->BindAction(TEXT("NormalAttack"), EInputEvent::IE_Pressed, this, &APy_Grey::NormalAttack);
@@ -104,6 +108,11 @@ void APy_Grey::MoveSide(float _fScale)
 void APy_Grey::RotationZ(float _fScale)
 {
 	AddControllerYawInput(_fScale);
+}
+
+void APy_Grey::RotationX(float _fScale)
+{
+	AddControllerPitchInput(_fScale);
 }
 
 void APy_Grey::JumpKey()

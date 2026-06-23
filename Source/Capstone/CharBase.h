@@ -6,6 +6,7 @@
 
 struct FINFO
 {
+	int iMaxHp;
 	int iHp;
 	int iAttack;
 };

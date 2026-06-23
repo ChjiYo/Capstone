@@ -16,4 +16,8 @@ protected:
 protected:
 	virtual void NativeConstruct();
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime);
+
+public:
+	UFUNCTION(BlueprintCallable)
+	void  SetHp(float fPercent);
 };

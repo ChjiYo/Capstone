@@ -29,6 +29,7 @@ float ACharBase::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent,
 	LOG(TEXT("Hit Character : %s"), *CharacterName);
 	LOG(TEXT("HP : %d"), m_tInfo.iHp);
 
+
 	if (m_tInfo.iHp <= 0)
 	{
 		LOG(TEXT("Death"));

@@ -23,11 +23,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
 	ASpawnPoint* pSpawnPoint;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
+	class UWidgetComponent* HpBarComponent;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
 	float fTraceRange;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
 	float fAttackDist;
+
+	class UUI_HpBar* HpBarWidget;
 
 	FOnAttackEndDelegate OnAttackEnd;
 	TArray<FDelegateHandle> AttackEndHandle;
@@ -77,6 +82,9 @@ protected:
 
 public:	
 	virtual void Tick(float DeltaTime) override;
+
+protected:
+	float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser);
 
 public:
 	void AttackEnd();
