@@ -9,7 +9,8 @@ enum class EEffectTarget : uint8
 {
 	PlayerUnder UMETA(DisplayName = "플레이어 발 밑"),
 	CasterUnder UMETA(DisplayName = "시전자(자신) 발 밑"),
-	CasterSocket UMETA(DisplayName = "시전자의 특정 소켓(무기 등)")
+	CasterSocket UMETA(DisplayName = "시전자의 특정 소켓(무기 등)"),
+	WeaponSocket UMETA(DisplayName = "시전자의 Weapon 클래스의 소켓")
 };
 
 UCLASS()
@@ -27,7 +28,7 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Effect")
 	EEffectTarget TargetType;
 
-	UPROPERTY(EditAnywhere, Category = "Effect", meta = (EditCondition = "TargetType == EEffectTarget::CasterSocket"))
+	UPROPERTY(EditAnywhere, Category = "Effect", meta = (EditCondition = "TargetType == EEffectTarget::CasterSocket || TargetType == EEffectTarget::WeaponSocket"))
 	FName SocketName;
 
 	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference) override;

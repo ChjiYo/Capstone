@@ -36,7 +36,7 @@ void UBTTask_TargetMove::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Node
 
 	AMonsterAIController* pController = Cast<AMonsterAIController>(OwnerComp.GetAIOwner());
 	ACharacter* pTarget = pController->GetTarget();
-	AMonster* pMonster = Cast<AMonster>(pController->GetPawn()); // 몬스터 위치를 알기 위해 추가
+	AMonster* pMonster = Cast<AMonster>(pController->GetPawn());
 
 	if (!IsValid(pTarget) || !IsValid(pMonster))
 	{
@@ -45,7 +45,6 @@ void UBTTask_TargetMove::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Node
 		return;
 	}
 
-	// 2. 몬스터와 타겟 사이의 거리를 계산 (Z축 무시)
 	FVector vAILoc = pMonster->GetActorLocation();
 	FVector vTargetLoc = pTarget->GetActorLocation();
 	vAILoc.Z = 0.f;
@@ -53,18 +52,14 @@ void UBTTask_TargetMove::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Node
 
 	float fDist = FVector::Distance(vAILoc, vTargetLoc);
 
-	// 3. 공격 가능한 거리(AcceptanceRadius) 안으로 들어왔다면 이동 종료!
-	// (앞서 AttackDist에서 MaxAttackDist를 200.f로 하셨으니 동일하게 맞추는 것이 좋습니다)
-	float AcceptanceRadius = 200.f;
-
-	if (fDist <= AcceptanceRadius)
+	float fAttackDist = pMonster->GetAttackDist();
+	if (fDist <= fAttackDist)
 	{
-		pController->StopMovement(); // 제자리에 멈춤
-		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded); // ⭐️ 성공 처리 후 태스크 탈출!
+		pController->StopMovement();
+		FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded); 
 		return;
 	}
 
-	// 4. 아직 거리가 멀다면 계속해서 타겟을 향해 이동
 	UAIBlueprintHelperLibrary::SimpleMoveToActor(pController, pTarget);
 
 }

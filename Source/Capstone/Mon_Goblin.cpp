@@ -6,28 +6,14 @@ AMon_Goblin::AMon_Goblin()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	m_tInfo = { 100, 10 };
-
-	static ConstructorHelpers::FObjectFinder<USkeletalMesh> MeshAsset(TEXT("Blueprint'/Game/UE_Asset/Character/Monster/Goblin/Sword/BP_Goblin.BP_Goblin'"));
-
-	if (MeshAsset.Succeeded())
-		GetMesh()->SetSkeletalMesh(MeshAsset.Object);
-
-	static ConstructorHelpers::FClassFinder<UMon_GoblinAnim> AnimAsset(TEXT("AnimBlueprint'/Game/UE_Asset/Character/Monster/Goblin/Sword/AP_Goblin.AP_Goblin_C'"));
-
-	if (AnimAsset.Succeeded())
-	{
-		GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
-		GetMesh()->SetAnimInstanceClass(AnimAsset.Class);
-	}
-
+	m_tInfo.iMaxHp = 100;
+	m_tInfo.iHp = 100;
+	m_tInfo.iAttack = 10;
+	
 	GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -70.f));
 	GetMesh()->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
 
 	m_tRigging.m_pRightWeapon = nullptr;
-
-	fTraceRange = 1000.f;
-	fAttackDist = 150.f;
 
 	CharacterName = TEXT("Goblin");
 }
@@ -36,16 +22,26 @@ void AMon_Goblin::BeginPlay()
 {
 	Super::BeginPlay();
 
-	pGoblinAnim = Cast<UMon_GoblinAnim>(GetMesh()->GetAnimInstance());
+	if (GoblinMeshAsset)
+	{
+		GetMesh()->SetSkeletalMesh(GoblinMeshAsset);
+	}
+
+	if (GoblinAnimClass)
+	{
+		GetMesh()->SetAnimationMode(EAnimationMode::AnimationBlueprint);
+		GetMesh()->SetAnimInstanceClass(GoblinAnimClass);
+	}
 
 	FActorSpawnParameters params;
 	params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-
 	m_tRigging.m_pRightWeapon = GetWorld()->SpawnActor<AWeapon>(FVector::ZeroVector, FRotator::ZeroRotator, params);
-
 	m_tRigging.m_pRightWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, TEXT("Damage_Socket"));
 
-	m_tRigging.m_pRightWeapon->LoadMesh(TEXT("SkeletalMesh'/Game/Goblin/Mesh/Weapons/SK_Sword.SK_Sword'"));
+	if (!WeaponMeshPath.IsEmpty())
+	{
+		m_tRigging.m_pRightWeapon->LoadMesh(*WeaponMeshPath);
+	}
 }
 
 void AMon_Goblin::Tick(float DeltaTime)

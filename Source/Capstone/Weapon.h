@@ -44,6 +44,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon Data")
 	FWeaponData WeaponInfo;
 
+public:
+	FORCEINLINE class USkeletalMeshComponent* GetWeaponMesh() const { return Mesh; }
+
 protected:
 	virtual void BeginPlay() override;
 

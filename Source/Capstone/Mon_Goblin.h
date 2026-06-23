@@ -17,6 +17,18 @@ protected:
 	UPROPERTY(Category = Collision, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	UBoxComponent* WeaponBox;
 
+	UPROPERTY(Category = Collision, VisibleAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
+	FString strWeapon;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster Setup")
+	USkeletalMesh* GoblinMeshAsset;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster Setup")
+	TSubclassOf<UAnimInstance> GoblinAnimClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster Setup")
+	FString WeaponMeshPath;
+
 protected:
 	virtual void BeginPlay() override;
 

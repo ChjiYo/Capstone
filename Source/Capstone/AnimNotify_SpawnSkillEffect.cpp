@@ -1,5 +1,7 @@
 ﻿#include "AnimNotify_SpawnSkillEffect.h"
 #include "EffectDestroy.h"
+#include "Weapon.h"
+#include "CharBase.h"
 
 UAnimNotify_SpawnSkillEffect::UAnimNotify_SpawnSkillEffect()
 {
@@ -8,13 +10,14 @@ UAnimNotify_SpawnSkillEffect::UAnimNotify_SpawnSkillEffect()
 
 void UAnimNotify_SpawnSkillEffect::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
 {
-    Super::Notify(MeshComp, Animation, EventReference); // Super 호출 필수
+    Super::Notify(MeshComp, Animation, EventReference);
 
     if (!MeshComp || !EffectToSpawn) return;
 
     UWorld* World = MeshComp->GetWorld();
     AActor* Owner = MeshComp->GetOwner();
     FVector SpawnLocation = FVector::ZeroVector;
+    FRotator SpawnRotation = FRotator::ZeroRotator;
 
     switch (TargetType)
     {
@@ -26,6 +29,7 @@ void UAnimNotify_SpawnSkillEffect::Notify(USkeletalMeshComponent* MeshComp, UAni
                   float HalfHeight = pPlayer->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
                   SpawnLocation = pPlayer->GetActorLocation() - FVector(0, 0, HalfHeight);
               }
+
               break;
           }
           case EEffectTarget::CasterUnder:
@@ -50,6 +54,36 @@ void UAnimNotify_SpawnSkillEffect::Notify(USkeletalMeshComponent* MeshComp, UAni
               SpawnLocation = MeshComp->GetSocketLocation(SocketName);
               break;
           }
+
+          case EEffectTarget::WeaponSocket:
+          {
+             if (IsValid(Owner))
+            {
+                TArray<AActor*> AttachedActors;
+                Owner->GetAttachedActors(AttachedActors);
+            
+                AWeapon* FoundWeapon = nullptr;
+                SpawnRotation = Owner->GetActorRotation();
+                for (AActor* AttachedActor : AttachedActors)
+                {
+                    FoundWeapon = Cast<AWeapon>(AttachedActor);
+                    if (FoundWeapon)
+                    {
+                        break; 
+                    }
+                }
+            
+                if (FoundWeapon && FoundWeapon->GetWeaponMesh())
+                {
+                    SpawnLocation = FoundWeapon->GetWeaponMesh()->GetSocketLocation(SocketName);
+                }
+                else
+                {
+                    SpawnLocation = MeshComp->GetSocketLocation(SocketName);
+                }
+            }
+              break;
+          }
     }
 
     if (IsValid(Owner))
@@ -58,7 +92,7 @@ void UAnimNotify_SpawnSkillEffect::Notify(USkeletalMeshComponent* MeshComp, UAni
         params.Instigator = Cast<APawn>(Owner);
         params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
-        AEffectDestroy* Effect = World->SpawnActor<AEffectDestroy>(EffectToSpawn, SpawnLocation, FRotator::ZeroRotator, params);
+        AEffectDestroy* Effect = World->SpawnActor<AEffectDestroy>(EffectToSpawn, SpawnLocation, SpawnRotation, params);
 
         if (IsValid(Effect))
         {
