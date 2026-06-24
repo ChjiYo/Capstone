@@ -1,5 +1,5 @@
 #include "Effect_Projectile.h"
-
+#include "NiagaraComponent.h"
 
 AEffect_Projectile::AEffect_Projectile()
 {
@@ -32,26 +32,22 @@ void AEffect_Projectile::BeginPlay()
 	Super::BeginPlay();
 
 	CollisionSphere->OnComponentBeginOverlap.AddDynamic(this, &AEffect_Projectile::OnOverlapBegin);
+
+	if (MuzzleTemplate)
+	{
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), MuzzleTemplate, GetActorLocation(), GetActorRotation());
+	}
 }
 
 void AEffect_Projectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (OtherActor && OtherActor != this && OtherActor != GetInstigator())
+	if (OtherActor && OtherActor != this && OtherActor != GetInstigator() && OtherActor->GetOwner() != GetInstigator())
 	{
-		if (OtherActor->IsA(ACharacter::StaticClass()))
+		if (ImpactTemplate)
 		{
-			UGameplayStatics::ApplyDamage(OtherActor, ProjectileDamage, GetInstigatorController(), this, UDamageType::StaticClass());
+			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ImpactTemplate, GetActorLocation(), GetActorRotation());
 		}
 
-		if (ParticleTemplate)
-		{
-			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ParticleTemplate, GetActorLocation(), GetActorRotation());
-		}
-		if (SoundTemplate)
-		{
-			UGameplayStatics::PlaySoundAtLocation(this, SoundTemplate, GetActorLocation());
-		}
-
-		Destroy();
+		
 	}
 }

@@ -37,7 +37,4 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Damage")
 	float DamageInterval = 1.0f;
 
-
-public:
-	virtual void InitializeEffect() override;
 };

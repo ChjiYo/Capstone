@@ -47,5 +47,5 @@ public:
 	void Finish(UParticleSystemComponent* Component);
 
 public:
-	virtual void InitializeEffect() {};
+	virtual void InitializeEffect();
 };

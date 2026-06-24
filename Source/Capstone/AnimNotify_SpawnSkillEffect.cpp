@@ -63,7 +63,7 @@ void UAnimNotify_SpawnSkillEffect::Notify(USkeletalMeshComponent* MeshComp, UAni
                 Owner->GetAttachedActors(AttachedActors);
             
                 AWeapon* FoundWeapon = nullptr;
-                SpawnRotation = Owner->GetActorRotation();
+                
                 for (AActor* AttachedActor : AttachedActors)
                 {
                     FoundWeapon = Cast<AWeapon>(AttachedActor);
@@ -76,10 +76,12 @@ void UAnimNotify_SpawnSkillEffect::Notify(USkeletalMeshComponent* MeshComp, UAni
                 if (FoundWeapon && FoundWeapon->GetWeaponMesh())
                 {
                     SpawnLocation = FoundWeapon->GetWeaponMesh()->GetSocketLocation(SocketName);
+                    SpawnRotation = FoundWeapon->GetWeaponMesh()->GetSocketRotation(SocketName);
                 }
                 else
                 {
                     SpawnLocation = MeshComp->GetSocketLocation(SocketName);
+                    SpawnRotation = MeshComp->GetSocketRotation(SocketName);
                 }
             }
               break;

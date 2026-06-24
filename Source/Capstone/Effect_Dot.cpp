@@ -30,18 +30,7 @@ void AEffect_Dot::BeginPlay()
 	GetWorld()->GetTimerManager().SetTimer(DamageTimerHandle, this, &AEffect_Dot::ApplyDamageOverTime, DamageInterval, true);
 }
 
-void AEffect_Dot::InitializeEffect()
-{
-	if (ParticleTemplate)
-	{
-		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ParticleTemplate, GetActorLocation());
-	}
 
-	if (SoundTemplate)
-	{
-		UGameplayStatics::PlaySoundAtLocation(this, SoundTemplate, GetActorLocation());
-	}
-}
 
 
 void AEffect_Dot::OnOverlapBegin(UPrimitiveComponent * OverlappedComp, AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)

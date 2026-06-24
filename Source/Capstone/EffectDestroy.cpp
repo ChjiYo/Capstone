@@ -9,7 +9,7 @@ AEffectDestroy::AEffectDestroy()
 
 	Particle = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("Particle"));
 
-	SetRootComponent(Particle);
+    Particle->SetupAttachment(RootComponent);
 }
 
 void AEffectDestroy::SpawnVFX(USceneComponent* AttachComp, FName SocketName, const FString& strPath, const FString& strSoundPath, float fDuration)
@@ -104,3 +104,17 @@ void AEffectDestroy::Finish(UParticleSystemComponent* Component)
 	Destroy();
 }
 
+void AEffectDestroy::InitializeEffect()
+{
+
+
+    if (ParticleTemplate)
+    {
+        UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ParticleTemplate, GetActorLocation(), GetActorRotation());
+    }
+
+    if (SoundTemplate)
+    {
+        UGameplayStatics::PlaySoundAtLocation(this, SoundTemplate, GetActorLocation());
+    }
+}
