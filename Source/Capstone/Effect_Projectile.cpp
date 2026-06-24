@@ -24,16 +24,14 @@ void AEffect_Projectile::BeginPlay()
     CollisionSphere->SetCollisionProfileName(CollisionType);
  
 
-    AActor* Player =
-        UGameplayStatics::GetPlayerCharacter(GetWorld(), 0);
+    AActor* Player =  UGameplayStatics::GetPlayerCharacter(GetWorld(), 0);
 
     if (Player)
     {
         FVector Direction =
             (Player->GetActorLocation() - GetActorLocation()).GetSafeNormal();
 
-        ProjectileMovement->Velocity =
-            Direction * ProjectileMovement->InitialSpeed;
+        ProjectileMovement->Velocity =  Direction * ProjectileMovement->InitialSpeed;
     }
 }
 

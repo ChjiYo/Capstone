@@ -16,7 +16,8 @@ AEffectDestroy::AEffectDestroy()
 
 void AEffectDestroy::SpawnVFX(USceneComponent* AttachComp, FName SocketName, UNiagaraSystem* NiagaraAsset, USoundBase* SoundAsset, float fDuration)
 {
-    if (!IsValid(AttachComp)) return;
+    if (!IsValid(AttachComp)) 
+        return;
 
     if (NiagaraAsset)
     {
@@ -83,11 +84,6 @@ void AEffectDestroy::Finish(UParticleSystemComponent* Component)
 }
 
 void AEffectDestroy::InitializeEffect()
-{
-    if (NiagaraTemplate)
-    {
-        NiagaraComp->SetAsset(NiagaraTemplate);
-        NiagaraComp->Activate(true);
-    }
-
+{   
+    SpawnVFX(GetRootComponent(), NAME_None, NiagaraTemplate, SoundTemplate);
 }
