@@ -137,16 +137,16 @@ void APy_Grey::SkillSlotA()
 
 void APy_Grey::SkillSlotB()
 {
-	if (IsValid(pGreyAnim))
-	{
-		pGreyAnim->SkillSlotB();
-		AEffectDestroy::SpawnVFX(
-			GetRootComponent(),
-			NAME_None,
-			TEXT("NiagaraSystem'/Game/MegaMagicVFXBundle/VFX/MagicShieldsVFX/VFX/DefaultVersions/AquaShield/Systems/N_AquaShield.N_AquaShield'"),
-			TEXT("SoundWave'/Game/UE_Asset/Sounds/AquaShield.AquaShield'"),
-			3.f);
-	}
+	//if (IsValid(pGreyAnim))
+	//{
+	//	pGreyAnim->SkillSlotB();
+	//	AEffectDestroy::SpawnVFX(
+	//		GetRootComponent(),
+	//		NAME_None,
+	//		TEXT("NiagaraSystem'/Game/MegaMagicVFXBundle/VFX/MagicShieldsVFX/VFX/DefaultVersions/AquaShield/Systems/N_AquaShield.N_AquaShield'"),
+	//		TEXT("SoundWave'/Game/UE_Asset/Sounds/AquaShield.AquaShield'"),
+	//		3.f);
+	//}
 }
 
 void APy_Grey::SkillSlotC()

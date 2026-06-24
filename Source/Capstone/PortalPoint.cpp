@@ -17,11 +17,11 @@ void APortalPoint::BeginPlay()
 {
 	Super::BeginPlay();
 
-	AEffectDestroy::SpawnVFX(
-		GetRootComponent(),
-		NAME_None,
-		TEXT("NiagaraSystem'/Game/PortalSystem/FX/NS_Portal_02.NS_Portal_02'"),
-		TEXT("SoundWave'/Game/UE_Asset/Sounds/Portal_Sound.Portal_Sound'"));
+	//AEffectDestroy::SpawnVFX(
+	//	GetRootComponent(),
+	//	NAME_None,
+	//	TEXT("NiagaraSystem'/Game/PortalSystem/FX/NS_Portal_02.NS_Portal_02'"),
+	//	TEXT("SoundWave'/Game/UE_Asset/Sounds/Portal_Sound.Portal_Sound'"));
 	
 }
 

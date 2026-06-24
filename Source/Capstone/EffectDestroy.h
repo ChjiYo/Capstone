@@ -1,8 +1,11 @@
 ﻿#pragma once
 
 #include "GameInfo.h"
+#include "NiagaraSystem.h"
+#include "NiagaraComponent.h"
 #include "GameFramework/Actor.h"
 #include "EffectDestroy.generated.h"
+
 
 UCLASS()
 class CAPSTONE_API AEffectDestroy : public AActor
@@ -13,28 +16,22 @@ public:
 	AEffectDestroy();
 
 protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	UParticleSystemComponent* Particle;
 
-	UPROPERTY(EditAnywhere, Category = "Effect")
-	UParticleSystem* ParticleTemplate;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
+	UNiagaraSystem* NiagaraTemplate;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
+	UNiagaraComponent* NiagaraComp;
 
 	UPROPERTY(EditAnywhere, Category = "Effect")
 	USoundBase* SoundTemplate;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Collision")
+	FName CollisionType;
+
 public:
 	static void SpawnVFX(
-		USceneComponent* AttachComp,
-		FName SocketName,
-		const FString& strPath,
-		const FString& strSoundPath,
-		float fDuration = 0.f);
-
-public:
-	void SetEffectPath(const FString& strPathm,
-		const FString& strSoundPath);
-
-
+		USceneComponent* AttachComp, FName SocketName,UNiagaraSystem* NiagaraAsset, USoundBase* SoundAsset, float fDuration = 0.f);
 
 protected:
 	virtual void BeginPlay() override;

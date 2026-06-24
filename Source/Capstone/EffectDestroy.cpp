@@ -1,38 +1,34 @@
 ﻿#include "EffectDestroy.h"
 #include "NiagaraFunctionLibrary.h"
-#include "NiagaraSystem.h"
-#include "NiagaraComponent.h"
+
 
 AEffectDestroy::AEffectDestroy()
 {
-	PrimaryActorTick.bCanEverTick = true;
+    PrimaryActorTick.bCanEverTick = false;
 
-	Particle = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("Particle"));
+    RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("Root"));
 
-    Particle->SetupAttachment(RootComponent);
+    NiagaraComp = CreateDefaultSubobject<UNiagaraComponent>(TEXT("Niagara"));
+    NiagaraComp->SetupAttachment(RootComponent);
+
+    NiagaraComp->SetAutoActivate(false);
 }
 
-void AEffectDestroy::SpawnVFX(USceneComponent* AttachComp, FName SocketName, const FString& strPath, const FString& strSoundPath, float fDuration)
+void AEffectDestroy::SpawnVFX(USceneComponent* AttachComp, FName SocketName, UNiagaraSystem* NiagaraAsset, USoundBase* SoundAsset, float fDuration)
 {
-    if (!IsValid(AttachComp))
-        return;
-
-    UNiagaraSystem* NiagaraAsset =
-        LoadObject<UNiagaraSystem>(
-            nullptr,
-            *strPath);
+    if (!IsValid(AttachComp)) return;
 
     if (NiagaraAsset)
     {
-        UNiagaraComponent* NiagaraComp =
-            UNiagaraFunctionLibrary::SpawnSystemAttached(
-                NiagaraAsset,
-                AttachComp,
-                SocketName,
-                FVector::ZeroVector,
-                FRotator::ZeroRotator,
-                EAttachLocation::KeepRelativeOffset,
-                true);
+        UNiagaraComponent* NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAttached(
+            NiagaraAsset,
+            AttachComp,
+            SocketName,
+            FVector::ZeroVector,
+            FRotator::ZeroRotator,
+            EAttachLocation::KeepRelativeOffset,
+            true
+        );
 
         if (NiagaraComp)
         {
@@ -43,7 +39,6 @@ void AEffectDestroy::SpawnVFX(USceneComponent* AttachComp, FName SocketName, con
             else
             {
                 NiagaraComp->SetAutoDestroy(false);
-
                 FTimerHandle TimerHandle;
 
                 AttachComp->GetWorld()->GetTimerManager().SetTimer(
@@ -56,37 +51,20 @@ void AEffectDestroy::SpawnVFX(USceneComponent* AttachComp, FName SocketName, con
                         }
                     },
                     fDuration,
-                    false);
+                    false
+                );
             }
         }
-
-        USoundBase* SoundAsset =
-            LoadObject<USoundBase>(
-                nullptr,
-                *strSoundPath);
-
-        if (SoundAsset)
-        {
-            UGameplayStatics::PlaySoundAtLocation(
-                AttachComp->GetWorld(),
-                SoundAsset,
-                AttachComp->GetComponentLocation());
-        }
     }
-}
 
-void AEffectDestroy::SetEffectPath(const FString& strPath, const FString& strSoundPath)
-{
-	UParticleSystem* Asset = LoadObject<UParticleSystem>(nullptr, *strPath);
-
-	if (IsValid(Asset))
-		Particle->SetTemplate(Asset);
-
-	Particle->OnSystemFinished.AddDynamic(this, &AEffectDestroy::Finish);
-
-	USoundBase* SoundAsset = LoadObject<USoundBase>(nullptr, *strSoundPath);
-
-	UGameplayStatics::PlaySoundAtLocation(GetWorld(), SoundAsset, GetActorLocation());
+    if (SoundAsset)
+    {
+        UGameplayStatics::PlaySoundAtLocation(
+            AttachComp->GetWorld(),
+            SoundAsset,
+            AttachComp->GetComponentLocation()
+        );
+    }
 }
 
 void AEffectDestroy::BeginPlay()
@@ -106,15 +84,10 @@ void AEffectDestroy::Finish(UParticleSystemComponent* Component)
 
 void AEffectDestroy::InitializeEffect()
 {
-
-
-    if (ParticleTemplate)
+    if (NiagaraTemplate)
     {
-        UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ParticleTemplate, GetActorLocation(), GetActorRotation());
+        NiagaraComp->SetAsset(NiagaraTemplate);
+        NiagaraComp->Activate(true);
     }
 
-    if (SoundTemplate)
-    {
-        UGameplayStatics::PlaySoundAtLocation(this, SoundTemplate, GetActorLocation());
-    }
 }

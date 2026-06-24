@@ -5,49 +5,39 @@ AEffect_Projectile::AEffect_Projectile()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	CollisionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionSphere"));
-	RootComponent = CollisionSphere;
-	CollisionSphere->SetSphereRadius(20.f);
-	CollisionSphere->SetCollisionProfileName(TEXT("MonsterAttack"));
-
-	if (Particle)
-	{
-		Particle->SetupAttachment(RootComponent);
-	}
-
 	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovement"));
-	ProjectileMovement->UpdatedComponent = CollisionSphere;
-	ProjectileMovement->InitialSpeed = 4500.f;
-	ProjectileMovement->MaxSpeed = 4500.f;
-	ProjectileMovement->bRotationFollowsVelocity = true;
+
+	ProjectileMovement->InitialSpeed = 1500.f;
+	ProjectileMovement->MaxSpeed = 1500.f;
 	ProjectileMovement->ProjectileGravityScale = 0.f;
 
-	ProjectileDamage = 20.f;
-	InitialLifeSpan = 8.0f;
+    CollisionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionBox"));
+    CollisionSphere->SetupAttachment(NiagaraComp);
 }
 
 
 void AEffect_Projectile::BeginPlay()
 {
-	Super::BeginPlay();
+    Super::BeginPlay();
+    
 
-	CollisionSphere->OnComponentBeginOverlap.AddDynamic(this, &AEffect_Projectile::OnOverlapBegin);
+    CollisionSphere->SetCollisionProfileName(CollisionType);
+ 
 
-	if (MuzzleTemplate)
-	{
-		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), MuzzleTemplate, GetActorLocation(), GetActorRotation());
-	}
+    AActor* Player =
+        UGameplayStatics::GetPlayerCharacter(GetWorld(), 0);
+
+    if (Player)
+    {
+        FVector Direction =
+            (Player->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+
+        ProjectileMovement->Velocity =
+            Direction * ProjectileMovement->InitialSpeed;
+    }
 }
 
 void AEffect_Projectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	if (OtherActor && OtherActor != this && OtherActor != GetInstigator() && OtherActor->GetOwner() != GetInstigator())
-	{
-		if (ImpactTemplate)
-		{
-			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ImpactTemplate, GetActorLocation(), GetActorRotation());
-		}
-
-		
-	}
+   NiagaraComp->Activate();
 }
