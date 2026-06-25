@@ -20,6 +20,9 @@ protected:
 	UPROPERTY(Category = Collision, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	UBoxComponent* RightWeaponBox;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat")
+	USphereComponent* AttackHitSphere;
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -28,6 +31,12 @@ public:
 
 public:
 	void EnableWeaponCollision(bool bEnable);
+
+
+	UFUNCTION()
+	void OnAttackHitSphereOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	virtual void ActivateHitSphere(FName SocketName) override;
 
 public:
 	UFUNCTION()

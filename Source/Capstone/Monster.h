@@ -58,6 +58,9 @@ protected:
 		const FHitResult& Hit);
 
 public:
+	virtual void ActivateHitSphere(FName SocketName) {};
+
+public:
 	void SetAttackEnd();
 
 public:

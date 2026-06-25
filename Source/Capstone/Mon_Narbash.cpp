@@ -38,6 +38,13 @@ AMon_Narbash::AMon_Narbash()
 	fAttackDist = 200.f;
 
 	CharacterName = TEXT("Narbash");
+
+
+	AttackHitSphere = CreateDefaultSubobject<USphereComponent>(TEXT("AttackHitSphere"));
+	AttackHitSphere->SetupAttachment(GetMesh());
+	AttackHitSphere->SetSphereRadius(40.f);
+
+	AttackHitSphere->SetCollisionProfileName(TEXT("NoCollision"));
 }
 
 void AMon_Narbash::BeginPlay()
@@ -55,13 +62,13 @@ void AMon_Narbash::BeginPlay()
 	RightWeaponBox->OnComponentBeginOverlap.AddDynamic(this, &AMon_Narbash::WepaonBeginOverlap);
 	RightWeaponBox->OnComponentEndOverlap.AddDynamic(this, &AMon_Narbash::WeaponEndOverlap);
 
+	AttackHitSphere->OnComponentBeginOverlap.AddDynamic(this, &AMon_Narbash::OnAttackHitSphereOverlap);;
 
 	LeftWeaponBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	RightWeaponBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	LeftWeaponBox->SetBoxExtent({ 15.0f, 50.f, 15.f });
 	RightWeaponBox->SetBoxExtent({ 15.0f, 50.f, 15.f });
-
 
 
 }
@@ -82,6 +89,28 @@ void AMon_Narbash::EnableWeaponCollision(bool bEnable)
 	{
 		LeftWeaponBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		RightWeaponBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		AttackHitSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+
+
+}
+
+void AMon_Narbash::OnAttackHitSphereOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	LOG(TEXT("DahsHit"));
+}
+
+void AMon_Narbash::ActivateHitSphere(FName SocketName)
+{
+	if (IsValid(AttackHitSphere) && IsValid(GetMesh()))
+	{
+		FAttachmentTransformRules AttachRules(EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, EAttachmentRule::KeepWorld, false);
+
+		AttackHitSphere->AttachToComponent(GetMesh(), AttachRules, SocketName);
+
+		AttackHitSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+		AttackHitSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
+		AttackHitSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
 	}
 }
 
