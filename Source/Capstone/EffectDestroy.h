@@ -16,12 +16,11 @@ public:
 	AEffectDestroy();
 
 protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Effect")
+	UNiagaraComponent* EffectComp;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
 	UNiagaraSystem* NiagaraTemplate;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
-	UNiagaraComponent* NiagaraComp;
 
 	UPROPERTY(EditAnywhere, Category = "Effect")
 	USoundBase* SoundTemplate;
@@ -44,5 +43,5 @@ public:
 	void Finish(UParticleSystemComponent* Component);
 
 public:
-	virtual void InitializeEffect();
+	virtual void InitializeEffect(float fDuration);
 };

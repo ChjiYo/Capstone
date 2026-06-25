@@ -98,7 +98,7 @@ void UAnimNotify_SpawnSkillEffect::Notify(USkeletalMeshComponent* MeshComp, UAni
 
         if (IsValid(Effect))
         {
-            Effect->InitializeEffect();
+            Effect->InitializeEffect(10.f);
         }
     }
 }
