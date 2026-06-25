@@ -16,9 +16,6 @@ public:
 	AEffectDestroy();
 
 protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Effect")
-	UNiagaraComponent* EffectComp;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
 	UNiagaraSystem* NiagaraTemplate;
 
@@ -43,5 +40,5 @@ public:
 	void Finish(UParticleSystemComponent* Component);
 
 public:
-	virtual void InitializeEffect(float fDuration);
+	virtual void InitializeEffect();
 };
