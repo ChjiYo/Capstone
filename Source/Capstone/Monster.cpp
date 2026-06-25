@@ -15,7 +15,7 @@ AMonster::AMonster()
 	HpBarComponent->SetWidgetSpace(EWidgetSpace::Screen);
 	HpBarComponent->SetRelativeLocation(FVector(0.f, 0.f, 100.f));
 
-	static ConstructorHelpers::FClassFinder<UUserWidget> HpBarWidgetClass(TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/UE_Asset/UI/UI_HpBar.UI_HpBar_C'"));
+	static ConstructorHelpers::FClassFinder<UUserWidget> HpBarWidgetClass(TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/UE_Asset/UI/BP_UI_Mon_HpBar.BP_UI_Mon_HpBar_C'"));
 
 	if (HpBarWidgetClass.Succeeded())
 		HpBarComponent->SetWidgetClass(HpBarWidgetClass.Class);
@@ -66,7 +66,6 @@ void AMonster::Tick(float DeltaTime)
 
 float AMonster::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
-
 	if (IsValid(HpBarWidget))
 		HpBarWidget->SetHp(m_tInfo.iHp / static_cast<float>(m_tInfo.iMaxHp));
 

@@ -8,8 +8,8 @@ APy_Grey::APy_Grey()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	m_tInfo.iMaxHp = 10000;
-	m_tInfo.iHp = 10000;
+	m_tInfo.iMaxHp = 500;
+	m_tInfo.iHp = 500;
 	m_tInfo.iAttack = 10;
 
 	pArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("Arm"));
@@ -48,6 +48,19 @@ void APy_Grey::BeginPlay()
 
 	WeaponBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	WeaponBox->SetBoxExtent({ 7.5f, 2.5f, 60.f});
+
+	if (IsValid(PlayerHpBarClass))
+	{
+		PlayerHpBar = CreateWidget<UUI_HpBar>(GetWorld(), PlayerHpBarClass);
+
+		if (IsValid(PlayerHpBar))
+		{
+			PlayerHpBar->AddToViewport();
+
+			float fPercent = m_tInfo.iHp / m_tInfo.iMaxHp;
+			PlayerHpBar->SetHp(fPercent);
+		}
+	}
 }
 
 
@@ -197,9 +210,10 @@ void APy_Grey::WepaonBeginOverlap(UPrimitiveComponent* OverlappedComponent, AAct
 		}
 	}
 
-	if(HitArray.Num() > 0)
+	if (HitArray.Num() > 0)
+	{
 		float fDamage = OtherActor->TakeDamage(m_tInfo.iAttack, DamageEvent, GetController(), this);
-
+	}
 
 #if ENABLE_DRAW_DEBUG
 	FVector vCenter = (vStart + vEnd) / 2.f;
@@ -212,4 +226,12 @@ void APy_Grey::WepaonBeginOverlap(UPrimitiveComponent* OverlappedComponent, AAct
 void APy_Grey::WeaponEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
 
+}
+
+float APy_Grey::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	if (IsValid(PlayerHpBar))
+		PlayerHpBar->SetHp(m_tInfo.iHp / static_cast<float>(m_tInfo.iMaxHp));
+
+	return  Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 }

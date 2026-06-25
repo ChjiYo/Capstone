@@ -10,7 +10,7 @@ class CAPSTONE_API UUI_HpBar : public UUserWidget
 	GENERATED_BODY()
 
 protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true", BindWidget) )
 	class UProgressBar* HpBar;
 
 protected:

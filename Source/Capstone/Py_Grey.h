@@ -1,7 +1,9 @@
 ﻿#pragma once
 
 #include "CharBase.h"
+#include "UI_HpBar.h"
 #include "Py_Grey.generated.h"
+
 
 UCLASS()
 class CAPSTONE_API APy_Grey : public ACharBase
@@ -21,6 +23,13 @@ protected:
 
 	UPROPERTY(Category = Collision, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	UBoxComponent* WeaponBox;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+	TSubclassOf<UUI_HpBar> PlayerHpBarClass;
+
+	// 화면에 띄워진 실제 위젯을 조작하기 위한 포인터
+	UPROPERTY()
+	UUI_HpBar* PlayerHpBar;
 
 	class UPy_GreyAnim* pGreyAnim;
 protected:
@@ -59,5 +68,8 @@ public:
 		AActor* OtherActor,
 		UPrimitiveComponent* OtherComp,
 		int32 OtherBodyIndex);
-		
+
+protected:
+	float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser);
+
 };
