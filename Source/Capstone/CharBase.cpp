@@ -28,7 +28,13 @@ void ACharBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 void ACharBase::Destroy()
 {
-
+	for (auto& iter : mapWeapon)
+	{
+		if (iter.Value != nullptr)
+		{
+			iter.Value->Destroy();
+		}
+	}
 	Super::Destroy();
 }
 
