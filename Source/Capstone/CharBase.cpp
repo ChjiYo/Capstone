@@ -4,6 +4,11 @@
 ACharBase::ACharBase()
 {
 	PrimaryActorTick.bCanEverTick = true;
+
+	for (auto& Element : mapWeapon)
+	{
+		Element.Value = nullptr;
+	}
 }
 
 void ACharBase::BeginPlay()

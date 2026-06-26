@@ -36,7 +36,7 @@ void UMon_GoblinAnim::InherAttackStartNotify()
 
 	if (IsValid(pOwner))
 	{
-		pOwner->Get_RiggingInfo().m_pRightWeapon->EnableWeaponCollision(true);
+		pOwner->Get_Weapon(EWEAPON::RHAND)->EnableWeaponCollision(true);
 	}
 }
 
@@ -66,6 +66,6 @@ void UMon_GoblinAnim::InherAttackEndNotify()
 	if (IsValid(pOwner))
 	{
 		pOwner->AttackEnd();
-		pOwner->Get_RiggingInfo().m_pRightWeapon->EnableWeaponCollision(false);
+		pOwner->Get_Weapon(EWEAPON::RHAND)->EnableWeaponCollision(false);
 	}
 }

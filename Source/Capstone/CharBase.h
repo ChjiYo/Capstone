@@ -11,28 +11,15 @@ struct FINFO
 	int iAttack;
 };
 
-USTRUCT(BlueprintType)
-struct FRigging
+UENUM(BlueprintType)
+enum class EWEAPON : uint8
 {
-	GENERATED_BODY()
-
-	UPROPERTY(Category = "LeftWeapon", VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	class AWeapon* m_pLeftWeapon;
-
-	UPROPERTY(Category = "RightWeapon", VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	class AWeapon* m_pRightWeapon;
-
-	UPROPERTY(Category = "Hat", VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	class AWeapon* m_pHat;
-
-	UPROPERTY(Category = "Top", VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	class AWeapon* m_pTop;
-
-	UPROPERTY(Category = "Bottom", VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	class AWeapon* m_pBottom;
-
-	UPROPERTY(Category = "ACC", VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	class AWeapon* m_pACC;
+	LHAND   UMETA(DisplayName = "Left Hand"),
+	RHAND   UMETA(DisplayName = "Right Hand"),
+	HAT     UMETA(DisplayName = "Hat"),
+	TOP     UMETA(DisplayName = "Top"),
+	BOTTOM  UMETA(DisplayName = "Bottom"),
+	ACC     UMETA(DisplayName = "Accessory")
 };
 
 UCLASS()
@@ -40,15 +27,13 @@ class CAPSTONE_API ACharBase : public ACharacter
 {
 	GENERATED_BODY()
 
-
-
 public:
 	ACharBase();
 
 protected:
 	UPROPERTY(Category = "Rigging", VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	FRigging m_tRigging;
-		
+	TMap<EWEAPON, class AWeapon*> mapWeapon;
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -61,7 +46,7 @@ protected:
 
 
 public:
-	const FRigging Get_RiggingInfo() { return m_tRigging; }
+	class AWeapon* Get_Weapon(EWEAPON eType) { return mapWeapon[eType]; }
 	
 protected:
 	FINFO m_tInfo;

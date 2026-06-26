@@ -13,8 +13,6 @@ AMon_Goblin::AMon_Goblin()
 	GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -70.f));
 	GetMesh()->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
 
-	m_tRigging.m_pRightWeapon = nullptr;
-
 	CharacterName = TEXT("Goblin");
 }
 
@@ -35,12 +33,15 @@ void AMon_Goblin::BeginPlay()
 
 	FActorSpawnParameters params;
 	params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-	m_tRigging.m_pRightWeapon = GetWorld()->SpawnActor<AWeapon>(FVector::ZeroVector, FRotator::ZeroRotator, params);
-	m_tRigging.m_pRightWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, TEXT("Damage_Socket"));
+
+	AWeapon* pWeapon = GetWorld()->SpawnActor<AWeapon>(FVector::ZeroVector, FRotator::ZeroRotator, params);
+
+	mapWeapon.Add(EWEAPON::RHAND, pWeapon);
+	mapWeapon[EWEAPON::RHAND]->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, TEXT("Damage_Socket"));
 
 	if (!WeaponMeshPath.IsEmpty())
 	{
-		m_tRigging.m_pRightWeapon->LoadMesh(*WeaponMeshPath);
+		mapWeapon[EWEAPON::RHAND]->LoadMesh(*WeaponMeshPath);
 	}
 }
 
