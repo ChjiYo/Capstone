@@ -21,9 +21,4 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Blackboard")
 	struct FBlackboardKeySelector TargetKey;
 
-	UPROPERTY(EditAnywhere, Category = "Dash")
-	float DashPower = 2000.f;
-
-
-	
 };
