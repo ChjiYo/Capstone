@@ -53,6 +53,12 @@ void UCharBaseAnim::JumpKey()
 	eAnimType = EBaseAnim::Jump;
 }
 
+void UCharBaseAnim::Death()
+{
+	eAnimType = EBaseAnim::Death;
+
+}
+
 void UCharBaseAnim::AnimNotify_MoveStop()
 {
 	eAnimType = EBaseAnim::Idle;
@@ -88,4 +94,14 @@ void UCharBaseAnim::AnimNotify_ReturnIdle()
 void UCharBaseAnim::AnimNotify_SkillAStart()
 {
 	InherSkillAStartNotify();
+}
+
+void UCharBaseAnim::AnimNotify_Death()
+{
+	ACharBase* pOnwer = Cast<ACharBase>(TryGetPawnOwner());
+
+	if(IsValid(pOnwer))
+		pOnwer->Destroy();	
+
+	InherDeathNotify();
 }

@@ -22,7 +22,7 @@ UCLASS()
 class CAPSTONE_API UCharBaseAnim : public UAnimInstance
 {
 	GENERATED_BODY()
-	
+
 public:
 	UCharBaseAnim();
 
@@ -38,7 +38,7 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	bool IsGround;
-	
+
 protected:
 	bool bIsComboInputOn;
 	uint8 NextAttackMax;
@@ -51,6 +51,7 @@ protected:
 public:
 	virtual void NormalAttack() {};
 	void JumpKey();
+	void Death();
 
 public:
 	void SetMoveDir(EDir _eDir)
@@ -77,6 +78,9 @@ private:
 	UFUNCTION()
 	virtual void AnimNotify_SkillAStart();
 
+	UFUNCTION()
+	virtual void AnimNotify_Death();
+
 
 
 protected:
@@ -86,6 +90,7 @@ protected:
 	virtual void InherAttackEndNotify() {};
 	virtual void InherReturnIdleNotify() {};
 	virtual void InherSkillAStartNotify() {};
+	virtual void InherDeathNotify() {}
 
 public:
 	void SetAnimType(EBaseAnim _eType)

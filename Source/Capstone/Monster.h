@@ -88,7 +88,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 protected:
-	float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser);
+	float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
 public:
 	void AttackEnd();

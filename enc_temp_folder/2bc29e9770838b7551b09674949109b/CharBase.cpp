@@ -1,4 +1,5 @@
 ﻿#include "CharBase.h"
+#include "CharBaseAnim.h"
 #include "Weapon.h"
 
 ACharBase::ACharBase()
@@ -28,7 +29,13 @@ void ACharBase::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 void ACharBase::Destroy()
 {
-
+	for (auto& iter : mapWeapon)
+	{
+		if (iter.Value != nullptr)
+		{
+			iter.Value->Destroy();
+		}
+	}
 	Super::Destroy();
 }
 
@@ -43,8 +50,11 @@ float ACharBase::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent,
 
 	if (m_tInfo.iHp <= 0)
 	{
-		LOG(TEXT("Death"));
-		Destroy();
+		UCharBaseAnim* pAnim = Cast<UCharBaseAnim>(GetMesh()->GetAnimInstance());
+
+		pAnim->SetAnimType(EBaseAnim::Death);
+
+
 	}
 
 
