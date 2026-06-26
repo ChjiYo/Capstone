@@ -41,8 +41,6 @@ EBTNodeResult::Type UBTTask_Dash::ExecuteTask(UBehaviorTreeComponent& OwnerComp,
 
 	pMonster->SetActorRotation(DashDirection.Rotation());
 
-	pMonster->LaunchCharacter(DashDirection * DashPower, true, true);
-
 	float fDist = FVector::Distance(TargetActor->GetActorLocation(), pMonster->GetActorLocation());
 
 	if (fDist <= 50.f)

@@ -59,6 +59,7 @@ protected:
 
 public:
 	virtual void ActivateHitSphere(FName SocketName) {};
+	virtual void ExecutePhysicalDash() {};
 
 public:
 	void SetAttackEnd();

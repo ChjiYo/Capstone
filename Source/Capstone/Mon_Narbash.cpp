@@ -95,6 +95,12 @@ void AMon_Narbash::EnableWeaponCollision(bool bEnable)
 
 }
 
+void AMon_Narbash::ExecutePhysicalDash()
+{
+	FVector DashDirection = GetActorForwardVector();
+	LaunchCharacter(DashDirection * 8000.f, true, true);
+}
+
 void AMon_Narbash::OnAttackHitSphereOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	LOG(TEXT("DahsHit"));
@@ -117,7 +123,6 @@ void AMon_Narbash::ActivateHitSphere(FName SocketName)
 void AMon_Narbash::WepaonBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	FDamageEvent	DamageEvent;
-
 
 	FName StartSocket;
 	FName EndSocket;
