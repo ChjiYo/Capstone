@@ -55,6 +55,7 @@ void AMon_Narbash::BeginPlay()
 
 	LeftWeaponBox->SetCollisionProfileName(TEXT("MonsterAttack"));
 	RightWeaponBox->SetCollisionProfileName(TEXT("MonsterAttack"));
+	AttackHitSphere->SetCollisionProfileName(TEXT("MonsterAttack"));
 
 	LeftWeaponBox->OnComponentBeginOverlap.AddDynamic(this, &AMon_Narbash::WepaonBeginOverlap);
 	LeftWeaponBox->OnComponentEndOverlap.AddDynamic(this, &AMon_Narbash::WeaponEndOverlap);
