@@ -31,5 +31,8 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Effect", meta = (EditCondition = "TargetType == EEffectTarget::CasterSocket || TargetType == EEffectTarget::WeaponSocket"))
 	FName SocketName;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
+	bool bAttachToTarget = false;
+
 	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference) override;
 };

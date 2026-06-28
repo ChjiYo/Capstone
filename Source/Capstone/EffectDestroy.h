@@ -25,9 +25,11 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Collision")
 	FName CollisionType;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
+	float fLifeTime;
+
 public:
-	static void SpawnVFX(
-		USceneComponent* AttachComp, FName SocketName,UNiagaraSystem* NiagaraAsset, USoundBase* SoundAsset, float fDuration = 0.f);
+	 void SpawnVFX(USceneComponent* AttachComp, FName SocketName,UNiagaraSystem* NiagaraAsset, USoundBase* SoundAsset, float fDuration = 0.f);
 
 protected:
 	virtual void BeginPlay() override;

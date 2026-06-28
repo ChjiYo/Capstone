@@ -6,7 +6,7 @@ AEffectDestroy::AEffectDestroy()
 {
     PrimaryActorTick.bCanEverTick = false;
 
-
+    fLifeTime = 0.f;
 }
 
 void AEffectDestroy::SpawnVFX(USceneComponent* AttachComp, FName SocketName, UNiagaraSystem* NiagaraAsset, USoundBase* SoundAsset, float fDuration)
@@ -80,5 +80,5 @@ void AEffectDestroy::Finish(UParticleSystemComponent* Component)
 
 void AEffectDestroy::InitializeEffect()
 {   
-    SpawnVFX(GetRootComponent(), NAME_None, NiagaraTemplate, SoundTemplate);
+    SpawnVFX(GetRootComponent(), NAME_None, NiagaraTemplate, SoundTemplate, fLifeTime);
 }
