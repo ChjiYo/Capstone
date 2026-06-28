@@ -13,7 +13,6 @@ AMon_Goblin::AMon_Goblin()
 	GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -70.f));
 	GetMesh()->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
 
-	CharacterName = TEXT("Goblin");
 }
 
 void AMon_Goblin::BeginPlay()

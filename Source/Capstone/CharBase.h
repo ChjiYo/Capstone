@@ -50,6 +50,4 @@ public:
 	
 protected:
 	FINFO m_tInfo;
-	FString CharacterName;
-
 };

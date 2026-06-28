@@ -15,6 +15,10 @@ protected:
 	virtual void NativeInitializeAnimation();
 	virtual void NativeUpdateAnimation(float DeltaSeconds);
 
+private:
+	UFUNCTION()
+	void AnimNotify_DashStart();
+
 protected:
 	virtual void InherAttackStartNotify();
 	virtual void InherNextAttackEndNotify();

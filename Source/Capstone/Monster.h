@@ -58,7 +58,6 @@ protected:
 		const FHitResult& Hit);
 
 public:
-	virtual void ActivateHitSphere(FName SocketName) {};
 	virtual void ExecutePhysicalDash() {};
 
 public:

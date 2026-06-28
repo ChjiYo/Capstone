@@ -28,9 +28,6 @@ APy_Grey::APy_Grey()
 
 	WeaponBox = CreateDefaultSubobject<UBoxComponent>(TEXT("WeaponBox"));
 	WeaponBox->SetupAttachment(GetMesh(), TEXT("FX_Sword_Mid"));
-
-
-	CharacterName = TEXT("Grey");
 }
 
 
@@ -153,12 +150,6 @@ void APy_Grey::SkillSlotB()
 	if (IsValid(pGreyAnim))
 	{
 		pGreyAnim->SkillSlotB();
-		//AEffectDestroy::SpawnVFX(
-		//	GetRootComponent(),
-		//	NAME_None,
-		//	TEXT("NiagaraSystem'/Game/MegaMagicVFXBundle/VFX/MagicShieldsVFX/VFX/DefaultVersions/AquaShield/Systems/N_AquaShield.N_AquaShield'"),
-		//	TEXT("SoundWave'/Game/UE_Asset/Sounds/AquaShield.AquaShield'"),
-		//	3.f);
 	}
 }
 
@@ -230,8 +221,9 @@ void APy_Grey::WeaponEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor
 
 float APy_Grey::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
+	float fDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 	if (IsValid(PlayerHpBar))
 		PlayerHpBar->SetHp(m_tInfo.iHp / static_cast<float>(m_tInfo.iMaxHp));
 
-	return  Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+	return fDamage;
 }

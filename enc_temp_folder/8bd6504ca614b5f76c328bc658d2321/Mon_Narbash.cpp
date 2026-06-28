@@ -24,27 +24,22 @@ AMon_Narbash::AMon_Narbash()
 		GetMesh()->SetAnimInstanceClass(AnimAsset.Class);
 	}
 
-
+	
 	GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -88.f));
 	GetMesh()->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
-
+	
 	LeftWeaponBox = CreateDefaultSubobject<UBoxComponent>(TEXT("LeftWeaponBox"));
 	LeftWeaponBox->SetupAttachment(GetMesh(), TEXT("weapon_head_l"));
 
 	RightWeaponBox = CreateDefaultSubobject<UBoxComponent>(TEXT("RightWeaponBox"));
 	RightWeaponBox->SetupAttachment(GetMesh(), TEXT("weapon_head_r"));
 
+	DashSphere = CreateDefaultSubobject<USphereComponent>(TEXT("DashSphere"));
+	DashSphere->SetupAttachment(GetMesh());
+
 	fTraceRange = 1000.f;
 	fAttackDist = 200.f;
 
-	CharacterName = TEXT("Narbash");
-
-
-	AttackHitSphere = CreateDefaultSubobject<USphereComponent>(TEXT("AttackHitSphere"));
-	AttackHitSphere->SetupAttachment(GetMesh());
-	AttackHitSphere->SetSphereRadius(40.f);
-
-	AttackHitSphere->SetCollisionProfileName(TEXT("NoCollision"));
 }
 
 void AMon_Narbash::BeginPlay()
@@ -55,6 +50,7 @@ void AMon_Narbash::BeginPlay()
 
 	LeftWeaponBox->SetCollisionProfileName(TEXT("MonsterAttack"));
 	RightWeaponBox->SetCollisionProfileName(TEXT("MonsterAttack"));
+	DashSphere->SetCollisionProfileName(TEXT("MonsterAttack"));
 
 	LeftWeaponBox->OnComponentBeginOverlap.AddDynamic(this, &AMon_Narbash::WepaonBeginOverlap);
 	LeftWeaponBox->OnComponentEndOverlap.AddDynamic(this, &AMon_Narbash::WeaponEndOverlap);
@@ -62,14 +58,15 @@ void AMon_Narbash::BeginPlay()
 	RightWeaponBox->OnComponentBeginOverlap.AddDynamic(this, &AMon_Narbash::WepaonBeginOverlap);
 	RightWeaponBox->OnComponentEndOverlap.AddDynamic(this, &AMon_Narbash::WeaponEndOverlap);
 
-	AttackHitSphere->OnComponentBeginOverlap.AddDynamic(this, &AMon_Narbash::OnAttackHitSphereOverlap);;
+	DashSphere->OnComponentBeginOverlap.AddDynamic(this, &AMon_Narbash::OnCollisionOverlap);
 
 	LeftWeaponBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	RightWeaponBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	DashSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	LeftWeaponBox->SetBoxExtent({ 15.0f, 50.f, 15.f });
 	RightWeaponBox->SetBoxExtent({ 15.0f, 50.f, 15.f });
-
+	DashSphere->SetSphereRadius(150.f);
 
 }
 
@@ -89,35 +86,22 @@ void AMon_Narbash::EnableWeaponCollision(bool bEnable)
 	{
 		LeftWeaponBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		RightWeaponBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		AttackHitSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		DashSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
-
-
 }
 
 void AMon_Narbash::ExecutePhysicalDash()
 {
+	DashSphere->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+
 	FVector DashDirection = GetActorForwardVector();
 	LaunchCharacter(DashDirection * 8000.f, true, true);
 }
 
-void AMon_Narbash::OnAttackHitSphereOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+void AMon_Narbash::OnCollisionOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	LOG(TEXT("DahsHit"));
-}
-
-void AMon_Narbash::ActivateHitSphere(FName SocketName)
-{
-	if (IsValid(AttackHitSphere) && IsValid(GetMesh()))
-	{
-		FAttachmentTransformRules AttachRules(EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, EAttachmentRule::KeepWorld, false);
-
-		AttackHitSphere->AttachToComponent(GetMesh(), AttachRules, SocketName);
-
-		AttackHitSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
-		AttackHitSphere->SetCollisionResponseToAllChannels(ECR_Ignore);
-		AttackHitSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Overlap);
-	}
+	FDamageEvent	DamageEvent;
+	OtherActor->TakeDamage(m_tInfo.iAttack * 3.f, DamageEvent, GetController(), this);
 }
 
 void AMon_Narbash::WepaonBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)

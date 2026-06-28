@@ -29,6 +29,16 @@ void UMon_NarbashAnim::NativeUpdateAnimation(float DeltaSeconds)
 	Super::NativeUpdateAnimation(DeltaSeconds);
 }
 
+void UMon_NarbashAnim::AnimNotify_DashStart()
+{
+	AMon_Narbash* pNarbashOwner = Cast<AMon_Narbash>(TryGetPawnOwner());
+
+	if (IsValid(pNarbashOwner))
+	{
+		pNarbashOwner->ExecutePhysicalDash();
+	}
+}
+
 void UMon_NarbashAnim::InherAttackStartNotify()
 {
 	AMon_Narbash* pOwner = Cast<AMon_Narbash>(TryGetPawnOwner());
