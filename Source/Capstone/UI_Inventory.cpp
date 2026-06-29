@@ -3,29 +3,28 @@
 #include "UI_InventorySlot.h"
 #include "Components/Button.h"
 #include "Components/WrapBox.h"
+#include "Components/WrapBoxSlot.h"
 #include "Kismet/GameplayStatics.h"
 
 void UUI_Inventory::RefreshInventoryUI(UInventoryComponent* InventoryComp)
 {
 	if (!InventoryComp || !InventoryWrapBox) return;
 
-	// 1. 기존 UI 슬롯 전부 청소
-	InventoryWrapBox->ClearChildren();
-
-	// 2. 보유한 아이템 데이터만큼 슬롯 위젯을 생성해서 WrapBox에 추가
-	for (FName ItemID : InventoryComp->Items)
+	for (UUI_InventorySlot* pSlot : SlotArray)
 	{
-		if (InventorySlotClass)
+		if (pSlot)
 		{
-			// C++로 만든 슬롯 위젯을 동적으로 생성합니다.
-			UUI_InventorySlot* NewSlot = CreateWidget<UUI_InventorySlot>(GetWorld(), InventorySlotClass);
-			if (NewSlot)
-			{
-				// 슬롯에 아이템 ID 데이터 전달 (텍스트 등이 여기서 바뀜)
-				NewSlot->InitSlot(ItemID);
+			pSlot->ClearSlot();
+		}
+	}
 
-				// 메인 인벤토리의 WrapBox 자식으로 등록!
-				InventoryWrapBox->AddChildToWrapBox(NewSlot);
+	for (int32 i = 0; i < InventoryComp->Items.Num(); ++i)
+	{
+		if (i < SlotArray.Num())
+		{
+			if (SlotArray[i])
+			{
+				SlotArray[i]->InitSlot(InventoryComp->Items[i]);
 			}
 		}
 	}
@@ -39,6 +38,23 @@ void UUI_Inventory::NativeConstruct()
 	if (CloseButton)
 	{
 		CloseButton->OnClicked.AddDynamic(this, &UUI_Inventory::OnCloseButtonClicked);
+	}
+
+	if (InventoryWrapBox && InventorySlotClass)
+	{
+		InventoryWrapBox->ClearChildren();
+		SlotArray.Empty();
+
+		for (int32 i = 0; i < MaxInventorySlots; ++i)
+		{
+			UUI_InventorySlot* NewSlot = CreateWidget<UUI_InventorySlot>(GetWorld(), InventorySlotClass);
+			if (NewSlot)
+			{
+				NewSlot->ClearSlot(); 
+				InventoryWrapBox->AddChildToWrapBox(NewSlot);
+				SlotArray.Add(NewSlot); 
+			}
+		}
 	}
 }
 

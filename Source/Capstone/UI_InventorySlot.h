@@ -11,13 +11,11 @@ class CAPSTONE_API UUI_InventorySlot : public UUserWidget
 	
 public:
 	void InitSlot(FName InItemID);
+	void ClearSlot();
 
 protected:
 	UPROPERTY(meta = (BindWidget))
 	class UImage* ItemIcon;
-
-	UPROPERTY(meta = (BindWidget))
-	class UTextBlock* ItemNameText;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Item")
 	FName CurrentItemID;

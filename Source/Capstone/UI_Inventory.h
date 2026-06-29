@@ -24,11 +24,16 @@ protected:
     UPROPERTY(meta = (BindWidget))
     class UButton* CloseButton;
 
-    // 아이템들이 들어갈 랩박스 (블루프린트의 변수 이름과 동일해야 함)
     UPROPERTY(meta = (BindWidget))
     class UWrapBox* InventoryWrapBox;
 
     UPROPERTY(EditDefaultsOnly, Category = "UI")
-    TSubclassOf<class UUserWidget> InventorySlotClass;
+    TSubclassOf<class UUI_InventorySlot> InventorySlotClass;
+
+    UPROPERTY()
+    TArray<UUI_InventorySlot*> SlotArray;
+
+protected:
+    int32 MaxInventorySlots = 20;
 	
 };

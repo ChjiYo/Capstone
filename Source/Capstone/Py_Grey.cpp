@@ -191,18 +191,18 @@ void APy_Grey::ToggleInventory()
 		UUI_Inventory* InventoryWidget = CreateWidget<UUI_Inventory>(GetWorld(), InventoryWidgetClass);
 		if (InventoryWidget)
 		{
-			// ★ 추가된 부분: UI에 플레이어의 인벤토리 컴포넌트 데이터를 넘겨주어 갱신시킴
+			// 1. 화면에 먼저 띄웁니다. (이때 NativeConstruct가 실행되어 SlotArray가 채워짐)
+			InventoryWidget->AddToViewport();
+
+			// 2. 슬롯이 다 만들어진 상태에서 갱신을 호출합니다.
 			if (InventoryComponent)
 			{
 				InventoryWidget->RefreshInventoryUI(InventoryComponent);
 			}
 
-			InventoryWidget->AddToViewport();
-
 			APlayerController* PC = Cast<APlayerController>(GetController());
 			if (PC)
 			{
-				// 마우스 커서 표시 및 UI 입력 모드로 전환
 				PC->bShowMouseCursor = true;
 				PC->SetInputMode(FInputModeGameAndUI());
 			}
