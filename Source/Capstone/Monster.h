@@ -15,7 +15,6 @@ public:
 	AMonster();
 	~AMonster();
 
-protected:
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI")
 	class UBehaviorTree* BehaviorTreeAsset;
@@ -32,6 +31,9 @@ public:
 	UPROPERTY(Category = "MonsterAttack", EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
 	float fAttackDist;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drop Items")
+	TArray<TSubclassOf<class AItemBase>> DropItemClasses;
+	
 	class UUI_HpBar* HpBarWidget;
 
 	FOnAttackEndDelegate OnAttackEnd;
@@ -56,12 +58,6 @@ protected:
 		FVector HitNormal,
 		FVector NormalImpulse,
 		const FHitResult& Hit);
-
-public:
-	virtual void ExecutePhysicalDash() {};
-
-public:
-	void SetAttackEnd();
 
 public:
 	const float& GetTraceRange() const

@@ -1,6 +1,7 @@
 ﻿#include "Py_Grey.h"
 #include "Py_GreyAnim.h"
 #include "EffectDestroy.h"
+#include "ItemBase.h"
 #include "Engine/DamageEvents.h"
 #include "DrawDebugHelpers.h"
 
@@ -17,6 +18,8 @@ APy_Grey::APy_Grey()
 
 	pArm->SetupAttachment(GetMesh());
 	pCamera->SetupAttachment(pArm);
+
+	pArm->bUsePawnControlRotation = true;
 	
 	static ConstructorHelpers::FClassFinder<UPy_GreyAnim> AP_PlayerGrey(TEXT("AnimBlueprint'/Game/UE_Asset/Character/Player/Grey/AP_PyGrey.AP_PyGrey_C'"));
 
@@ -82,6 +85,8 @@ void  APy_Grey::SetupPlayerInputComponent(class UInputComponent* PlayerInputComp
 	PlayerInputComponent->BindAction(TEXT("SkillSlotA"), EInputEvent::IE_Pressed, this, &APy_Grey::SkillSlotA);
 	PlayerInputComponent->BindAction(TEXT("SkillSlotB"), EInputEvent::IE_Pressed, this, &APy_Grey::SkillSlotB);
 	PlayerInputComponent->BindAction(TEXT("SkillSlotC"), EInputEvent::IE_Pressed, this, &APy_Grey::SkillSlotC);
+
+	PlayerInputComponent->BindAction(TEXT("Interact"), EInputEvent::IE_Pressed, this, &APy_Grey::OnInteractKeyPressed);
 }
 
 void APy_Grey::MoveFront(float _fScale)
@@ -157,6 +162,19 @@ void APy_Grey::SkillSlotC()
 {
 	if (IsValid(pGreyAnim))
 		pGreyAnim->SkillSlotC();
+}
+
+void APy_Grey::OnInteractKeyPressed()
+{
+	// E키를 눌렀을 때 겹쳐있는 아이템이 있는지 확인
+	if (CurrItem)
+	{
+		// 아이템의 줍기 함수 실행!
+		CurrItem->PickupItem(this);
+
+		// 주웠으니 참조 비우기
+		CurrItem = nullptr;
+	}
 }
 
 void APy_Grey::EnableWeaponCollision(bool bEnable)

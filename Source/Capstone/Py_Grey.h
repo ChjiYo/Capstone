@@ -27,9 +27,11 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<UUI_HpBar> PlayerHpBarClass;
 
-	// 화면에 띄워진 실제 위젯을 조작하기 위한 포인터
 	UPROPERTY()
 	UUI_HpBar* PlayerHpBar;
+
+	UPROPERTY()
+	class AItemBase* CurrItem;
 
 	class UPy_GreyAnim* pGreyAnim;
 protected:
@@ -38,6 +40,9 @@ protected:
 public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	void SetInteractableItem(class AItemBase* Item) { CurrItem = Item; }
+
+
 
 private:
 	void MoveFront(float _fScale);
@@ -51,6 +56,7 @@ private:
 	void SkillSlotA();
 	void SkillSlotB();
 	void SkillSlotC();
+	void OnInteractKeyPressed();
 
 public:
 	void EnableWeaponCollision(bool bEnable);
