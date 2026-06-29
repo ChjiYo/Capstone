@@ -1,7 +1,6 @@
 ﻿#pragma once
 
 #include "CharBase.h"
-#include "UI_HpBar.h"
 #include "Py_Grey.generated.h"
 
 
@@ -25,13 +24,20 @@ protected:
 	UBoxComponent* WeaponBox;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
-	TSubclassOf<UUI_HpBar> PlayerHpBarClass;
+	TSubclassOf<class UUI_HpBar> PlayerHpBarClass;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "UI")
+	TSubclassOf<class UUI_Inventory> InventoryWidgetClass;
 
 	UPROPERTY()
 	UUI_HpBar* PlayerHpBar;
 
 	UPROPERTY()
 	class AItemBase* CurrItem;
+
+public:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	class UInventoryComponent* InventoryComponent;
 
 	class UPy_GreyAnim* pGreyAnim;
 protected:
@@ -57,6 +63,7 @@ private:
 	void SkillSlotB();
 	void SkillSlotC();
 	void OnInteractKeyPressed();
+	void ToggleInventory();
 
 public:
 	void EnableWeaponCollision(bool bEnable);

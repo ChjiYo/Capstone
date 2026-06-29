@@ -2,6 +2,9 @@
 #include "Py_GreyAnim.h"
 #include "EffectDestroy.h"
 #include "ItemBase.h"
+#include "InventoryComponent.h"
+#include "UI_HpBar.h"
+#include "UI_Inventory.h"
 #include "Engine/DamageEvents.h"
 #include "DrawDebugHelpers.h"
 
@@ -31,6 +34,9 @@ APy_Grey::APy_Grey()
 
 	WeaponBox = CreateDefaultSubobject<UBoxComponent>(TEXT("WeaponBox"));
 	WeaponBox->SetupAttachment(GetMesh(), TEXT("FX_Sword_Mid"));
+
+	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>(TEXT("InventoryComponent"));
+
 }
 
 
@@ -87,6 +93,7 @@ void  APy_Grey::SetupPlayerInputComponent(class UInputComponent* PlayerInputComp
 	PlayerInputComponent->BindAction(TEXT("SkillSlotC"), EInputEvent::IE_Pressed, this, &APy_Grey::SkillSlotC);
 
 	PlayerInputComponent->BindAction(TEXT("Interact"), EInputEvent::IE_Pressed, this, &APy_Grey::OnInteractKeyPressed);
+	PlayerInputComponent->BindAction(TEXT("Inventory"), EInputEvent::IE_Pressed, this, &APy_Grey::ToggleInventory);
 }
 
 void APy_Grey::MoveFront(float _fScale)
@@ -174,6 +181,32 @@ void APy_Grey::OnInteractKeyPressed()
 
 		// 주웠으니 참조 비우기
 		CurrItem = nullptr;
+	}
+}
+
+void APy_Grey::ToggleInventory()
+{
+	if (InventoryWidgetClass)
+	{
+		UUI_Inventory* InventoryWidget = CreateWidget<UUI_Inventory>(GetWorld(), InventoryWidgetClass);
+		if (InventoryWidget)
+		{
+			// ★ 추가된 부분: UI에 플레이어의 인벤토리 컴포넌트 데이터를 넘겨주어 갱신시킴
+			if (InventoryComponent)
+			{
+				InventoryWidget->RefreshInventoryUI(InventoryComponent);
+			}
+
+			InventoryWidget->AddToViewport();
+
+			APlayerController* PC = Cast<APlayerController>(GetController());
+			if (PC)
+			{
+				// 마우스 커서 표시 및 UI 입력 모드로 전환
+				PC->bShowMouseCursor = true;
+				PC->SetInputMode(FInputModeGameAndUI());
+			}
+		}
 	}
 }
 

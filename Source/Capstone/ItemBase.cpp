@@ -1,7 +1,7 @@
 #include "ItemBase.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
-#include "GameFramework/Character.h"
+#include "InventoryComponent.h"
 #include "Py_Grey.h" 
 
 AItemBase::AItemBase()
@@ -27,8 +27,6 @@ void AItemBase::BeginPlay()
 
 void AItemBase::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-    // 충돌한 대상이 플레이어 캐릭터인지 확인
-    
     APy_Grey* Player = Cast<APy_Grey>(OtherActor);
     if (Player)
     {
@@ -52,8 +50,17 @@ void AItemBase::PickupItem(ACharacter* Picker)
 {
     if (Picker)
     {
-        UE_LOG(LogTemp, Warning, TEXT("아이템 획득 완료! 아이템 ID: %s"), *ItemID.ToString());
+        if (Picker)
+        {
+            APy_Grey* PlayerCharacter = Cast<APy_Grey>(Picker);
 
-        Destroy();
+            if (PlayerCharacter && PlayerCharacter->InventoryComponent)
+            {
+                PlayerCharacter->InventoryComponent->AddItem(ItemID);
+
+                Destroy();
+            }
+        }
+
     }
 }
