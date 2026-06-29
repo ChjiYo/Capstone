@@ -35,7 +35,7 @@ AMon_Narbash::AMon_Narbash()
 	RightWeaponBox->SetupAttachment(GetMesh(), TEXT("weapon_head_r"));
 
 	DashSphere = CreateDefaultSubobject<USphereComponent>(TEXT("DashSphere"));
-	DashSphere->SetupAttachment(GetMesh());
+	DashSphere->SetupAttachment(GetMesh(),TEXT("Chest"));
 
 	fTraceRange = 1000.f;
 	fAttackDist = 200.f;
@@ -95,7 +95,7 @@ void AMon_Narbash::ExecutePhysicalDash()
 	DashSphere->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 
 	FVector DashDirection = GetActorForwardVector();
-	LaunchCharacter(DashDirection * 800.f, true, true);
+	LaunchCharacter(DashDirection * 8000.f, true, true);
 }
 
 void AMon_Narbash::OnCollisionOverlap(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
