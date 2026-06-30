@@ -265,14 +265,12 @@ void APy_Grey::WepaonBeginOverlap(UPrimitiveComponent* OverlappedComponent, AAct
 
 		float fDamage = OtherActor->TakeDamage(m_tInfo.iAttack, DamageEvent, GetController(), this);
 
-		//AEffectDestroy* Effect = GetWorld()->SpawnActor<AEffectDestroy>(vImpactPoint, vImpactNormal.Rotation(), params);
-
-		if (HitEffectClass)
+		if (bIsExplosiveBuffActive && HitEffectClass)
 		{
 			AEffectDestroy* Effect = GetWorld()->SpawnActor<AEffectDestroy>(
-				HitEffectClass,          // 에디터에서 할당한 블루프린트 클래스
-				vImpactPoint,            // 스폰 위치
-				vImpactNormal.Rotation(),// 스폰 회전값
+				HitEffectClass,          
+				vImpactPoint,            
+				vImpactNormal.Rotation(),
 				params
 			);
 
@@ -281,12 +279,6 @@ void APy_Grey::WepaonBeginOverlap(UPrimitiveComponent* OverlappedComponent, AAct
 				Effect->InitializeEffect();
 			}
 		}
-
-		//FActorSpawnParameters tParams;
-		//tParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-		//
-		//AEffectDestroy* pEffect = GetWorld()->SpawnActor<AEffectDestroy>(vImpactPoint, vImpactNormal.Rotation(), tParams);
-		//pEffect->SetEffectPath(TEXT("ParticleSystem'/Game/FXVarietyPack/Particles/P_ky_explosion.P_ky_explosion'"), TEXT("SoundWave'/Game/UE_Asset/Sounds/AquaShield.AquaShield'"));
 	}
 
 #if ENABLE_DRAW_DEBUG

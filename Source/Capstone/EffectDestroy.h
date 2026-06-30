@@ -19,9 +19,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
 	UNiagaraSystem* NiagaraTemplate;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
-	UParticleSystemComponent* Particle;
-
 	UPROPERTY(EditAnywhere, Category = "Effect")
 	USoundBase* SoundTemplate;
 
