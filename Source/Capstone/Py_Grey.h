@@ -1,11 +1,12 @@
 ﻿#pragma once
 
 #include "CharBase.h"
+#include "CombatInterface.h"
 #include "Py_Grey.generated.h"
 
 
 UCLASS()
-class CAPSTONE_API APy_Grey : public ACharBase
+class CAPSTONE_API APy_Grey : public ACharBase, public ICombatInterface
 {
 	GENERATED_BODY()
 
@@ -29,11 +30,18 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<class UUI_Inventory> InventoryWidgetClass;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill|FX")
+	TSubclassOf<class AEffectDestroy> HitEffectClass;
+
 	UPROPERTY()
 	UUI_HpBar* PlayerHpBar;
 
 	UPROPERTY()
 	class AItemBase* CurrItem;
+
+
+private:
+	bool bIsExplosiveBuffActive = false;
 
 public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
@@ -47,6 +55,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	void SetInteractableItem(class AItemBase* Item) { CurrItem = Item; }
+	virtual void SetExplosiveBuffState(bool bIsActive) override;
 
 
 

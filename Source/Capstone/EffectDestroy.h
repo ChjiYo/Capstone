@@ -19,6 +19,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
 	UNiagaraSystem* NiagaraTemplate;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
+	UParticleSystemComponent* Particle;
+
 	UPROPERTY(EditAnywhere, Category = "Effect")
 	USoundBase* SoundTemplate;
 
@@ -29,7 +32,8 @@ protected:
 	float fLifeTime;
 
 public:
-	 void SpawnVFX(USceneComponent* AttachComp, FName SocketName,UNiagaraSystem* NiagaraAsset, USoundBase* SoundAsset, float fDuration = 0.f);
+	 void SpawnVFX(USceneComponent* AttachComp, FName SocketName,UNiagaraSystem* NiagaraAsset, USoundBase* SoundAsset, float fDuration);
+	 void SetEffectPath(const FString& strPath, const FString& strSoundPath);
 
 protected:
 	virtual void BeginPlay() override;

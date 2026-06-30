@@ -7,6 +7,7 @@
 #include "UI_Inventory.h"
 #include "Engine/DamageEvents.h"
 #include "DrawDebugHelpers.h"
+#include "NiagaraFunctionLibrary.h"
 
 APy_Grey::APy_Grey()
 {
@@ -94,6 +95,11 @@ void  APy_Grey::SetupPlayerInputComponent(class UInputComponent* PlayerInputComp
 
 	PlayerInputComponent->BindAction(TEXT("Interact"), EInputEvent::IE_Pressed, this, &APy_Grey::OnInteractKeyPressed);
 	PlayerInputComponent->BindAction(TEXT("Inventory"), EInputEvent::IE_Pressed, this, &APy_Grey::ToggleInventory);
+}
+
+void APy_Grey::SetExplosiveBuffState(bool bIsActive)
+{
+	bIsExplosiveBuffActive = bIsActive;
 }
 
 void APy_Grey::MoveFront(float _fScale)
@@ -254,7 +260,33 @@ void APy_Grey::WepaonBeginOverlap(UPrimitiveComponent* OverlappedComponent, AAct
 
 	if (HitArray.Num() > 0)
 	{
+		FActorSpawnParameters params;
+		params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
 		float fDamage = OtherActor->TakeDamage(m_tInfo.iAttack, DamageEvent, GetController(), this);
+
+		//AEffectDestroy* Effect = GetWorld()->SpawnActor<AEffectDestroy>(vImpactPoint, vImpactNormal.Rotation(), params);
+
+		if (HitEffectClass)
+		{
+			AEffectDestroy* Effect = GetWorld()->SpawnActor<AEffectDestroy>(
+				HitEffectClass,          // 에디터에서 할당한 블루프린트 클래스
+				vImpactPoint,            // 스폰 위치
+				vImpactNormal.Rotation(),// 스폰 회전값
+				params
+			);
+
+			if (IsValid(Effect))
+			{
+				Effect->InitializeEffect();
+			}
+		}
+
+		//FActorSpawnParameters tParams;
+		//tParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+		//
+		//AEffectDestroy* pEffect = GetWorld()->SpawnActor<AEffectDestroy>(vImpactPoint, vImpactNormal.Rotation(), tParams);
+		//pEffect->SetEffectPath(TEXT("ParticleSystem'/Game/FXVarietyPack/Particles/P_ky_explosion.P_ky_explosion'"), TEXT("SoundWave'/Game/UE_Asset/Sounds/AquaShield.AquaShield'"));
 	}
 
 #if ENABLE_DRAW_DEBUG
