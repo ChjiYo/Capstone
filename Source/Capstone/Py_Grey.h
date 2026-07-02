@@ -39,6 +39,19 @@ protected:
 	UPROPERTY()
 	class AItemBase* CurrItem;
 
+private:
+	UPROPERTY(EditDefaultsOnly, Category = "Dash|Animation")
+	UAnimMontage* DashForwardMontage;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Dash|Animation")
+	UAnimMontage* DashBackwardMontage;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Dash|Animation")
+	UAnimMontage* DashLeftMontage;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Dash|Animation")
+	UAnimMontage* DashRightMontage;
+
 
 private:
 	bool bIsExplosiveBuffActive = false;
@@ -73,6 +86,8 @@ private:
 	void SkillSlotC();
 	void OnInteractKeyPressed();
 	void ToggleInventory();
+
+	void RollOrDash();
 
 public:
 	void EnableWeaponCollision(bool bEnable);

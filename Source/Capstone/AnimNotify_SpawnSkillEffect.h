@@ -31,6 +31,12 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Effect", meta = (EditCondition = "TargetType == EEffectTarget::CasterSocket || TargetType == EEffectTarget::WeaponSocket"))
 	FName SocketName;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect Offset")
+	FVector LocationOffset;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect Offset")
+	FRotator RotationOffset;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
 	bool bAttachToTarget = false;
 

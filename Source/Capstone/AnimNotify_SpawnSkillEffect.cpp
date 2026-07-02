@@ -2,10 +2,13 @@
 #include "EffectDestroy.h"
 #include "Weapon.h"
 #include "CharBase.h"
+#include "Kismet/GameplayStatics.h" 
+#include "Components/CapsuleComponent.h"
 
 UAnimNotify_SpawnSkillEffect::UAnimNotify_SpawnSkillEffect()
 {
-
+    LocationOffset = FVector::ZeroVector;
+    RotationOffset = FRotator::ZeroRotator;
 }
 
 void UAnimNotify_SpawnSkillEffect::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
@@ -32,6 +35,7 @@ void UAnimNotify_SpawnSkillEffect::Notify(USkeletalMeshComponent* MeshComp, UAni
         {
             float HalfHeight = pPlayer->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
             SpawnLocation = pPlayer->GetActorLocation() - FVector(0, 0, HalfHeight);
+            SpawnRotation = pPlayer->GetActorRotation(); // 캐릭터의 기본 회전값 가져오기
 
             // 부착 대상: 플레이어의 캡슐 컴포넌트(루트)
             TargetAttachComponent = pPlayer->GetCapsuleComponent();
@@ -47,11 +51,13 @@ void UAnimNotify_SpawnSkillEffect::Notify(USkeletalMeshComponent* MeshComp, UAni
             {
                 float HalfHeight = CharOwner->GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
                 SpawnLocation = Owner->GetActorLocation() - FVector(0, 0, HalfHeight);
+                SpawnRotation = Owner->GetActorRotation(); // 시전자의 기본 회전값 가져오기
                 TargetAttachComponent = CharOwner->GetCapsuleComponent();
             }
             else
             {
                 SpawnLocation = Owner->GetActorLocation();
+                SpawnRotation = Owner->GetActorRotation(); // 시전자의 기본 회전값 가져오기
                 TargetAttachComponent = Owner->GetRootComponent();
             }
         }
@@ -60,7 +66,7 @@ void UAnimNotify_SpawnSkillEffect::Notify(USkeletalMeshComponent* MeshComp, UAni
     case EEffectTarget::CasterSocket:
     {
         SpawnLocation = MeshComp->GetSocketLocation(SocketName);
-        SpawnRotation = MeshComp->GetSocketRotation(SocketName); // 회전값도 가져오는 것이 좋습니다.
+        SpawnRotation = MeshComp->GetSocketRotation(SocketName);
 
         // 부착 대상: 시전자의 스켈레탈 메시
         TargetAttachComponent = MeshComp;
@@ -104,21 +110,25 @@ void UAnimNotify_SpawnSkillEffect::Notify(USkeletalMeshComponent* MeshComp, UAni
     }
     }
 
+    FTransform BaseTransform(SpawnRotation, SpawnLocation);
+    FTransform OffsetTransform(RotationOffset, LocationOffset);
+    FTransform FinalTransform = OffsetTransform * BaseTransform;
+
+    SpawnLocation = FinalTransform.GetLocation();
+    SpawnRotation = FinalTransform.Rotator();
+
     if (IsValid(Owner))
     {
         FActorSpawnParameters params;
         params.Instigator = Cast<APawn>(Owner);
         params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
-        // 월드에 먼저 이펙트 스폰
         AEffectDestroy* Effect = World->SpawnActor<AEffectDestroy>(EffectToSpawn, SpawnLocation, SpawnRotation, params);
 
         if (IsValid(Effect))
         {
-            // [추가된 로직] bAttachToTarget이 true이고, 타겟 컴포넌트가 존재한다면 부착 실행
             if (bAttachToTarget && IsValid(TargetAttachComponent))
             {
-                // KeepWorldTransform을 사용하여 이미 계산된 위치(SpawnLocation)를 유지하면서 부착합니다.
                 Effect->AttachToComponent(
                     TargetAttachComponent,
                     FAttachmentTransformRules::KeepWorldTransform,

@@ -95,6 +95,8 @@ void  APy_Grey::SetupPlayerInputComponent(class UInputComponent* PlayerInputComp
 
 	PlayerInputComponent->BindAction(TEXT("Interact"), EInputEvent::IE_Pressed, this, &APy_Grey::OnInteractKeyPressed);
 	PlayerInputComponent->BindAction(TEXT("Inventory"), EInputEvent::IE_Pressed, this, &APy_Grey::ToggleInventory);
+
+	PlayerInputComponent->BindAction(TEXT("RollOrDash"), EInputEvent::IE_Pressed, this, &APy_Grey::RollOrDash);
 }
 
 void APy_Grey::SetExplosiveBuffState(bool bIsActive)
@@ -214,6 +216,50 @@ void APy_Grey::ToggleInventory()
 			}
 		}
 	}
+}
+
+void APy_Grey::RollOrDash()
+{
+	FVector InputDirection = GetCharacterMovement()->GetLastInputVector();
+	FVector ActorForward = GetActorForwardVector();
+	FVector ActorRight = GetActorRightVector();
+
+	// 1. 재생할 몽타주 포인터 선언 (기본값: 전방 대시)
+	// 이렇게 하면 입력이 없을 때(IsNearlyZero)도 자연스럽게 전방 애니메이션이 선택됩니다.
+	UAnimMontage* MontageToPlay = DashForwardMontage;
+
+	if (InputDirection.IsNearlyZero())
+	{
+		InputDirection = ActorForward;
+	}
+	else
+	{
+		InputDirection.Normalize();
+
+		float ForwardDot = FVector::DotProduct(ActorForward, InputDirection);
+		float RightDot = FVector::DotProduct(ActorRight, InputDirection);
+
+		if (FMath::Abs(ForwardDot) >= FMath::Abs(RightDot))
+		{
+			// 앞뒤 판별 후 변수에 할당
+			MontageToPlay = (ForwardDot > 0.f) ? DashForwardMontage : DashBackwardMontage;
+		}
+		else
+		{
+			// 좌우 판별 후 변수에 할당
+			MontageToPlay = (RightDot > 0.f) ? DashRightMontage : DashLeftMontage;
+		}
+	}
+
+	// 2. 선택된 애니메이션 재생
+	if (MontageToPlay)
+	{
+		PlayAnimMontage(MontageToPlay);
+	}
+
+	// 4. 캐릭터 발사
+	LaunchCharacter(InputDirection * 8000.f, true, true);
+
 }
 
 void APy_Grey::EnableWeaponCollision(bool bEnable)

@@ -17,6 +17,13 @@ UMon_GoblinAnim::UMon_GoblinAnim()
 	{
 		m_pMTGNormalAttack = NormalAttackAsset.Object;
 	}
+
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> HitAsset(TEXT("AnimMontage'/Game/UE_Asset/Character/Monster/Goblin/MTG_MonGoblin_Hit.MTG_MonGoblin_Hit'"));
+
+	if (HitAsset.Succeeded())
+	{
+		m_pMTGHit = HitAsset.Object;
+	}
 	
 }
 
