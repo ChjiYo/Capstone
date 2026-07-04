@@ -15,6 +15,7 @@ public:
 
 protected:
 	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory);
+	virtual EBTNodeResult::Type AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 	virtual void TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds);
 
 public:
@@ -23,6 +24,13 @@ public:
 
 public:
 	void AttackEnd();
+
+private:
+	UFUNCTION()
+	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+	// Task를 안전하게 끝내기 위해 컴포넌트를 기억해둘 변수
+	UBehaviorTreeComponent* MyOwnerComp;
 
 private:
 	bool bIsAttacking;

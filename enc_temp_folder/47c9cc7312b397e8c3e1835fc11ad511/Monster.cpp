@@ -1,0 +1,117 @@
+﻿#include "Monster.h"
+#include "MonsterAnim.h"
+#include "Components/WidgetComponent.h"
+#include "UI_HpBar.h"
+#include "ItemBase.h"
+
+AMonster::AMonster()
+{
+	PrimaryActorTick.bCanEverTick = true;
+	pSpawnPoint = nullptr;
+
+	fTraceRange = 1000.f;
+	fAttackDist = 200.f;
+
+	HpBarComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("HpBar"));
+	HpBarComponent->SetupAttachment(GetMesh());
+	HpBarComponent->SetWidgetSpace(EWidgetSpace::Screen);
+	HpBarComponent->SetRelativeLocation(FVector(0.f, 0.f, 100.f));
+
+	static ConstructorHelpers::FClassFinder<UUserWidget> HpBarWidgetClass(TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/UE_Asset/UI/BP_UI_Mon_HpBar.BP_UI_Mon_HpBar_C'"));
+
+	if (HpBarWidgetClass.Succeeded())
+		HpBarComponent->SetWidgetClass(HpBarWidgetClass.Class);
+
+	bHit = false;
+
+}
+
+AMonster::~AMonster()
+{
+	if (pSpawnPoint)
+		pSpawnPoint->Respawn();
+
+	OnAttackEnd.Clear();
+	AttackEndHandle.Reset(0);
+}
+
+void AMonster::BeginPlay()
+{
+	Super::BeginPlay();
+
+	GetCapsuleComponent()->SetCollisionProfileName(TEXT("Monster"));
+	GetCapsuleComponent()->SetNotifyRigidBodyCollision(true);
+	
+
+	HpBarWidget = Cast<UUI_HpBar>(HpBarComponent->GetUserWidgetObject());
+
+	if (IsValid(HpBarWidget))
+		HpBarWidget->SetHp(m_tInfo.iHp / static_cast<float>(m_tInfo.iMaxHp));
+}
+
+void AMonster::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+}
+
+float AMonster::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+    float ActualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+
+    m_tInfo.iHp -= ActualDamage;
+	
+	Hit();
+
+    if (IsValid(HpBarWidget))
+    {
+        HpBarWidget->SetHp(m_tInfo.iHp / static_cast<float>(m_tInfo.iMaxHp));
+    }
+
+    if (m_tInfo.iHp <= 0)
+    {
+        m_tInfo.iHp = 0;
+
+            if (DropItemClasses.Num() > 0)
+            {
+                int32 RandomIndex = FMath::RandRange(0, DropItemClasses.Num() - 1);
+                TSubclassOf<AItemBase> ItemToDrop = DropItemClasses[RandomIndex];
+
+                if (ItemToDrop)
+                {
+                    FVector SpawnLocation = GetActorLocation() + FVector({ 0.f,-10.f , 0.f });
+
+                    FRotator SpawnRotation = FRotator::ZeroRotator;
+
+                    GetWorld()->SpawnActor<AItemBase>(ItemToDrop, SpawnLocation, SpawnRotation);
+
+                    UE_LOG(LogTemp, Warning, TEXT("고블린이 아이템을 드랍했습니다!"));
+                }
+            }
+            
+        Destroy();
+    }
+
+   
+    return ActualDamage;
+}
+
+void AMonster::AttackEnd()
+{
+	OnAttackEnd.Broadcast();
+
+	for (FDelegateHandle& handle : AttackEndHandle)
+	{
+		OnAttackEnd.Remove(handle);
+	}
+}
+
+void AMonster::Hit()
+{
+	UMonsterAnim* pMonAnim = Cast<UMonsterAnim >(GetMesh()->GetAnimInstance());
+
+	if (IsValid(pMonAnim))
+		pMonAnim->Hit();
+
+	bHit = true;
+}

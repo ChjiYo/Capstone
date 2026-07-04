@@ -11,9 +11,6 @@ class CAPSTONE_API UMonsterAnim : public UCharBaseAnim
 public:
 	UMonsterAnim();
 
-public:
-	void Hit();
-
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 	UAnimMontage* m_pMTGNormalAttack;
@@ -23,4 +20,11 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Dash|Animation")
 	UAnimMontage* DashLeftMontage;
+
+public:
+	void Hit();
+
+private:
+	UFUNCTION()
+	void AnimNotify_HitEnd();
 };

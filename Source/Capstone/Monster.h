@@ -39,6 +39,9 @@ public:
 	FOnAttackEndDelegate OnAttackEnd;
 	TArray<FDelegateHandle> AttackEndHandle;
 
+private:
+	bool bHit;
+
 
 public:
 	template<typename T>
@@ -49,15 +52,7 @@ public:
 		AttackEndHandle.Add(handle);
 	}
 
-protected:
-	void NotifyHit(class UPrimitiveComponent* MyComp,
-		AActor* Other,
-		class UPrimitiveComponent* OtherComp,
-		bool bSelfMoved,
-		FVector HitLocation,
-		FVector HitNormal,
-		FVector NormalImpulse,
-		const FHitResult& Hit);
+	void ClearAttackEndDelegate();
 
 public:
 	const float& GetTraceRange() const
@@ -68,6 +63,17 @@ public:
 	const float& GetAttackDist() const
 	{
 		return fAttackDist;
+	}
+
+	const bool& GetHit() const
+	{
+		return bHit;
+	}
+
+public:
+	void SetHit(bool _Hit)
+	{
+		bHit = _Hit;
 	}
 
 public:
@@ -87,5 +93,5 @@ protected:
 
 public:
 	void AttackEnd();
-
+	void Hit();
 };

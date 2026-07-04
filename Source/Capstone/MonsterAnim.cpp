@@ -16,3 +16,11 @@ void UMonsterAnim::Hit()
     }
 }
 
+void UMonsterAnim::AnimNotify_HitEnd()
+{
+    AMonster* pMonster = Cast<AMonster>(TryGetPawnOwner());
+
+    if (IsValid(pMonster))
+        pMonster->SetHit(false);
+}
+

@@ -22,6 +22,8 @@ AMonster::AMonster()
 	if (HpBarWidgetClass.Succeeded())
 		HpBarComponent->SetWidgetClass(HpBarWidgetClass.Class);
 
+	bHit = false;
+
 }
 
 AMonster::~AMonster()
@@ -33,9 +35,9 @@ AMonster::~AMonster()
 	AttackEndHandle.Reset(0);
 }
 
-void AMonster::NotifyHit(UPrimitiveComponent* MyComp, AActor* Other, UPrimitiveComponent* OtherComp, bool bSelfMoved, FVector HitLocation, FVector HitNormal, FVector NormalImpulse, const FHitResult& Hit)
+void AMonster::ClearAttackEndDelegate()
 {
-
+	OnAttackEnd.Clear();
 }
 
 void AMonster::BeginPlay()
@@ -64,11 +66,7 @@ float AMonster::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, 
 
     m_tInfo.iHp -= ActualDamage;
 	
-	UMonsterAnim* pMonAnim = Cast<UMonsterAnim >(GetMesh()->GetAnimInstance());
-
-	if (IsValid(pMonAnim))
-		pMonAnim->Hit();
-
+	Hit();
 
     if (IsValid(HpBarWidget))
     {
@@ -111,4 +109,14 @@ void AMonster::AttackEnd()
 	{
 		OnAttackEnd.Remove(handle);
 	}
+}
+
+void AMonster::Hit()
+{
+	UMonsterAnim* pMonAnim = Cast<UMonsterAnim >(GetMesh()->GetAnimInstance());
+
+	if (IsValid(pMonAnim))
+		pMonAnim->Hit();
+
+	bHit = true;
 }
