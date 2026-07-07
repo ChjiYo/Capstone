@@ -10,7 +10,7 @@ AMonster::AMonster()
 	pSpawnPoint = nullptr;
 
 	fTraceRange = 1000.f;
-	fAttackDist = 200.f;
+	fAttackDist = 150.f;
 
 	HpBarComponent = CreateDefaultSubobject<UWidgetComponent>(TEXT("HpBar"));
 	HpBarComponent->SetupAttachment(GetMesh());
