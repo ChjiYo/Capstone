@@ -13,8 +13,8 @@ void ANPC_Quest::Interact_Implementation(AActor * Interactor)
         QuestWidget = CreateWidget<UUI_Quest>(GetWorld(), QuestWidgetClass);
         if (QuestWidget)
         {
-            //QuestWidget->SetQuestData(QuestData);
-            //QuestWidget->AddToViewport();
+            QuestWidget->SetQuestData(QuestData);
+            QuestWidget->AddToViewport();
         }
     }
 }
