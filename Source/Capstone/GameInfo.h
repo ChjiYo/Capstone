@@ -9,6 +9,8 @@
 #include "Blueprint/AIBlueprintHelperLibrary.h"
 #include "NavigationPath.h"
 
+#include "GameInfo.generated.h" 
+
 UENUM(BlueprintType)
 enum class EDir : uint8
 {
@@ -16,6 +18,24 @@ enum class EDir : uint8
 	Back,
 	Right,
 	Left
+};
+
+USTRUCT(BlueprintType)
+struct FQuestData
+{
+    GENERATED_BODY()
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
+    FName QuestID;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
+    FText QuestTitle;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
+    FText QuestDescription;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
+    bool bIsCompleted = false;
 };
 
 DECLARE_LOG_CATEGORY_EXTERN(UE7, Log, All);

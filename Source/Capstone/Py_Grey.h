@@ -39,6 +39,10 @@ protected:
 	UPROPERTY()
 	class AItemBase* CurrItem;
 
+	UPROPERTY()
+	UUI_Inventory* InventoryWidget = nullptr;
+
+
 private:
 	UPROPERTY(EditDefaultsOnly, Category = "Dash|Animation")
 	UAnimMontage* DashForwardMontage;
@@ -108,5 +112,8 @@ public:
 
 protected:
 	float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser);
+
+private:
+	bool bOpenUI;
 
 };

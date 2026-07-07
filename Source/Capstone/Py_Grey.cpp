@@ -17,6 +17,8 @@ APy_Grey::APy_Grey()
 	m_tInfo.iHp = 500;
 	m_tInfo.iAttack = 10;
 
+	bOpenUI = false;
+
 	pArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("Arm"));
 	pCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 
@@ -194,26 +196,42 @@ void APy_Grey::OnInteractKeyPressed()
 
 void APy_Grey::ToggleInventory()
 {
-	if (InventoryWidgetClass)
+	if (!InventoryWidgetClass)
+		return;
+
+	if (!InventoryWidget)
 	{
-		UUI_Inventory* InventoryWidget = CreateWidget<UUI_Inventory>(GetWorld(), InventoryWidgetClass);
-		if (InventoryWidget)
+		InventoryWidget = CreateWidget<UUI_Inventory>(GetWorld(), InventoryWidgetClass);
+	}
+
+	if (!InventoryWidget)
+		return;
+
+	APlayerController* PC = Cast<APlayerController>(GetController());
+
+	if (InventoryWidget->IsInViewport())
+	{
+		InventoryWidget->RemoveFromParent();
+
+		if (PC)
 		{
-			// 1. 화면에 먼저 띄웁니다. (이때 NativeConstruct가 실행되어 SlotArray가 채워짐)
-			InventoryWidget->AddToViewport();
+			PC->bShowMouseCursor = false;
+			PC->SetInputMode(FInputModeGameOnly());
+		}
+	}
+	else
+	{
+		InventoryWidget->AddToViewport();
 
-			// 2. 슬롯이 다 만들어진 상태에서 갱신을 호출합니다.
-			if (InventoryComponent)
-			{
-				InventoryWidget->RefreshInventoryUI(InventoryComponent);
-			}
+		if (InventoryComponent)
+		{
+			InventoryWidget->RefreshInventoryUI(InventoryComponent);
+		}
 
-			APlayerController* PC = Cast<APlayerController>(GetController());
-			if (PC)
-			{
-				PC->bShowMouseCursor = true;
-				PC->SetInputMode(FInputModeGameAndUI());
-			}
+		if (PC)
+		{
+			PC->bShowMouseCursor = true;
+			PC->SetInputMode(FInputModeGameAndUI());
 		}
 	}
 }
@@ -224,8 +242,6 @@ void APy_Grey::RollOrDash()
 	FVector ActorForward = GetActorForwardVector();
 	FVector ActorRight = GetActorRightVector();
 
-	// 1. 재생할 몽타주 포인터 선언 (기본값: 전방 대시)
-	// 이렇게 하면 입력이 없을 때(IsNearlyZero)도 자연스럽게 전방 애니메이션이 선택됩니다.
 	UAnimMontage* MontageToPlay = DashForwardMontage;
 
 	if (InputDirection.IsNearlyZero())

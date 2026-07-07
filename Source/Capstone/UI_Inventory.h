@@ -13,12 +13,14 @@ public:
     // 인벤토리 데이터를 받아 UI를 갱신하는 함수
     void RefreshInventoryUI(class UInventoryComponent* InventoryComp);
 
+    UFUNCTION()
+    void OnCloseButtonClicked();
+
+    const bool& GetOpenUI() const { return bOpenUI; }
+
 protected:
     virtual void NativeConstruct() override;
     virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
-
-    UFUNCTION()
-    void OnCloseButtonClicked();
 
     // 닫기 버튼
     UPROPERTY(meta = (BindWidget))
@@ -35,5 +37,7 @@ protected:
 
 protected:
     int32 MaxInventorySlots = 20;
+    bool bOpenUI = false;
+
 	
 };

@@ -34,7 +34,7 @@ void UUI_Inventory::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	// CloseButton이 블루프린트와 잘 연결되었는지 확인 후 이벤트 연동
+	bOpenUI = true;
 	if (CloseButton)
 	{
 		CloseButton->OnClicked.AddDynamic(this, &UUI_Inventory::OnCloseButtonClicked);
@@ -67,7 +67,7 @@ FReply UUI_Inventory::NativeOnMouseButtonDown(const FGeometry& InGeometry, const
 		// 여기서 FReply::Handled()를 반환하면 클릭 이벤트가 여기서 처리되고 끝납니다.
 		return FReply::Handled();
 	}
-
+	bOpenUI = false;
 	// 특별한 처리가 없다면 부모의 기본 동작을 수행합니다.
 	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 }
