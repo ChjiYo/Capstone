@@ -81,7 +81,7 @@ float AMonster::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, 
 
         OnMonsterKilled.Broadcast(MonsterID, ExpReward, GoldReward);
 
-            if (DropItemClasses.Num() > 0)
+            if (DropItemClasses.Num() > 0 && FMath::FRand() <= DropChance)
             {
                 int32 RandomIndex = FMath::RandRange(0, DropItemClasses.Num() - 1);
                 TSubclassOf<AItemBase> ItemToDrop = DropItemClasses[RandomIndex];

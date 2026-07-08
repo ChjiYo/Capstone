@@ -41,6 +41,14 @@ void ACharBase::Destroy()
 	Super::Destroy();
 }
 
+void ACharBase::Heal(int32 Amount)
+{
+	if (Amount <= 0)
+		return;
+
+	m_tInfo.iHp = FMath::Min(m_tInfo.iHp + Amount, m_tInfo.iMaxHp);
+}
+
 float ACharBase::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
 

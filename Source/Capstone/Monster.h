@@ -44,6 +44,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drop Items")
 	TArray<TSubclassOf<class AItemBase>> DropItemClasses;
 
+	// 전리품 드롭 확률 (0~1)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drop Items")
+	float DropChance = 1.f;
+
 	// 처치 시 지급되는 경험치/골드. 몬스터 블루프린트별로 다르게 설정
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward")
 	int32 ExpReward = 20;

@@ -131,6 +131,7 @@ private:
 	void SkillSlotC();
 	void OnInteractKeyPressed();
 	void ToggleInventory();
+	void UsePotion();
 
 	void RollOrDash();
 

@@ -47,7 +47,10 @@ protected:
 
 public:
 	class AWeapon* Get_Weapon(EWEAPON eType) { return mapWeapon[eType]; }
-	
+
+	// iMaxHp 상한까지 iHp를 회복시킨다 (포션 등에서 사용)
+	void Heal(int32 Amount);
+
 protected:
 	FINFO m_tInfo;
 };

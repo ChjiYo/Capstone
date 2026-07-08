@@ -136,6 +136,7 @@ void  APy_Grey::SetupPlayerInputComponent(class UInputComponent* PlayerInputComp
 
 	PlayerInputComponent->BindAction(TEXT("Interact"), EInputEvent::IE_Pressed, this, &APy_Grey::OnInteractKeyPressed);
 	PlayerInputComponent->BindAction(TEXT("Inventory"), EInputEvent::IE_Pressed, this, &APy_Grey::ToggleInventory);
+	PlayerInputComponent->BindAction(TEXT("UsePotion"), EInputEvent::IE_Pressed, this, &APy_Grey::UsePotion);
 
 	PlayerInputComponent->BindAction(TEXT("RollOrDash"), EInputEvent::IE_Pressed, this, &APy_Grey::RollOrDash);
 }
@@ -273,6 +274,32 @@ void APy_Grey::ToggleInventory()
 			PC->bShowMouseCursor = true;
 			PC->SetInputMode(FInputModeGameAndUI());
 		}
+	}
+}
+
+void APy_Grey::UsePotion()
+{
+	if (!InventoryComponent)
+		return;
+
+	for (const FInventorySlot& Slot : InventoryComponent->Items)
+	{
+		const FItemData* Data = InventoryComponent->GetItemData(Slot.ItemID);
+
+		if (!Data || Data->ItemType != EItemType::Potion)
+			continue;
+
+		if (!InventoryComponent->RemoveItem(Slot.ItemID, 1))
+			return;
+
+		Heal(Data->HealAmount);
+
+		if (IsValid(PlayerHpBar))
+		{
+			PlayerHpBar->SetHp(m_tInfo.iHp / static_cast<float>(m_tInfo.iMaxHp));
+		}
+
+		return;
 	}
 }
 

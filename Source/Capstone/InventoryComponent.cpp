@@ -20,12 +20,82 @@ void UInventoryComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
     Super::EndPlay(EndPlayReason);
 }
 
-void UInventoryComponent::AddItem(FName NewItemID)
+const FItemData* UInventoryComponent::GetItemData(FName ItemID) const
 {
-    Items.Add(NewItemID);
+    if (!ItemDataTable)
+        return nullptr;
 
-    LOG(TEXT("Item Added : %s"), *NewItemID.ToString());
-    LOG(TEXT("Current Item Count : %d"), Items.Num());
+    return ItemDataTable->FindRow<FItemData>(ItemID, TEXT("UInventoryComponent::GetItemData"));
+}
+
+void UInventoryComponent::AddItem(FName ItemID, int32 Count)
+{
+    if (ItemID.IsNone() || Count <= 0)
+        return;
+
+    int32 MaxStack = 99;
+    if (const FItemData* Data = GetItemData(ItemID))
+    {
+        MaxStack = Data->MaxStack;
+    }
+
+    for (FInventorySlot& Slot : Items)
+    {
+        if (Slot.ItemID == ItemID)
+        {
+            Slot.Count = FMath::Min(Slot.Count + Count, MaxStack);
+
+            OnInventoryChanged.Broadcast();
+
+            LOG(TEXT("Item Added : %s, Current Count : %d"), *ItemID.ToString(), Slot.Count);
+            return;
+        }
+    }
+
+    FInventorySlot NewSlot;
+    NewSlot.ItemID = ItemID;
+    NewSlot.Count = FMath::Min(Count, MaxStack);
+    Items.Add(NewSlot);
+
+    OnInventoryChanged.Broadcast();
+
+    LOG(TEXT("Item Added : %s, Current Count : %d"), *ItemID.ToString(), NewSlot.Count);
+}
+
+bool UInventoryComponent::RemoveItem(FName ItemID, int32 Count)
+{
+    if (ItemID.IsNone() || Count <= 0)
+        return false;
+
+    for (int32 i = 0; i < Items.Num(); ++i)
+    {
+        if (Items[i].ItemID != ItemID)
+            continue;
+
+        if (Items[i].Count < Count)
+            return false;
+
+        Items[i].Count -= Count;
+
+        if (Items[i].Count <= 0)
+            Items.RemoveAt(i);
+
+        OnInventoryChanged.Broadcast();
+        return true;
+    }
+
+    return false;
+}
+
+int32 UInventoryComponent::GetItemCount(FName ItemID) const
+{
+    for (const FInventorySlot& Slot : Items)
+    {
+        if (Slot.ItemID == ItemID)
+            return Slot.Count;
+    }
+
+    return 0;
 }
 
 void UInventoryComponent::AddGold(int32 Amount)
@@ -35,11 +105,24 @@ void UInventoryComponent::AddGold(int32 Amount)
 
     Gold += Amount;
 
+    OnInventoryChanged.Broadcast();
+
     LOG(TEXT("Gold Added : %d, Current Gold : %d"), Amount, Gold);
+}
+
+bool UInventoryComponent::TrySpendGold(int32 Amount)
+{
+    if (Amount <= 0 || Gold < Amount)
+        return false;
+
+    Gold -= Amount;
+
+    OnInventoryChanged.Broadcast();
+
+    return true;
 }
 
 void UInventoryComponent::HandleMonsterKilled(FName MonsterID, int32 ExpReward, int32 GoldReward)
 {
     AddGold(GoldReward);
 }
-

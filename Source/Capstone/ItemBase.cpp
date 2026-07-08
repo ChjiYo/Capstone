@@ -1,28 +1,67 @@
 #include "ItemBase.h"
 #include "Components/SphereComponent.h"
-#include "Components/StaticMeshComponent.h"
+#include "NiagaraComponent.h"
+#include "NiagaraSystem.h"
 #include "InventoryComponent.h"
-#include "Py_Grey.h" 
+#include "Py_Grey.h"
 
 AItemBase::AItemBase()
 {
     PrimaryActorTick.bCanEverTick = false;
 
-    ItemMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ItemMesh"));
-    RootComponent = ItemMesh;
+    ItemVFX = CreateDefaultSubobject<UNiagaraComponent>(TEXT("ItemVFX"));
+    RootComponent = ItemVFX;
+    ItemVFX->SetAutoActivate(false);
 
     CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionComponent"));
     CollisionComponent->SetupAttachment(RootComponent);
-    CollisionComponent->InitSphereRadius(150.f); 
+    CollisionComponent->InitSphereRadius(150.f);
     CollisionComponent->SetCollisionProfileName(TEXT("Trigger"));
 
     CollisionComponent->OnComponentBeginOverlap.AddDynamic(this, &AItemBase::OnOverlapBegin);
     CollisionComponent->OnComponentEndOverlap.AddDynamic(this, &AItemBase::OnOverlapEnd);
+
+    static ConstructorHelpers::FObjectFinder<UNiagaraSystem> LootVFXFinder(TEXT("/Script/Niagara.NiagaraSystem'/Game/Imortal_Loot_Drop_VFX/Niagara/NS_Loot_Drop_3.NS_Loot_Drop_3'"));
+    if (LootVFXFinder.Succeeded())
+        LootDropVFX = LootVFXFinder.Object;
+
+    static ConstructorHelpers::FObjectFinder<UNiagaraSystem> HealVFXFinder(TEXT("/Script/Niagara.NiagaraSystem'/Game/Imortal_Loot_Drop_VFX/Niagara/NS_Loot_Drop.NS_Loot_Drop'"));
+    if (HealVFXFinder.Succeeded())
+        HealDropVFX = HealVFXFinder.Object;
+
+    static ConstructorHelpers::FObjectFinder<UNiagaraSystem> WeaponVFXFinder(TEXT("/Script/Niagara.NiagaraSystem'/Game/Imortal_Loot_Drop_VFX/Niagara/NS_Loot_Drop_2.NS_Loot_Drop_2'"));
+    if (WeaponVFXFinder.Succeeded())
+        WeaponDropVFX = WeaponVFXFinder.Object;
 }
 
 void AItemBase::BeginPlay()
 {
     Super::BeginPlay();
+
+    UNiagaraSystem* SelectedVFX = LootDropVFX;
+
+    switch (ItemType)
+    {
+    case EItemType::Weapon:
+        SelectedVFX = WeaponDropVFX;
+        break;
+
+    case EItemType::Potion:
+    case EItemType::Material:
+        SelectedVFX = HealDropVFX;
+        break;
+
+    case EItemType::Loot:
+    default:
+        SelectedVFX = LootDropVFX;
+        break;
+    }
+
+    if (SelectedVFX && ItemVFX)
+    {
+        ItemVFX->SetAsset(SelectedVFX);
+        ItemVFX->Activate(true);
+    }
 }
 
 void AItemBase::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)

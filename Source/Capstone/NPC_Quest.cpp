@@ -58,10 +58,7 @@ void ANPC_Quest::HandleQuestAccepted()
         // 처치 목표가 없는(대화/전달형) 퀘스트는 수락 즉시 보상 지급
         if (Player->InventoryComponent && !QuestData.Reward.RewardItemID.IsNone())
         {
-            for (int32 i = 0; i < QuestData.Reward.RewardItemCount; ++i)
-            {
-                Player->InventoryComponent->AddItem(QuestData.Reward.RewardItemID);
-            }
+            Player->InventoryComponent->AddItem(QuestData.Reward.RewardItemID, QuestData.Reward.RewardItemCount);
         }
 
         if (Player->InventoryComponent && QuestData.Reward.RewardGold > 0)

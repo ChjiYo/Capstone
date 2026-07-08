@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GameInfo.h"
+#include "ItemData.h"
 #include "GameFramework/Actor.h"
 #include "ItemBase.generated.h"
 
@@ -8,10 +9,10 @@ UCLASS()
 class CAPSTONE_API AItemBase : public AActor
 {
 	GENERATED_BODY()
-	
-public:	
+
+public:
 	AItemBase();
-    // Ä³¸¯ÅÍ°¡ EÅ°¸¦ ´­·¶À» ¶§ È£ÃâµÉ Áİ±â ÇÔ¼ö
+    // Ä³ï¿½ï¿½ï¿½Í°ï¿½ EÅ°ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ È£ï¿½ï¿½ï¿½ ï¿½İ±ï¿½ ï¿½Ô¼ï¿½
     UFUNCTION(BlueprintCallable, Category = "Item")
     void PickupItem(class ACharacter* Picker);
 
@@ -21,21 +22,35 @@ protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Data")
     FName ItemID;
 
+    // ë“œë¡­ ì—°ì¶œ ë‚˜ì´ì•„ê°€ë¼ ì„ íƒ ê¸°ì¤€. DT_Itemsì˜ í•´ë‹¹ ItemID íƒ€ì…ê³¼ ë™ì¼í•˜ê²Œ ì§€ì •
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item Data")
+    EItemType ItemType = EItemType::Loot;
+
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-    class UStaticMeshComponent* ItemMesh;
+    class UNiagaraComponent* ItemVFX;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     class USphereComponent* CollisionComponent;
 
+    // ItemTypeë³„ ê¸°ë³¸ ë“œë¡­ ì´í™íŠ¸. í•„ìš”í•˜ë©´ ì„œë¸Œí´ë˜ìŠ¤ì—ì„œ ê°œë³„ êµì²´ ê°€ëŠ¥
+    UPROPERTY(EditDefaultsOnly, Category = "Item Data|VFX")
+    class UNiagaraSystem* LootDropVFX;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Item Data|VFX")
+    class UNiagaraSystem* HealDropVFX;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Item Data|VFX")
+    class UNiagaraSystem* WeaponDropVFX;
+
 
 protected:
-    // Äİ¸®Àü¿¡ µé¾î¿ÔÀ» ¶§
+    // ï¿½İ¸ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½
     UFUNCTION()
     void OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
         UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
         bool bFromSweep, const FHitResult& SweepResult);
 
-    // Äİ¸®Àü¿¡¼­ ³ª°¬À» ¶§
+    // ï¿½İ¸ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½
     UFUNCTION()
     void OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
         UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);

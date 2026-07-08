@@ -61,10 +61,7 @@ void UQuestComponent::GrantReward()
 
 	if (Inventory && !ActiveQuest.Reward.RewardItemID.IsNone())
 	{
-		for (int32 i = 0; i < ActiveQuest.Reward.RewardItemCount; ++i)
-		{
-			Inventory->AddItem(ActiveQuest.Reward.RewardItemID);
-		}
+		Inventory->AddItem(ActiveQuest.Reward.RewardItemID, ActiveQuest.Reward.RewardItemCount);
 	}
 
 	if (Inventory && ActiveQuest.Reward.RewardGold > 0)
