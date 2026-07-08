@@ -2,13 +2,23 @@
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
 
-void UUI_InventorySlot::InitSlot(const FInventorySlot& SlotData)
+void UUI_InventorySlot::InitSlot(const FInventorySlot& SlotData, const FItemData* ItemData)
 {
 	CurrentItemID = SlotData.ItemID;
 	CurrentItemCount = SlotData.Count;
 
     if (ItemIcon)
+    {
         ItemIcon->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
+
+        if (ItemData && !ItemData->Icon.IsNull())
+        {
+            if (UTexture2D* IconTexture = ItemData->Icon.LoadSynchronous())
+            {
+                ItemIcon->SetBrushFromTexture(IconTexture);
+            }
+        }
+    }
 
     if (CountText)
     {

@@ -25,7 +25,8 @@ void UUI_Inventory::RefreshInventoryUI(UInventoryComponent* InventoryComp)
 		{
 			if (SlotArray[i])
 			{
-				SlotArray[i]->InitSlot(InventoryComp->Items[i]);
+				const FInventorySlot& InvenSlot = InventoryComp->Items[i];
+				SlotArray[i]->InitSlot(InvenSlot, InventoryComp->GetItemData(InvenSlot.ItemID));
 			}
 		}
 	}
@@ -66,26 +67,20 @@ void UUI_Inventory::NativeConstruct()
 
 FReply UUI_Inventory::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
-	// ��Ŭ��, ��Ŭ�� ���� �Ǻ��� �� �ֽ��ϴ�.
+
 	if (InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("�κ��丮 ����� ��Ŭ���߽��ϴ�."));
-		// ���⼭ FReply::Handled()�� ��ȯ�ϸ� Ŭ�� �̺�Ʈ�� ���⼭ ó���ǰ� �����ϴ�.
 		return FReply::Handled();
 	}
 	bOpenUI = false;
-	// Ư���� ó���� ���ٸ� �θ��� �⺻ ������ �����մϴ�.
+
 	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 }
 
 void UUI_Inventory::OnCloseButtonClicked()
 {
-	UE_LOG(LogTemp, Warning, TEXT("�κ��丮 �ݱ� ��ư Ŭ����!"));
-
-	// 1. ȭ�鿡�� ���� ����
 	RemoveFromParent();
 
-	// 2. �÷��̾� ��Ʈ�ѷ��� �����ͼ� ���콺 Ŀ���� ����� ���� �Է� ���� ����
 	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	if (PC)
 	{
