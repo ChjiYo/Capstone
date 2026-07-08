@@ -2,80 +2,80 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project overview
+## 프로젝트 개요
 
-Capstone is an Unreal Engine 5.7 C++ action-RPG project (module name `Capstone`, `CAPSTONE_API`). Gameplay code lives in `Source/Capstone/`; everything else (levels, blueprints, meshes, animations, widgets) is binary content under `Content/UE_Asset/` and is edited through the Unreal Editor, not by hand.
+Capstone은 Unreal Engine 5.7 기반 C++ 액션 RPG 프로젝트입니다 (모듈명 `Capstone`, `CAPSTONE_API`). 게임플레이 코드는 `Source/Capstone/`에 있고, 그 외(레벨, 블루프린트, 메시, 애니메이션, 위젯)는 `Content/UE_Asset/` 아래의 바이너리 콘텐츠로 언리얼 에디터에서 직접 편집합니다.
 
-Engine install: `C:\Program Files\Epic Games\UE_5.7`.
+엔진 설치 경로: `C:\Program Files\Epic Games\UE_5.7`.
 
-## Build / run commands
+## 빌드 / 실행 명령
 
-There is no cross-platform build script or test harness in this repo — this is a Windows-only UE project built via UnrealBuildTool (UBT) or the Editor/Visual Studio.
+이 저장소에는 크로스플랫폼 빌드 스크립트나 테스트 하네스가 없습니다 — Windows 전용 UE 프로젝트이며 UnrealBuildTool(UBT) 또는 에디터/Visual Studio로 빌드합니다.
 
-- **Generate VS project files**: right-click `Capstone.uproject` → "Generate Visual Studio project files", or run UBT's `GenerateProjectFiles` from the engine install.
-- **Compile (editor target, dev config)**:
+- **VS 프로젝트 파일 생성**: `Capstone.uproject` 우클릭 → "Generate Visual Studio project files", 또는 엔진 설치 경로의 UBT `GenerateProjectFiles`를 직접 실행.
+- **컴파일 (에디터 타겟, Development 구성)**:
   ```
   "C:\Program Files\Epic Games\UE_5.7\Engine\Build\BatchFiles\Build.bat" CapstoneEditor Win64 Development -project="D:\Unreal_Project\Capstone\Capstone.uproject"
   ```
-- **Run the editor**: open `Capstone.uproject` (launches UE 5.7 per `EngineAssociation` in the `.uproject`), or launch `Binaries/Win64` executable directly if already built.
-- There are no automated tests (no `Test` target, no CI config) — verification is manual, in-editor (PIE) playtesting.
-- Two build targets exist: `Capstone.Target.cs` (Game) and `CapstoneEditor.Target.cs` (Editor).
-- Module dependencies (`Capstone.Build.cs`): Core, CoreUObject, Engine, InputCore, EnhancedInput, ApexDestruction, Niagara, GameplayTags, UMG (public); Slate, SlateCore (private).
-- Enabled plugins (`Capstone.uproject`): ModelingToolsEditorMode (editor-only), ApexDestruction, CascadeToNiagaraConverter.
+- **에디터 실행**: `Capstone.uproject`를 열면 됨 (`.uproject`의 `EngineAssociation`에 따라 UE 5.7이 실행됨). 이미 빌드된 경우 `Binaries/Win64`의 실행 파일을 직접 실행해도 됨.
+- 자동화된 테스트는 없음 (`Test` 타겟 없음, CI 설정 없음) — 검증은 에디터에서 수동으로(PIE) 플레이테스트하는 방식.
+- 빌드 타겟은 두 개: `Capstone.Target.cs`(Game)와 `CapstoneEditor.Target.cs`(Editor).
+- 모듈 의존성 (`Capstone.Build.cs`): Core, CoreUObject, Engine, InputCore, EnhancedInput, ApexDestruction, Niagara, GameplayTags, UMG (public); Slate, SlateCore (private).
+- 활성화된 플러그인 (`Capstone.uproject`): ModelingToolsEditorMode (에디터 전용), ApexDestruction, CascadeToNiagaraConverter.
 
-## Working with this repo
+## 작업 시 유의사항
 
-- **Source of truth for gameplay logic is C++**; Blueprints (`.uasset`) typically subclass the C++ base classes to wire up meshes/animations/widgets and tune editor-exposed properties. When a feature seems "missing" in C++, check whether it's configured on the Blueprint side instead (e.g. `BP_Goblin`, `BP_PyGrey`, `BP_UI_NPC_Quest`) — those are binary and can't be read directly, only referenced by name/class.
-- `.uasset`/`.umap` files are binary; do not attempt to view or diff their contents as text. When a task touches both C++ and Blueprints, changes to the `.uasset` files must be made in-editor by the user — you can only change the C++ side.
-- Some existing header comments (Korean, written in EUC-KR/CP949) render as mojibake when read as UTF-8 (e.g. `ItemBase.h`, `NPC_Base.h`). This is pre-existing; don't "fix" it as part of unrelated changes, and write new Korean comments as proper UTF-8.
-- `GameInfo.h` is a project-wide grab-bag include (logging macros `LOG(...)`, `PrintViewport`, the `FQuestData`/`FQuestReward` structs, `EDir`) and is included from almost every other header — treat it as the closest thing this project has to a common/precompiled header.
+- **게임플레이 로직의 원본은 C++**입니다. 블루프린트(`.uasset`)는 보통 C++ 베이스 클래스를 상속해서 메시/애니메이션/위젯을 연결하고 에디터에 노출된 속성을 조정하는 용도입니다. C++에서 기능이 "빠진" 것처럼 보이면 블루프린트 쪽에 설정되어 있는지 확인하세요 (예: `BP_Goblin`, `BP_PyGrey`, `BP_UI_NPC_Quest`) — 이들은 바이너리라서 이름/클래스로만 참조 가능하고 내용을 직접 읽을 수는 없습니다.
+- `.uasset`/`.umap` 파일은 바이너리이므로 텍스트로 보거나 diff를 시도하지 마세요. C++과 블루프린트를 동시에 건드리는 작업이라면 `.uasset` 쪽 변경은 사용자가 에디터에서 직접 해야 하며, Claude는 C++ 쪽만 변경할 수 있습니다.
+- 일부 기존 헤더의 한글 주석(EUC-KR/CP949로 작성됨)이 UTF-8로 읽으면 깨져 보입니다 (예: `ItemBase.h`, `NPC_Base.h`). 이는 기존부터 있던 문제이므로 관련 없는 작업 중에 "고치지" 말고, 새로 작성하는 한글 주석은 UTF-8로 정상 작성하세요.
+- `GameInfo.h`는 프로젝트 전역에서 쓰는 잡다한 include 모음입니다 (로깅 매크로 `LOG(...)`, `PrintViewport`, `FQuestData`/`FQuestReward` 구조체, `EDir` 등)이고 거의 모든 다른 헤더에서 include되므로, 이 프로젝트의 공용/PCH에 가장 가까운 파일로 취급하면 됩니다.
 
-## Architecture
+## 아키텍처
 
-### Character hierarchy
+### 캐릭터 계층 구조
 
 ```
-ACharacter (engine)
- └─ ACharBase          — shared stats (FINFO: hp/attack), EWEAPON-slot weapon map, TakeDamage
-     ├─ AMonster        — AI-driven enemy base; MonsterID for quest tracking, HP bar widget component,
-     │   │                spawn-point back-reference, attack/hit delegates
+ACharacter (엔진)
+ └─ ACharBase          — 공용 스탯(FINFO: hp/attack), EWEAPON 슬롯별 무기 맵, TakeDamage
+     ├─ AMonster        — AI로 제어되는 적 베이스; 퀘스트 추적용 MonsterID, HP 바 위젯 컴포넌트,
+     │   │                스폰포인트 역참조, 공격/피격 델리게이트
      │   ├─ AMon_Goblin  (+ AMon_GoblinAnim)
      │   ├─ AMon_Larvae  (+ AMon_LarvaeAnim)
      │   └─ AMon_Narbash (+ AMon_NarbashAnim)
-     ├─ ANPC_Base        — interactable NPC base (overlap sphere → Interact BlueprintNativeEvent)
-     │   └─ ANPC_Quest    — holds an FQuestData, shows UUI_Quest on interact, grants reward via UQuestComponent
-     └─ APy_Grey (+ ICombatInterface) — the player character; owns UInventoryComponent, UQuestComponent,
-                                         HUD widgets (HP bar, inventory, quest tracker), dash montages, weapon-box overlap
+     ├─ ANPC_Base        — 상호작용 가능한 NPC 베이스 (오버랩 스피어 → Interact BlueprintNativeEvent)
+     │   └─ ANPC_Quest    — FQuestData를 보유, 상호작용 시 UUI_Quest 표시, UQuestComponent를 통해 보상 지급
+     └─ APy_Grey (+ ICombatInterface) — 플레이어 캐릭터; UInventoryComponent, UQuestComponent,
+                                         HUD 위젯(HP 바, 인벤토리, 퀘스트 트래커), 대시 몽타주, 무기 박스 오버랩을 보유
 ```
 
-Animation instances mirror this hierarchy: `UCharBaseAnim` (shared attack-combo/hit/death notify plumbing via `Inher*Notify()` virtual hooks) → `UMonsterAnim` → `UMon_GoblinAnim`/etc., and `UPy_GreyAnim`, `UNPC_BaseAnim`/`UNPC_QuestAnim` on the other branches.
+애니메이션 인스턴스도 동일한 계층 구조를 따릅니다: `UCharBaseAnim`(공통 공격 콤보/피격/사망 노티파이 처리를 `Inher*Notify()` 가상 훅으로 제공) → `UMonsterAnim` → `UMon_GoblinAnim` 등, 그리고 다른 갈래로 `UPy_GreyAnim`, `UNPC_BaseAnim`/`UNPC_QuestAnim`이 있습니다.
 
-### Combat & damage
+### 전투 & 데미지
 
-- `ICombatInterface` is a minimal UInterface (currently just `SetExplosiveBuffState`) implemented by `APy_Grey`.
-- Melee: `AWeapon` (and monster-specific weapon boxes, e.g. `AMon_Goblin::WeaponBox`) drive `UBoxComponent` overlap events that call `TakeDamage` on hit.
-- Ranged/AoE: `AEffectDestroy` is the base for all VFX/SFX-driven skill effects (spawns Niagara + sound, self-destructs after `fLifeTime`); `AEffect_Projectile` adds a `UProjectileMovementComponent` + collision sphere for traveling projectiles, `AEffect_Dot` adds a damage-over-time timer against actors overlapping its sphere. `UAnimNotify_SpawnSkillEffect` is the animation-notify hook that spawns an `AEffectDestroy` subclass at a configurable target (player/caster/socket/weapon-socket) during a montage.
+- `ICombatInterface`는 최소한의 UInterface입니다 (현재는 `SetExplosiveBuffState`만 있음), `APy_Grey`가 구현.
+- 근접 공격: `AWeapon`(그리고 `AMon_Goblin::WeaponBox` 같은 몬스터별 무기 박스)이 `UBoxComponent` 오버랩 이벤트로 `TakeDamage`를 호출.
+- 원거리/광역: `AEffectDestroy`는 모든 VFX/SFX 기반 스킬 이펙트의 베이스 클래스(나이아가라+사운드를 스폰하고 `fLifeTime` 후 자동 소멸). `AEffect_Projectile`은 `UProjectileMovementComponent`와 충돌 스피어를 추가해 날아가는 투사체를 구현하고, `AEffect_Dot`은 스피어에 겹친 액터에게 타이머로 지속 피해를 줍니다. `UAnimNotify_SpawnSkillEffect`는 몽타주 재생 중 설정 가능한 대상(플레이어/시전자/소켓/무기 소켓)에 `AEffectDestroy` 서브클래스를 스폰하는 애니메이션 노티파이 훅입니다.
 
-### Monster AI (Behavior Tree)
+### 몬스터 AI (비헤이비어 트리)
 
-- `AMonsterAIController` possesses monsters and drives their `UBehaviorTree`/blackboard.
-- Custom BT nodes: `UBTService_Detect` (perception tick), `UBTTask_TargetMove`, `UBTTask_Dash`, `UBTTask_Attack` (montage-driven attack with abort handling), `UBTDecorator_AttackDist` (min/max range gate), `UBTDecorator_CheckHit` (hit-reaction gate).
-- `ASpawnPoint` owns monster (re)spawning (`SpawnType`, `SpawnTime`, infinite/finite mode) and is referenced back from the spawned `AMonster::pSpawnPoint`.
+- `AMonsterAIController`가 몬스터를 빙의해서 `UBehaviorTree`/블랙보드를 구동합니다.
+- 커스텀 BT 노드: `UBTService_Detect`(감지 틱), `UBTTask_TargetMove`, `UBTTask_Dash`, `UBTTask_Attack`(몽타주 기반 공격, abort 처리 포함), `UBTDecorator_AttackDist`(최소/최대 사거리 조건), `UBTDecorator_CheckHit`(피격 리액션 조건).
+- `ASpawnPoint`가 몬스터 (재)스폰을 담당하고(`SpawnType`, `SpawnTime`, 무한/유한 모드), 스폰된 `AMonster::pSpawnPoint`에서 역참조됩니다.
 
-### Quest system
+### 퀘스트 시스템
 
-- `FQuestData`/`FQuestReward` (in `GameInfo.h`) describe a quest: id/title/description, reward item+count, and an optional kill objective (`KillTargetID` matched against `AMonster::MonsterID`, `KillTargetCount`, runtime `CurrentKillCount`).
-- `AMonster::OnMonsterKilled` is a static multicast delegate broadcast whenever any monster dies.
-- `UQuestComponent` (owned by `APy_Grey`) subscribes to `OnMonsterKilled`, tracks progress on the single active quest, and broadcasts `OnQuestTrackerChanged` (Blueprint-assignable) for UI to refresh.
-- `ANPC_Quest` holds the quest definition, shows `UUI_Quest` (accept/decline dialog) on interact, and grants the reward through the player's inventory on accept.
-- UI split: `UUI_Quest` is the NPC dialog (accept/decline), `UUI_QuestTracker` is the always-on HUD tracker widget (`WBP_QuestTracker`) — both use `BindWidgetOptional` so the paired Blueprint widget can be missing pieces without breaking compilation.
+- `FQuestData`/`FQuestReward`(`GameInfo.h`에 정의)는 퀘스트 하나를 표현합니다: id/제목/설명, 보상 아이템+수량, 그리고 선택적인 처치 목표(`KillTargetID`가 `AMonster::MonsterID`와 매칭, `KillTargetCount`, 런타임 진행도 `CurrentKillCount`).
+- `AMonster::OnMonsterKilled`는 몬스터가 죽을 때마다 방송되는 static 멀티캐스트 델리게이트입니다.
+- `UQuestComponent`(`APy_Grey`가 보유)가 `OnMonsterKilled`를 구독해서 현재 활성 퀘스트 하나의 진행도를 추적하고, UI 갱신용으로 `OnQuestTrackerChanged`(블루프린트에서 바인딩 가능)를 방송합니다.
+- `ANPC_Quest`가 퀘스트 정의를 보유하고, 상호작용 시 `UUI_Quest`(수락/거절 다이얼로그)를 표시하며, 수락 시 플레이어 인벤토리를 통해 보상을 지급합니다.
+- UI는 두 가지로 나뉩니다: `UUI_Quest`는 NPC 다이얼로그(수락/거절), `UUI_QuestTracker`는 항상 표시되는 HUD 트래커 위젯(`WBP_QuestTracker`) — 둘 다 `BindWidgetOptional`을 사용해서 짝을 이루는 블루프린트 위젯에 일부 요소가 없어도 컴파일이 깨지지 않습니다.
 
-### Inventory & items
+### 인벤토리 & 아이템
 
-- `AItemBase` is a world pickup (overlap sphere + mesh); `PickupItem` transfers `ItemID` into the picker's `UInventoryComponent`.
-- `UInventoryComponent::Items` is a flat `TArray<FName>` of item IDs (shared identifier space with `FQuestReward::RewardItemID`).
-- `UUI_Inventory`/`UUI_InventorySlot` render the inventory widget; `APy_Grey::ToggleInventory` shows/hides it.
+- `AItemBase`는 월드에 배치되는 픽업 오브젝트입니다(오버랩 스피어 + 메시). `PickupItem`이 `ItemID`를 습득자의 `UInventoryComponent`로 옮깁니다.
+- `UInventoryComponent::Items`는 아이템 ID들의 단순한 `TArray<FName>`입니다 (`FQuestReward::RewardItemID`와 동일한 식별자 공간을 공유).
+- `UUI_Inventory`/`UUI_InventorySlot`이 인벤토리 위젯을 렌더링하고, `APy_Grey::ToggleInventory`가 이를 열고 닫습니다.
 
-### Portals / level transition
+### 포탈 / 레벨 전환
 
-`APortalPoint` overlaps the player and loads `TargetLevelName` — the only cross-level transition mechanism in the project.
+`APortalPoint`가 플레이어와 겹치면 `TargetLevelName`을 로드합니다 — 이 프로젝트에서 유일한 레벨 간 전환 수단입니다.
