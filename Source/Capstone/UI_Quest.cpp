@@ -16,6 +16,16 @@ void UUI_Quest::SetQuestData(const FQuestData& InQuestData)
 	{
 		DescriptionText->SetText(CurrentQuestData.QuestDescription);
 	}
+
+	if (RewardText)
+	{
+		FText RewardStr = FText::Format(
+			NSLOCTEXT("UI_Quest", "RewardFormat", "Reward: {0} x{1}"),
+			FText::FromName(CurrentQuestData.Reward.RewardItemID),
+			CurrentQuestData.Reward.RewardItemCount);
+
+		RewardText->SetText(RewardStr);
+	}
 }
 
 void UUI_Quest::NativeConstruct()
@@ -35,10 +45,12 @@ void UUI_Quest::NativeConstruct()
 
 void UUI_Quest::OnAcceptClicked()
 {
+	OnQuestAccepted.Broadcast();
 	RemoveFromParent();
 }
 
 void UUI_Quest::OnDeclineClicked()
 {
+	OnQuestDeclined.Broadcast();
 	RemoveFromParent();
 }

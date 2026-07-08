@@ -5,6 +5,7 @@
 #include "Monster.generated.h"
 
 DECLARE_MULTICAST_DELEGATE(FOnAttackEndDelegate)
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnMonsterKilled, FName /*MonsterID*/)
 
 UCLASS()
 class CAPSTONE_API AMonster : public ACharBase
@@ -14,6 +15,14 @@ class CAPSTONE_API AMonster : public ACharBase
 public:
 	AMonster();
 	~AMonster();
+
+public:
+	// 처치 퀘스트가 어떤 몬스터를 처치해야 하는지 구분하는 값 (예: "Goblin_Sword", "Goblin_Wizard")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster")
+	FName MonsterID;
+
+	// 몬스터가 죽을 때마다 전역으로 방송. QuestComponent가 이 이벤트를 구독해 처치 퀘스트 진행도를 갱신
+	static FOnMonsterKilled OnMonsterKilled;
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI")

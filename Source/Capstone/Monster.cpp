@@ -4,6 +4,8 @@
 #include "UI_HpBar.h"
 #include "ItemBase.h"
 
+FOnMonsterKilled AMonster::OnMonsterKilled;
+
 AMonster::AMonster()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -76,6 +78,8 @@ float AMonster::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, 
     if (m_tInfo.iHp <= 0)
     {
         m_tInfo.iHp = 0;
+
+        OnMonsterKilled.Broadcast(MonsterID);
 
             if (DropItemClasses.Num() > 0)
             {

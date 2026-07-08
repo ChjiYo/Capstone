@@ -30,17 +30,26 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<class UUI_Inventory> InventoryWidgetClass;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "UI")
+	TSubclassOf<class UUI_QuestTracker> QuestTrackerWidgetClass;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill|FX")
 	TSubclassOf<class AEffectDestroy> HitEffectClass;
 
 	UPROPERTY()
-	UUI_HpBar* PlayerHpBar;
+	class UUI_HpBar* PlayerHpBar;
 
 	UPROPERTY()
 	class AItemBase* CurrItem;
 
 	UPROPERTY()
+	class ANPC_Base* CurrNPC;
+
+	UPROPERTY()
 	UUI_Inventory* InventoryWidget = nullptr;
+
+	UPROPERTY()
+	class UUI_QuestTracker* QuestTrackerWidget = nullptr;
 
 
 private:
@@ -64,6 +73,9 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	class UInventoryComponent* InventoryComponent;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	class UQuestComponent* QuestComponent;
+
 	class UPy_GreyAnim* pGreyAnim;
 protected:
 	virtual void BeginPlay() override;
@@ -72,9 +84,16 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	void SetInteractableItem(class AItemBase* Item) { CurrItem = Item; }
+	void SetInteractableNPC(class ANPC_Base* NPC) { CurrNPC = NPC; }
+
+	
 	virtual void SetExplosiveBuffState(bool bIsActive) override;
 
 
+
+private:
+	UFUNCTION()
+	void RefreshQuestTracker();
 
 private:
 	void MoveFront(float _fScale);
@@ -112,8 +131,4 @@ public:
 
 protected:
 	float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser);
-
-private:
-	bool bOpenUI;
-
 };

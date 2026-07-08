@@ -3,8 +3,11 @@
 #include "EffectDestroy.h"
 #include "ItemBase.h"
 #include "InventoryComponent.h"
+#include "QuestComponent.h"
 #include "UI_HpBar.h"
 #include "UI_Inventory.h"
+#include "UI_QuestTracker.h"
+#include "NPC_Base.h"
 #include "Engine/DamageEvents.h"
 #include "DrawDebugHelpers.h"
 #include "NiagaraFunctionLibrary.h"
@@ -16,8 +19,6 @@ APy_Grey::APy_Grey()
 	m_tInfo.iMaxHp = 500;
 	m_tInfo.iHp = 500;
 	m_tInfo.iAttack = 10;
-
-	bOpenUI = false;
 
 	pArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("Arm"));
 	pCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
@@ -39,6 +40,7 @@ APy_Grey::APy_Grey()
 	WeaponBox->SetupAttachment(GetMesh(), TEXT("FX_Sword_Mid"));
 
 	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>(TEXT("InventoryComponent"));
+	QuestComponent = CreateDefaultSubobject<UQuestComponent>(TEXT("QuestComponent"));
 
 }
 
@@ -69,6 +71,22 @@ void APy_Grey::BeginPlay()
 			float fPercent = m_tInfo.iHp / m_tInfo.iMaxHp;
 			PlayerHpBar->SetHp(fPercent);
 		}
+	}
+
+	if (IsValid(QuestTrackerWidgetClass))
+	{
+		QuestTrackerWidget = CreateWidget<UUI_QuestTracker>(GetWorld(), QuestTrackerWidgetClass);
+
+		if (IsValid(QuestTrackerWidget))
+		{
+			QuestTrackerWidget->AddToViewport();
+			QuestTrackerWidget->ClearQuest();
+		}
+	}
+
+	if (QuestComponent)
+	{
+		QuestComponent->OnQuestTrackerChanged.AddDynamic(this, &APy_Grey::RefreshQuestTracker);
 	}
 }
 
@@ -183,14 +201,15 @@ void APy_Grey::SkillSlotC()
 
 void APy_Grey::OnInteractKeyPressed()
 {
-	// E키를 눌렀을 때 겹쳐있는 아이템이 있는지 확인
 	if (CurrItem)
 	{
-		// 아이템의 줍기 함수 실행!
 		CurrItem->PickupItem(this);
-
-		// 주웠으니 참조 비우기
 		CurrItem = nullptr;
+	}
+
+	if (CurrNPC)
+	{
+		CurrNPC->Interact(this);
 	}
 }
 
@@ -276,6 +295,21 @@ void APy_Grey::RollOrDash()
 	// 4. 캐릭터 발사
 	LaunchCharacter(InputDirection * 8000.f, true, true);
 
+}
+
+void APy_Grey::RefreshQuestTracker()
+{
+	if (!IsValid(QuestTrackerWidget) || !QuestComponent)
+		return;
+
+	if (QuestComponent->HasActiveQuest())
+	{
+		QuestTrackerWidget->UpdateQuest(QuestComponent->GetActiveQuest());
+	}
+	else
+	{
+		QuestTrackerWidget->ClearQuest();
+	}
 }
 
 void APy_Grey::EnableWeaponCollision(bool bEnable)
