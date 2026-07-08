@@ -15,8 +15,7 @@ public:
 	void SetExp(int32 CurrentExp, int32 RequiredExp, int32 Level);
 
 protected:
-	
-	
+	UPROPERTY(meta = (BindWidgetOptional))
 	class UProgressBar* ExpBar;
 
 	UPROPERTY(meta = (BindWidgetOptional))

@@ -4,6 +4,7 @@
 #include "NiagaraSystem.h"
 #include "InventoryComponent.h"
 #include "Py_Grey.h"
+#include "DrawDebugHelpers.h"
 
 AItemBase::AItemBase()
 {
@@ -12,6 +13,9 @@ AItemBase::AItemBase()
     ItemVFX = CreateDefaultSubobject<UNiagaraComponent>(TEXT("ItemVFX"));
     RootComponent = ItemVFX;
     ItemVFX->SetAutoActivate(false);
+    
+    ItemVFX->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    ItemVFX->SetGenerateOverlapEvents(false);
 
     CollisionComponent = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionComponent"));
     CollisionComponent->SetupAttachment(RootComponent);
