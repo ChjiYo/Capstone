@@ -5,7 +5,8 @@
 #include "Monster.generated.h"
 
 DECLARE_MULTICAST_DELEGATE(FOnAttackEndDelegate)
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnMonsterKilled, FName /*MonsterID*/)
+// MonsterID: 처치 퀘스트 판별용 / ExpReward, GoldReward: 처치 시 지급할 보상량
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnMonsterKilled, FName /*MonsterID*/, int32 /*ExpReward*/, int32 /*GoldReward*/)
 
 UCLASS()
 class CAPSTONE_API AMonster : public ACharBase
@@ -42,6 +43,13 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drop Items")
 	TArray<TSubclassOf<class AItemBase>> DropItemClasses;
+
+	// 처치 시 지급되는 경험치/골드. 몬스터 블루프린트별로 다르게 설정
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward")
+	int32 ExpReward = 20;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward")
+	int32 GoldReward = 10;
 	
 	class UUI_HpBar* HpBarWidget;
 

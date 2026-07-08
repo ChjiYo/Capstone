@@ -4,6 +4,7 @@
 #include "Components/Button.h"
 #include "Components/WrapBox.h"
 #include "Components/WrapBoxSlot.h"
+#include "Components/TextBlock.h"
 #include "Kismet/GameplayStatics.h"
 
 void UUI_Inventory::RefreshInventoryUI(UInventoryComponent* InventoryComp)
@@ -27,6 +28,11 @@ void UUI_Inventory::RefreshInventoryUI(UInventoryComponent* InventoryComp)
 				SlotArray[i]->InitSlot(InventoryComp->Items[i]);
 			}
 		}
+	}
+
+	if (GoldText)
+	{
+		GoldText->SetText(FText::FromString(FString::Printf(TEXT("%d Gold"), InventoryComp->GetGold())));
 	}
 }
 
@@ -60,26 +66,26 @@ void UUI_Inventory::NativeConstruct()
 
 FReply UUI_Inventory::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
-	// ¿ìÅ¬¸¯, ÁÂÅ¬¸¯ µîÀ» ÆÇº°ÇÒ ¼ö ÀÖ½À´Ï´Ù.
+	// ï¿½ï¿½Å¬ï¿½ï¿½, ï¿½ï¿½Å¬ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Çºï¿½ï¿½ï¿½ ï¿½ï¿½ ï¿½Ö½ï¿½ï¿½Ï´ï¿½.
 	if (InMouseEvent.GetEffectingButton() == EKeys::RightMouseButton)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("ÀÎº¥Åä¸® ¹è°æÀ» ¿ìÅ¬¸¯Çß½À´Ï´Ù."));
-		// ¿©±â¼­ FReply::Handled()¸¦ ¹ÝÈ¯ÇÏ¸é Å¬¸¯ ÀÌº¥Æ®°¡ ¿©±â¼­ Ã³¸®µÇ°í ³¡³³´Ï´Ù.
+		UE_LOG(LogTemp, Warning, TEXT("ï¿½Îºï¿½ï¿½ä¸® ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Å¬ï¿½ï¿½ï¿½ß½ï¿½ï¿½Ï´ï¿½."));
+		// ï¿½ï¿½ï¿½â¼­ FReply::Handled()ï¿½ï¿½ ï¿½ï¿½È¯ï¿½Ï¸ï¿½ Å¬ï¿½ï¿½ ï¿½Ìºï¿½Æ®ï¿½ï¿½ ï¿½ï¿½ï¿½â¼­ Ã³ï¿½ï¿½ï¿½Ç°ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Ï´ï¿½.
 		return FReply::Handled();
 	}
 	bOpenUI = false;
-	// Æ¯º°ÇÑ Ã³¸®°¡ ¾ø´Ù¸é ºÎ¸ðÀÇ ±âº» µ¿ÀÛÀ» ¼öÇàÇÕ´Ï´Ù.
+	// Æ¯ï¿½ï¿½ï¿½ï¿½ Ã³ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Ù¸ï¿½ ï¿½Î¸ï¿½ï¿½ï¿½ ï¿½âº» ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Õ´Ï´ï¿½.
 	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 }
 
 void UUI_Inventory::OnCloseButtonClicked()
 {
-	UE_LOG(LogTemp, Warning, TEXT("ÀÎº¥Åä¸® ´Ý±â ¹öÆ° Å¬¸¯µÊ!"));
+	UE_LOG(LogTemp, Warning, TEXT("ï¿½Îºï¿½ï¿½ä¸® ï¿½Ý±ï¿½ ï¿½ï¿½Æ° Å¬ï¿½ï¿½ï¿½ï¿½!"));
 
-	// 1. È­¸é¿¡¼­ À§Á¬ Á¦°Å
+	// 1. È­ï¿½é¿¡ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 	RemoveFromParent();
 
-	// 2. ÇÃ·¹ÀÌ¾î ÄÁÆ®·Ñ·¯¸¦ °¡Á®¿Í¼­ ¸¶¿ì½º Ä¿¼­¸¦ ¼û±â°í °ÔÀÓ ÀÔ·Â ¸ðµå·Î º¹±Í
+	// 2. ï¿½Ã·ï¿½ï¿½Ì¾ï¿½ ï¿½ï¿½Æ®ï¿½Ñ·ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½Í¼ï¿½ ï¿½ï¿½ï¿½ì½º Ä¿ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½Ô·ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	if (PC)
 	{

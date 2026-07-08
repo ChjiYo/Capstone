@@ -3,6 +3,7 @@
 #include "Py_Grey.h"
 #include "InventoryComponent.h"
 #include "QuestComponent.h"
+#include "ExperienceComponent.h"
 
 ANPC_Quest::ANPC_Quest()
 {}
@@ -52,12 +53,25 @@ void ANPC_Quest::HandleQuestAccepted()
             Player->QuestComponent->AcceptQuest(QuestData);
         }
     }
-    else if (Player && Player->InventoryComponent && !QuestData.Reward.RewardItemID.IsNone())
+    else if (Player)
     {
         // 처치 목표가 없는(대화/전달형) 퀘스트는 수락 즉시 보상 지급
-        for (int32 i = 0; i < QuestData.Reward.RewardItemCount; ++i)
+        if (Player->InventoryComponent && !QuestData.Reward.RewardItemID.IsNone())
         {
-            Player->InventoryComponent->AddItem(QuestData.Reward.RewardItemID);
+            for (int32 i = 0; i < QuestData.Reward.RewardItemCount; ++i)
+            {
+                Player->InventoryComponent->AddItem(QuestData.Reward.RewardItemID);
+            }
+        }
+
+        if (Player->InventoryComponent && QuestData.Reward.RewardGold > 0)
+        {
+            Player->InventoryComponent->AddGold(QuestData.Reward.RewardGold);
+        }
+
+        if (Player->ExperienceComponent && QuestData.Reward.RewardExp > 0)
+        {
+            Player->ExperienceComponent->AddExp(QuestData.Reward.RewardExp);
         }
     }
 

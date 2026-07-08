@@ -33,6 +33,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<class UUI_QuestTracker> QuestTrackerWidgetClass;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "UI")
+	TSubclassOf<class UUI_ExpBar> ExpBarWidgetClass;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill|FX")
 	TSubclassOf<class AEffectDestroy> HitEffectClass;
 
@@ -50,6 +53,9 @@ protected:
 
 	UPROPERTY()
 	class UUI_QuestTracker* QuestTrackerWidget = nullptr;
+
+	UPROPERTY()
+	class UUI_ExpBar* ExpBarWidget = nullptr;
 
 
 private:
@@ -76,6 +82,16 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	class UQuestComponent* QuestComponent;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	class UExperienceComponent* ExperienceComponent;
+
+	// 레벨업 1회당 증가하는 체력/공격력. 체력은 최대치와 현재치에 동일하게 더해진다
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Level")
+	int32 HpIncreasePerLevel = 50;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Level")
+	int32 AttackIncreasePerLevel = 5;
+
 	class UPy_GreyAnim* pGreyAnim;
 protected:
 	virtual void BeginPlay() override;
@@ -94,6 +110,12 @@ public:
 private:
 	UFUNCTION()
 	void RefreshQuestTracker();
+
+	UFUNCTION()
+	void RefreshExpBar();
+
+	UFUNCTION()
+	void HandleLevelUp(int32 NewLevel);
 
 private:
 	void MoveFront(float _fScale);

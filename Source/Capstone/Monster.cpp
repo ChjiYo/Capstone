@@ -79,7 +79,7 @@ float AMonster::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, 
     {
         m_tInfo.iHp = 0;
 
-        OnMonsterKilled.Broadcast(MonsterID);
+        OnMonsterKilled.Broadcast(MonsterID, ExpReward, GoldReward);
 
             if (DropItemClasses.Num() > 0)
             {

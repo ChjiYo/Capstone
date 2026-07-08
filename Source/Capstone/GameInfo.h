@@ -31,6 +31,12 @@ struct FQuestReward
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest|Reward")
     int32 RewardItemCount = 1;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest|Reward")
+    int32 RewardExp = 0;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest|Reward")
+    int32 RewardGold = 0;
 };
 
 USTRUCT(BlueprintType)

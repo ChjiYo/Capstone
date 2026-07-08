@@ -32,7 +32,7 @@ protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
-	void HandleMonsterKilled(FName MonsterID);
+	void HandleMonsterKilled(FName MonsterID, int32 ExpReward, int32 GoldReward);
 	void GrantReward();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Quest")

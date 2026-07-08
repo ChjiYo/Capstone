@@ -1,6 +1,7 @@
 #include "QuestComponent.h"
 #include "Monster.h"
 #include "InventoryComponent.h"
+#include "ExperienceComponent.h"
 
 UQuestComponent::UQuestComponent()
 {
@@ -31,7 +32,7 @@ void UQuestComponent::AcceptQuest(const FQuestData& InQuestData)
 	OnQuestTrackerChanged.Broadcast();
 }
 
-void UQuestComponent::HandleMonsterKilled(FName MonsterID)
+void UQuestComponent::HandleMonsterKilled(FName MonsterID, int32 ExpReward, int32 GoldReward)
 {
 	if (!bHasActiveQuest || ActiveQuest.bIsCompleted)
 		return;
@@ -52,15 +53,30 @@ void UQuestComponent::HandleMonsterKilled(FName MonsterID)
 
 void UQuestComponent::GrantReward()
 {
-	if (ActiveQuest.Reward.RewardItemID.IsNone())
+	AActor* Owner = GetOwner();
+	if (!Owner)
 		return;
 
-	UInventoryComponent* Inventory = GetOwner() ? GetOwner()->FindComponentByClass<UInventoryComponent>() : nullptr;
-	if (!Inventory)
-		return;
+	UInventoryComponent* Inventory = Owner->FindComponentByClass<UInventoryComponent>();
 
-	for (int32 i = 0; i < ActiveQuest.Reward.RewardItemCount; ++i)
+	if (Inventory && !ActiveQuest.Reward.RewardItemID.IsNone())
 	{
-		Inventory->AddItem(ActiveQuest.Reward.RewardItemID);
+		for (int32 i = 0; i < ActiveQuest.Reward.RewardItemCount; ++i)
+		{
+			Inventory->AddItem(ActiveQuest.Reward.RewardItemID);
+		}
+	}
+
+	if (Inventory && ActiveQuest.Reward.RewardGold > 0)
+	{
+		Inventory->AddGold(ActiveQuest.Reward.RewardGold);
+	}
+
+	if (ActiveQuest.Reward.RewardExp > 0)
+	{
+		if (UExperienceComponent* Experience = Owner->FindComponentByClass<UExperienceComponent>())
+		{
+			Experience->AddExp(ActiveQuest.Reward.RewardExp);
+		}
 	}
 }

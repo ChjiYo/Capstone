@@ -4,9 +4,11 @@
 #include "ItemBase.h"
 #include "InventoryComponent.h"
 #include "QuestComponent.h"
+#include "ExperienceComponent.h"
 #include "UI_HpBar.h"
 #include "UI_Inventory.h"
 #include "UI_QuestTracker.h"
+#include "UI_ExpBar.h"
 #include "NPC_Base.h"
 #include "Engine/DamageEvents.h"
 #include "DrawDebugHelpers.h"
@@ -41,6 +43,7 @@ APy_Grey::APy_Grey()
 
 	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>(TEXT("InventoryComponent"));
 	QuestComponent = CreateDefaultSubobject<UQuestComponent>(TEXT("QuestComponent"));
+	ExperienceComponent = CreateDefaultSubobject<UExperienceComponent>(TEXT("ExperienceComponent"));
 
 }
 
@@ -87,6 +90,24 @@ void APy_Grey::BeginPlay()
 	if (QuestComponent)
 	{
 		QuestComponent->OnQuestTrackerChanged.AddDynamic(this, &APy_Grey::RefreshQuestTracker);
+	}
+
+	if (IsValid(ExpBarWidgetClass))
+	{
+		ExpBarWidget = CreateWidget<UUI_ExpBar>(GetWorld(), ExpBarWidgetClass);
+
+		if (IsValid(ExpBarWidget))
+		{
+			ExpBarWidget->AddToViewport();
+		}
+	}
+
+	if (ExperienceComponent)
+	{
+		ExperienceComponent->OnExpChanged.AddDynamic(this, &APy_Grey::RefreshExpBar);
+		ExperienceComponent->OnLevelUp.AddDynamic(this, &APy_Grey::HandleLevelUp);
+
+		RefreshExpBar();
 	}
 }
 
@@ -309,6 +330,28 @@ void APy_Grey::RefreshQuestTracker()
 	else
 	{
 		QuestTrackerWidget->ClearQuest();
+	}
+}
+
+void APy_Grey::RefreshExpBar()
+{
+	if (!IsValid(ExpBarWidget) || !ExperienceComponent)
+		return;
+
+	ExpBarWidget->SetExp(ExperienceComponent->GetCurrentExp(), ExperienceComponent->GetRequiredExp(), ExperienceComponent->GetCurrentLevel());
+}
+
+void APy_Grey::HandleLevelUp(int32 NewLevel)
+{
+	// 체력 증가폭을 최대치/현재치에 동일하게 더한다 -> 다치지 않은 상태였으면 그대로 풀피로,
+	// 깎여 있었으면 늘어난 만큼만 현재 체력에 반영됨
+	m_tInfo.iMaxHp += HpIncreasePerLevel;
+	m_tInfo.iHp += HpIncreasePerLevel;
+	m_tInfo.iAttack += AttackIncreasePerLevel;
+
+	if (IsValid(PlayerHpBar))
+	{
+		PlayerHpBar->SetHp(m_tInfo.iHp / static_cast<float>(m_tInfo.iMaxHp));
 	}
 }
 
