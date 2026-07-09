@@ -18,6 +18,11 @@ public:
 
 	static FOnItemGathered OnItemGathered;
 
+	// 몬스터 드롭 아이템과 달리 채집물은 플레이어가 맵에서 직접 찾아야 하므로
+	// 이펙트(ItemVFX)만으로 대체하지 않고 실제 메시(약초/덤불 등)를 함께 노출한다
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	class UStaticMeshComponent* GatherMesh;
+
 	// 1회 채집당 지급 수량
 	UPROPERTY(EditAnywhere, Category = "Gather")
 	int32 GatherCount = 1;

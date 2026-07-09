@@ -22,6 +22,11 @@
 UCLASS()
 class CAPSTONE_API AGatherableObject : public AItemBase
 {
+    // 몬스터 드롭 아이템은 메시 에셋 한계로 이펙트(ItemVFX)로 대체했지만,
+    // 채집물은 플레이어가 맵에서 직접 찾아야 하는 콘텐츠이므로 메시와 이펙트를 함께 노출한다
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
+    class UStaticMeshComponent* GatherMesh; // RootComponent(ItemVFX)에 부착, 콜리전은 없음(시각 전용)
+
     // 1회 채집당 지급 수량
     UPROPERTY(EditAnywhere, Category="Gather") int32 GatherCount = 1;
     // 채집 후 재생성까지 시간(초). 0 이하면 리스폰 없음(1회용)
@@ -39,7 +44,7 @@ class CAPSTONE_API AGatherableObject : public AItemBase
 1. **픽업 처리**: `AItemBase::PickupItem`이 자기 자신을 파괴한다면, `AGatherableObject`는 파괴 대신 **비활성화**해야 한다. `PickupItem`을 `virtual`로 바꾸고(부모 수정 최소화) 오버라이드:
    - 습득자의 `UInventoryComponent`에 `AddItem(ItemID, GatherCount)`.
    - `OnItemGathered.Broadcast(ItemID, GatherCount)`.
-   - 메시 숨김(`SetVisibility(false)`) + 콜리전 비활성 + `RespawnTime` 타이머 후 원복. `RespawnTime <= 0`이면 `Destroy()`.
+   - `SetActorHiddenInGame(true)` (액터 단위로 숨기므로 `GatherMesh`/`ItemVFX` 모두 함께 가려짐) + 콜리전 비활성 + `RespawnTime` 타이머 후 원복. `RespawnTime <= 0`이면 `Destroy()`.
 2. **상호작용 프롬프트**: 기존 `AItemBase`가 플레이어에게 `SetInteractableItem(this)`를 넘기는 오버랩 흐름을 그대로 사용 (추가 구현 없음). 화면 안내 문구("E - 채집")는 선택 사항.
 3. 채집 모션/캐스팅 시간은 **범위에서 제외** (즉시 획득). 필요하면 추후 몽타주 재생만 추가.
 
@@ -49,7 +54,7 @@ class CAPSTONE_API AGatherableObject : public AItemBase
 
 ## 에디터 작업 (사용자)
 
-1. `AGatherableObject` 상속 BP `BP_Gather_Herb` 생성 — `ItemID = Herb`, 덤불/약초 메시 지정, `GatherCount`/`RespawnTime` 조정.
+1. `AGatherableObject` 상속 BP `BP_Gather_Herb` 생성 — `ItemID = Herb`, `GatherMesh` 컴포넌트에 덤불/약초 스태틱 메시 지정, `GatherCount`/`RespawnTime` 조정.
 2. 마을~사냥터 사이 맵에 `BP_Gather_Herb`를 6~10개 배치 (퀘스트 목표 5개보다 넉넉하게).
 
 ## 완료 기준 (PIE 테스트)

@@ -1,5 +1,6 @@
 ﻿#include "GatherableObject.h"
 #include "Components/SphereComponent.h"
+#include "Components/StaticMeshComponent.h"
 #include "NiagaraComponent.h"
 #include "InventoryComponent.h"
 #include "Py_Grey.h"
@@ -9,6 +10,11 @@ FOnItemGathered AGatherableObject::OnItemGathered;
 
 AGatherableObject::AGatherableObject()
 {
+    GatherMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("GatherMesh"));
+    GatherMesh->SetupAttachment(RootComponent);
+    // 상호작용 판정은 CollisionComponent(스피어)가 담당하므로 메시 자체는 시각 전용으로 둔다
+    GatherMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+    GatherMesh->SetGenerateOverlapEvents(false);
 }
 
 void AGatherableObject::PickupItem(ACharacter* Picker)
