@@ -14,7 +14,7 @@ public:
 	AItemBase();
 
     UFUNCTION(BlueprintCallable, Category = "Item")
-    void PickupItem(class ACharacter* Picker);
+    virtual void PickupItem(class ACharacter* Picker);
 
 protected:
     virtual void BeginPlay() override;
