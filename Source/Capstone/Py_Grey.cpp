@@ -197,18 +197,27 @@ void APy_Grey::JumpKey()
 
 void APy_Grey::NormalAttack()
 {
+	if (bGameplayInputLocked)
+		return;
+
 	if (IsValid(pGreyAnim))
 		pGreyAnim->NormalAttack();
 }
 
 void APy_Grey::SkillSlotA()
 {
+	if (bGameplayInputLocked)
+		return;
+
 	if (IsValid(pGreyAnim))
 		pGreyAnim->SkillSlotA();
 }
 
 void APy_Grey::SkillSlotB()
 {
+	if (bGameplayInputLocked)
+		return;
+
 	if (IsValid(pGreyAnim))
 	{
 		pGreyAnim->SkillSlotB();
@@ -217,6 +226,9 @@ void APy_Grey::SkillSlotB()
 
 void APy_Grey::SkillSlotC()
 {
+	if (bGameplayInputLocked)
+		return;
+
 	if (IsValid(pGreyAnim))
 		pGreyAnim->SkillSlotC();
 }
@@ -253,16 +265,20 @@ void APy_Grey::ToggleInventory()
 	if (InventoryWidget->IsInViewport())
 	{
 		InventoryWidget->RemoveFromParent();
+		SetGameplayInputLocked(false);
 
 		if (PC)
 		{
 			PC->bShowMouseCursor = false;
 			PC->SetInputMode(FInputModeGameOnly());
+			// UI가 떠 있는 동안 마우스 클릭(NormalAttack 키) 등이 눌린 채로 걸려 있을 수 있어 초기화
+			PC->FlushPressedKeys();
 		}
 	}
 	else
 	{
 		InventoryWidget->AddToViewport();
+		SetGameplayInputLocked(true);
 
 		if (InventoryComponent)
 		{
@@ -289,17 +305,43 @@ void APy_Grey::UsePotion()
 		if (!Data || Data->ItemType != EItemType::Potion)
 			continue;
 
-		if (!InventoryComponent->RemoveItem(Slot.ItemID, 1))
-			return;
-
-		Heal(Data->HealAmount);
-
-		if (IsValid(PlayerHpBar))
-		{
-			PlayerHpBar->SetHp(m_tInfo.iHp / static_cast<float>(m_tInfo.iMaxHp));
-		}
-
+		UsePotionItem(Slot.ItemID);
 		return;
+	}
+}
+
+void APy_Grey::UsePotionItem(FName ItemID)
+{
+	if (!InventoryComponent)
+		return;
+
+	const FItemData* Data = InventoryComponent->GetItemData(ItemID);
+	if (!Data)
+	{
+		LOG(TEXT("UsePotionItem(%s) 실패 : ItemDataTable에서 해당 ItemID를 찾지 못함"), *ItemID.ToString());
+		return;
+	}
+
+	if (Data->ItemType != EItemType::Potion)
+	{
+		LOG(TEXT("UsePotionItem(%s) 실패 : ItemType이 Potion이 아님 (현재 값 %d)"), *ItemID.ToString(), (int32)Data->ItemType);
+		return;
+	}
+
+	if (!InventoryComponent->RemoveItem(ItemID, 1))
+	{
+		LOG(TEXT("UsePotionItem(%s) 실패 : 인벤토리에서 제거 실패(수량 부족)"), *ItemID.ToString());
+		return;
+	}
+
+	int32 HpBeforeHeal = m_tInfo.iHp;
+	Heal(Data->HealAmount);
+
+	LOG(TEXT("UsePotionItem(%s) 사용 : HealAmount=%d, HP %d -> %d / %d"), *ItemID.ToString(), Data->HealAmount, HpBeforeHeal, m_tInfo.iHp, m_tInfo.iMaxHp);
+
+	if (IsValid(PlayerHpBar))
+	{
+		PlayerHpBar->SetHp(m_tInfo.iHp / static_cast<float>(m_tInfo.iMaxHp));
 	}
 }
 

@@ -1,15 +1,27 @@
 #include "UI_Inventory.h"
 #include "InventoryComponent.h"
 #include "UI_InventorySlot.h"
+#include "Py_Grey.h"
 #include "Components/Button.h"
 #include "Components/WrapBox.h"
 #include "Components/WrapBoxSlot.h"
 #include "Components/TextBlock.h"
 #include "Kismet/GameplayStatics.h"
 
-void UUI_Inventory::RefreshInventoryUI(UInventoryComponent* InventoryComp)
+void UUI_Inventory::RefreshInventoryUI(UInventoryComponent* InInventoryComp)
 {
-	if (!InventoryComp || !InventoryWrapBox) return;
+	if (!InInventoryComp || !InventoryWrapBox) return;
+
+	if (InventoryComp != InInventoryComp)
+	{
+		if (InventoryComp)
+		{
+			InventoryComp->OnInventoryChanged.RemoveDynamic(this, &UUI_Inventory::HandleInventoryChanged);
+		}
+
+		InventoryComp = InInventoryComp;
+		InventoryComp->OnInventoryChanged.AddDynamic(this, &UUI_Inventory::HandleInventoryChanged);
+	}
 
 	for (UUI_InventorySlot* pSlot : SlotArray)
 	{
@@ -35,6 +47,11 @@ void UUI_Inventory::RefreshInventoryUI(UInventoryComponent* InventoryComp)
 	{
 		GoldText->SetText(FText::FromString(FString::Printf(TEXT("%d Gold"), InventoryComp->GetGold())));
 	}
+}
+
+void UUI_Inventory::HandleInventoryChanged()
+{
+	RefreshInventoryUI(InventoryComp);
 }
 
 void UUI_Inventory::NativeConstruct()
@@ -65,6 +82,16 @@ void UUI_Inventory::NativeConstruct()
 	}
 }
 
+void UUI_Inventory::NativeDestruct()
+{
+	if (InventoryComp)
+	{
+		InventoryComp->OnInventoryChanged.RemoveDynamic(this, &UUI_Inventory::HandleInventoryChanged);
+	}
+
+	Super::NativeDestruct();
+}
+
 FReply UUI_Inventory::NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
 {
 
@@ -86,5 +113,12 @@ void UUI_Inventory::OnCloseButtonClicked()
 	{
 		PC->bShowMouseCursor = false;
 		PC->SetInputMode(FInputModeGameOnly());
+		// UI가 떠 있는 동안 마우스 클릭(NormalAttack 키) 등이 눌린 채로 걸려 있을 수 있어 초기화
+		PC->FlushPressedKeys();
+
+		if (APy_Grey* Player = Cast<APy_Grey>(PC->GetPawn()))
+		{
+			Player->SetGameplayInputLocked(false);
+		}
 	}
 }

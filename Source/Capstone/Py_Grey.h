@@ -74,6 +74,7 @@ private:
 
 private:
 	bool bIsExplosiveBuffActive = false;
+	bool bGameplayInputLocked = false;
 
 public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
@@ -104,6 +105,13 @@ public:
 
 	
 	virtual void SetExplosiveBuffState(bool bIsActive) override;
+
+	// 인벤토리/상점 등 UI가 열려 있는 동안 공격·스킬 입력만 막는다 (이동은 계속 허용)
+	void SetGameplayInputLocked(bool bLocked) { bGameplayInputLocked = bLocked; }
+
+	// 특정 포션 아이템을 사용(회복 + 소모). 인벤토리 슬롯 클릭 등 UI에서도 호출할 수 있도록 public
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	void UsePotionItem(FName ItemID);
 
 
 

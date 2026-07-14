@@ -33,6 +33,7 @@ struct FItemData : public FTableRowBase
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
     int32 MaxStack = 99;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
     int32 HealAmount = 0;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")

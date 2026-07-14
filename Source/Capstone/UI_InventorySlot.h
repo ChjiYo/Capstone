@@ -15,6 +15,9 @@ public:
 	void ClearSlot();
 
 protected:
+	// 슬롯을 클릭하면 포션류 아이템을 즉시 사용(회복+소모)한다. 포션이 아니면 아무 일도 일어나지 않는다
+	virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+
 	UPROPERTY(meta = (BindWidget))
 	class UImage* ItemIcon;
 
