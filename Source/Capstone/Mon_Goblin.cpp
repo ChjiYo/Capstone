@@ -9,6 +9,8 @@ AMon_Goblin::AMon_Goblin()
 	m_tInfo.iMaxHp = 100;
 	m_tInfo.iHp = 100;
 	m_tInfo.iAttack = 10;
+
+	fAttackDist = 200.f;
 	
 	GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -70.f));
 	GetMesh()->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
