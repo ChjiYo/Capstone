@@ -24,7 +24,6 @@ protected:
     UPROPERTY()
     class UUI_Quest* QuestWidget;
 
-    // ?�스??창을 ?�운 ?�점???�레?�어. ?�락/거절 콜백?�서 보상 지�? ?�력모드 복구???�용
     UPROPERTY()
     AActor* CurrentInteractor;
 
