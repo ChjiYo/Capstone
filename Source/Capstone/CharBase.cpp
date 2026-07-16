@@ -49,6 +49,11 @@ void ACharBase::Heal(int32 Amount)
 	m_tInfo.iHp = FMath::Min(m_tInfo.iHp + Amount, m_tInfo.iMaxHp);
 }
 
+void ACharBase::AddAttackPower(int32 Amount)
+{
+	m_tInfo.iAttack += Amount;
+}
+
 float ACharBase::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
 

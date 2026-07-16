@@ -14,6 +14,8 @@
 #include "DrawDebugHelpers.h"
 #include "NiagaraFunctionLibrary.h"
 
+APy_Grey::FOnWeaponEnhanced APy_Grey::OnWeaponEnhanced;
+
 APy_Grey::APy_Grey()
 {
 	PrimaryActorTick.bCanEverTick = true;
@@ -422,6 +424,48 @@ void APy_Grey::HandleLevelUp(int32 NewLevel)
 	{
 		PlayerHpBar->SetHp(m_tInfo.iHp / static_cast<float>(m_tInfo.iMaxHp));
 	}
+}
+
+int32 APy_Grey::GetNextEnhanceGoldCost() const
+{
+	return EnhanceGoldCost * (WeaponLevel + 1);
+}
+
+bool APy_Grey::CanEnhanceWeapon() const
+{
+	if (WeaponLevel >= MaxWeaponLevel)
+		return false;
+
+	if (!InventoryComponent)
+		return false;
+
+	if (InventoryComponent->GetItemCount(EnhanceMaterialID) < EnhanceMaterialCount)
+		return false;
+
+	if (InventoryComponent->GetGold() < GetNextEnhanceGoldCost())
+		return false;
+
+	return true;
+}
+
+bool APy_Grey::TryEnhanceWeapon()
+{
+	if (!CanEnhanceWeapon())
+		return false;
+
+	int32 GoldCost = GetNextEnhanceGoldCost();
+
+	InventoryComponent->RemoveItem(EnhanceMaterialID, EnhanceMaterialCount);
+	InventoryComponent->TrySpendGold(GoldCost);
+
+	AddAttackPower(AttackPerEnhance);
+	++WeaponLevel;
+
+	OnWeaponEnhanced.Broadcast(WeaponLevel);
+
+	LOG(TEXT("무기 강화 성공 : Level %d, 공격력 %d"), WeaponLevel, GetAttackPower());
+
+	return true;
 }
 
 void APy_Grey::EnableWeaponCollision(bool bEnable)

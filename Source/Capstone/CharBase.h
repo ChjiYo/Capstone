@@ -51,6 +51,12 @@ public:
 	// iMaxHp 상한까지 iHp를 회복시킨다 (포션 등에서 사용)
 	void Heal(int32 Amount);
 
+	// 공격력을 증가시킨다 (레벨업, 무기 강화 등에서 사용)
+	void AddAttackPower(int32 Amount);
+
+	UFUNCTION(BlueprintPure, Category = "Stat")
+	int32 GetAttackPower() const { return m_tInfo.iAttack; }
+
 protected:
 	FINFO m_tInfo;
 };

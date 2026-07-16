@@ -93,6 +93,39 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Level")
 	int32 AttackIncreasePerLevel = 5;
 
+	// 강화 성공 시 전역 방송 (NewLevel). 5단계 강화 퀘스트가 구독하는 static 멀티캐스트 델리게이트
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnWeaponEnhanced, int32 /*NewLevel*/);
+	static FOnWeaponEnhanced OnWeaponEnhanced;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Enhance")
+	int32 WeaponLevel = 0;
+
+	UPROPERTY(EditAnywhere, Category = "Enhance")
+	FName EnhanceMaterialID = "Loot_GoblinEar";
+
+	UPROPERTY(EditAnywhere, Category = "Enhance")
+	int32 EnhanceMaterialCount = 3;
+
+	UPROPERTY(EditAnywhere, Category = "Enhance")
+	int32 EnhanceGoldCost = 50;
+
+	UPROPERTY(EditAnywhere, Category = "Enhance")
+	int32 AttackPerEnhance = 10;
+
+	UPROPERTY(EditAnywhere, Category = "Enhance")
+	int32 MaxWeaponLevel = 5;
+
+	// 다음 강화에 필요한 골드 비용 (레벨이 오를수록 배율 증가)
+	UFUNCTION(BlueprintPure, Category = "Enhance")
+	int32 GetNextEnhanceGoldCost() const;
+
+	UFUNCTION(BlueprintPure, Category = "Enhance")
+	bool CanEnhanceWeapon() const;
+
+	// 강화 시도. 재료/골드 검사 -> 소모 -> 공격력 증가 -> 방송. 성공 여부 반환
+	UFUNCTION(BlueprintCallable, Category = "Enhance")
+	bool TryEnhanceWeapon();
+
 	class UPy_GreyAnim* pGreyAnim;
 protected:
 	virtual void BeginPlay() override;
