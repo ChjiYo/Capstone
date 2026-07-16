@@ -9,10 +9,15 @@
 #include "UI_Inventory.h"
 #include "UI_QuestTracker.h"
 #include "UI_ExpBar.h"
+#include "UI_SkillBar.h"
 #include "NPC_Base.h"
 #include "Engine/DamageEvents.h"
 #include "DrawDebugHelpers.h"
 #include "NiagaraFunctionLibrary.h"
+#include "Kismet/GameplayStatics.h"
+#include "Camera/CameraShakeBase.h"
+
+APy_Grey::FOnPlayerDodge APy_Grey::OnPlayerDodge;
 
 APy_Grey::FOnWeaponEnhanced APy_Grey::OnWeaponEnhanced;
 
@@ -110,6 +115,17 @@ void APy_Grey::BeginPlay()
 		ExperienceComponent->OnLevelUp.AddDynamic(this, &APy_Grey::HandleLevelUp);
 
 		RefreshExpBar();
+	}
+
+	if (IsValid(SkillBarWidgetClass))
+	{
+		SkillBarWidget = CreateWidget<UUI_SkillBar>(GetWorld(), SkillBarWidgetClass);
+
+		if (IsValid(SkillBarWidget))
+		{
+			SkillBarWidget->AddToViewport();
+			SkillBarWidget->InitSkillBar(this);
+		}
 	}
 }
 
@@ -211,6 +227,9 @@ void APy_Grey::SkillSlotA()
 	if (bGameplayInputLocked)
 		return;
 
+	if (!TryUseSkill(0))
+		return;
+
 	if (IsValid(pGreyAnim))
 		pGreyAnim->SkillSlotA();
 }
@@ -218,6 +237,9 @@ void APy_Grey::SkillSlotA()
 void APy_Grey::SkillSlotB()
 {
 	if (bGameplayInputLocked)
+		return;
+
+	if (!TryUseSkill(1))
 		return;
 
 	if (IsValid(pGreyAnim))
@@ -229,6 +251,9 @@ void APy_Grey::SkillSlotB()
 void APy_Grey::SkillSlotC()
 {
 	if (bGameplayInputLocked)
+		return;
+
+	if (!TryUseSkill(2))
 		return;
 
 	if (IsValid(pGreyAnim))
@@ -387,6 +412,16 @@ void APy_Grey::RollOrDash()
 	// 4. 캐릭터 발사
 	LaunchCharacter(InputDirection * 8000.f, true, true);
 
+	bInvincible = true;
+	GetWorldTimerManager().SetTimer(InvincibilityTimerHandle, this, &APy_Grey::EndInvincibility, InvincibleDuration, false);
+
+	OnPlayerDodge.Broadcast();
+	LOG(TEXT("OnPlayerDodge 방송"));
+}
+
+void APy_Grey::EndInvincibility()
+{
+	bInvincible = false;
 }
 
 void APy_Grey::RefreshQuestTracker()
@@ -448,6 +483,19 @@ bool APy_Grey::CanEnhanceWeapon() const
 	return true;
 }
 
+bool APy_Grey::TryUseSkill(int32 SlotIndex)
+{
+	if (SlotIndex < 0 || SlotIndex >= 3)
+		return false;
+
+	if (GetSkillCooldownRemaining(SlotIndex) > 0.f)
+		return false;
+
+	SkillSlots[SlotIndex].LastUsedTime = GetWorld()->GetTimeSeconds();
+
+	return true;
+}
+
 bool APy_Grey::TryEnhanceWeapon()
 {
 	if (!CanEnhanceWeapon())
@@ -466,6 +514,53 @@ bool APy_Grey::TryEnhanceWeapon()
 	LOG(TEXT("무기 강화 성공 : Level %d, 공격력 %d"), WeaponLevel, GetAttackPower());
 
 	return true;
+}
+
+float APy_Grey::GetSkillCooldownRemaining(int32 SlotIndex) const
+{
+	if (SlotIndex < 0 || SlotIndex >= 3)
+		return 0.f;
+
+	float Elapsed = GetWorld()->GetTimeSeconds() - SkillSlots[SlotIndex].LastUsedTime;
+
+	return FMath::Max(0.f, SkillSlots[SlotIndex].Cooldown - Elapsed);
+}
+
+float APy_Grey::GetSkillCooldown(int32 SlotIndex) const
+{
+	if (SlotIndex < 0 || SlotIndex >= 3)
+		return 0.f;
+
+	return SkillSlots[SlotIndex].Cooldown;
+}
+
+void APy_Grey::PlayHitStop()
+{
+	UWorld* World = GetWorld();
+	if (!World)
+		return;
+
+	UGameplayStatics::SetGlobalTimeDilation(World, HitStopTimeDilation);
+
+	// dilation이 적용된 뒤라 SetTimer의 실시간 길이가 짧아지므로, 노출된 실시간(초) 값에 dilation을 곱해 보정
+	World->GetTimerManager().SetTimer(HitStopTimerHandle, this, &APy_Grey::EndHitStop, HitStopDuration * HitStopTimeDilation, false);
+}
+
+void APy_Grey::EndHitStop()
+{
+	UWorld* World = GetWorld();
+	if (World)
+		UGameplayStatics::SetGlobalTimeDilation(World, 1.f);
+}
+
+void APy_Grey::PlayCameraShake(TSubclassOf<UCameraShakeBase> ShakeClass)
+{
+	if (!ShakeClass)
+		return;
+
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (PC)
+		PC->ClientStartCameraShake(ShakeClass);
 }
 
 void APy_Grey::EnableWeaponCollision(bool bEnable)
@@ -517,6 +612,9 @@ void APy_Grey::WepaonBeginOverlap(UPrimitiveComponent* OverlappedComponent, AAct
 
 		float fDamage = OtherActor->TakeDamage(m_tInfo.iAttack, DamageEvent, GetController(), this);
 
+		PlayHitStop();
+		PlayCameraShake(WeakCameraShakeClass);
+
 		if (bIsExplosiveBuffActive && HitEffectClass)
 		{
 			AEffectDestroy* Effect = GetWorld()->SpawnActor<AEffectDestroy>(
@@ -548,9 +646,15 @@ void APy_Grey::WeaponEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor
 
 float APy_Grey::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
+	if (bInvincible)
+		return 0.f;
+
 	float fDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 	if (IsValid(PlayerHpBar))
 		PlayerHpBar->SetHp(m_tInfo.iHp / static_cast<float>(m_tInfo.iMaxHp));
+
+	PlayHitStop();
+	PlayCameraShake(StrongCameraShakeClass);
 
 	return fDamage;
 }

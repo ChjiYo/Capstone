@@ -4,6 +4,23 @@
 #include "CombatInterface.h"
 #include "Py_Grey.generated.h"
 
+USTRUCT(BlueprintType)
+struct FSkillSlotData
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill")
+	UAnimMontage* SkillMontage = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill")
+	float Cooldown = 5.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill")
+	TSoftObjectPtr<UTexture2D> Icon;
+
+	// 월드 시간(GetTimeSeconds) 기준. 에디터에서 건드릴 값이 아니라 런타임에 TryUseSkill이 갱신
+	float LastUsedTime = -FLT_MAX;
+};
 
 UCLASS()
 class CAPSTONE_API APy_Grey : public ACharBase, public ICombatInterface
@@ -39,8 +56,14 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill|FX")
 	TSubclassOf<class AEffectDestroy> HitEffectClass;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "UI")
+	TSubclassOf<class UUI_SkillBar> SkillBarWidgetClass;
+
 	UPROPERTY()
 	class UUI_HpBar* PlayerHpBar;
+
+	UPROPERTY()
+	class UUI_SkillBar* SkillBarWidget = nullptr;
 
 	UPROPERTY()
 	class AItemBase* CurrItem;
@@ -126,6 +149,30 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Enhance")
 	bool TryEnhanceWeapon();
 
+	// A/B/C 슬롯별 몽타주/쿨다운/아이콘. TryUseSkill이 쿨다운을 검사·갱신
+	// 정적 배열은 블루프린트에 노출할 수 없어 EditAnywhere만 사용
+	UPROPERTY(EditAnywhere, Category = "Skill")
+	FSkillSlotData SkillSlots[3];
+
+	// 대시로 회피 시작 시점에 전역 방송 (7단계 적응형 AI가 구독 예정). AMonster::OnMonsterKilled 패턴
+	DECLARE_MULTICAST_DELEGATE(FOnPlayerDodge);
+	static FOnPlayerDodge OnPlayerDodge;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dash")
+	float InvincibleDuration = 0.4f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel")
+	float HitStopTimeDilation = 0.05f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel")
+	float HitStopDuration = 0.08f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel")
+	TSubclassOf<class UCameraShakeBase> WeakCameraShakeClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel")
+	TSubclassOf<class UCameraShakeBase> StrongCameraShakeClass;
+
 	class UPy_GreyAnim* pGreyAnim;
 protected:
 	virtual void BeginPlay() override;
@@ -145,6 +192,19 @@ public:
 	// 특정 포션 아이템을 사용(회복 + 소모). 인벤토리 슬롯 클릭 등 UI에서도 호출할 수 있도록 public
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void UsePotionItem(FName ItemID);
+
+	// SlotIndex(0=A/1=B/2=C) 쿨다운 검사 후 LastUsedTime 갱신. 쿨다운 중이면 false
+	UFUNCTION(BlueprintCallable, Category = "Skill")
+	bool TryUseSkill(int32 SlotIndex);
+
+	// UI가 Tick에서 폴링해서 쿨다운 오버레이를 갱신하는 용도
+	UFUNCTION(BlueprintPure, Category = "Skill")
+	float GetSkillCooldownRemaining(int32 SlotIndex) const;
+
+	UFUNCTION(BlueprintPure, Category = "Skill")
+	float GetSkillCooldown(int32 SlotIndex) const;
+
+	const FSkillSlotData* GetSkillSlots() const { return SkillSlots; }
 
 
 
@@ -175,6 +235,16 @@ private:
 	void UsePotion();
 
 	void RollOrDash();
+
+private:
+	bool bInvincible = false;
+	FTimerHandle InvincibilityTimerHandle;
+	FTimerHandle HitStopTimerHandle;
+
+	void EndInvincibility();
+	void PlayHitStop();
+	void EndHitStop();
+	void PlayCameraShake(TSubclassOf<class UCameraShakeBase> ShakeClass);
 
 public:
 	void EnableWeaponCollision(bool bEnable);

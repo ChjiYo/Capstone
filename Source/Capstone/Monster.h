@@ -54,7 +54,11 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward")
 	int32 GoldReward = 10;
-	
+
+	// 피격 시 공격자 반대 방향으로 밀려나는 세기
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MonsterAttack")
+	float KnockbackStrength = 300.f;
+
 	class UUI_HpBar* HpBarWidget;
 
 	FOnAttackEndDelegate OnAttackEnd;
