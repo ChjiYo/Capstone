@@ -39,6 +39,8 @@ void AMon_Goblin::BeginPlay()
 
 	mapWeapon.Add(EWEAPON::RHAND, pWeapon);
 	mapWeapon[EWEAPON::RHAND]->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, TEXT("Damage_Socket"));
+	
+
 
 	if (!WeaponMeshPath.IsEmpty())
 	{
