@@ -39,6 +39,15 @@ struct FQuestReward
     int32 RewardGold = 0;
 };
 
+UENUM(BlueprintType)
+enum class EQuestObjectiveType : uint8
+{
+    None,       // 목표 없음 — 수락 즉시 보상 지급(대화형 퀘스트)
+    Kill,       // TargetID == AMonster::MonsterID
+    Gather,     // TargetID == AItemBase::ItemID (AGatherableObject 포함)
+    Enhance     // 무기 강화 성공 횟수. TargetID는 사용하지 않음(None으로 둔다)
+};
+
 USTRUCT(BlueprintType)
 struct FQuestData
 {
@@ -56,21 +65,24 @@ struct FQuestData
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
     FQuestReward Reward;
 
-    // AMonster::MonsterID 와 동일한 값을 넣으면 처치 퀘스트가 됨. None이면 처치 목표 없는 퀘스트
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest|Objective")
-    FName KillTargetID;
+    EQuestObjectiveType ObjectiveType = EQuestObjectiveType::None;
+
+    // Kill: 몬스터 MonsterID / Gather: 아이템 ItemID / Enhance: 사용 안 함
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest|Objective")
+    FName TargetID;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest|Objective")
-    int32 KillTargetCount = 0;
+    int32 TargetCount = 0;
 
     // 진행도. 에디터에서 건드릴 값이 아니라 QuestComponent가 런타임에 갱신
     UPROPERTY(BlueprintReadOnly, Category = "Quest|Objective")
-    int32 CurrentKillCount = 0;
+    int32 CurrentCount = 0;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
     bool bIsCompleted = false;
 
-    bool HasKillObjective() const { return KillTargetCount > 0; }
+    bool HasObjective() const { return ObjectiveType != EQuestObjectiveType::None && TargetCount > 0; }
 };
 
 DECLARE_LOG_CATEGORY_EXTERN(UE7, Log, All);

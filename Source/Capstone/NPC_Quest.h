@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "NPC_Base.h"
 #include "NPC_Quest.generated.h"
@@ -13,7 +13,10 @@ public:
 
 protected:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
-    FQuestData QuestData;
+    TArray<FQuestData> QuestChain;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Quest")
+    int32 CurrentChainIndex = 0;
 
     UPROPERTY(EditDefaultsOnly, Category = "UI")
     TSubclassOf<class UUI_Quest> QuestWidgetClass;
@@ -21,7 +24,7 @@ protected:
     UPROPERTY()
     class UUI_Quest* QuestWidget;
 
-    // ?�스??창을 ?�운 ?�점???�레?�어. ?�락/거절 콜백?�서 보상 지�? ?�력모드 복구???�용
+    // ?�스??창을 ?�운 ?�점???�레?�어. ?�락/거절 콜백?�서 보상 지�? ?�력모드 복구???�용
     UPROPERTY()
     AActor* CurrentInteractor;
 

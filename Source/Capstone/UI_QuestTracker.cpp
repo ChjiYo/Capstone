@@ -1,4 +1,4 @@
-#include "UI_QuestTracker.h"
+﻿#include "UI_QuestTracker.h"
 #include "Components/TextBlock.h"
 
 void UUI_QuestTracker::UpdateQuest(const FQuestData& InQuestData)
@@ -23,12 +23,20 @@ void UUI_QuestTracker::UpdateQuest(const FQuestData& InQuestData)
 		{
 			ProgressStr = NSLOCTEXT("UI_QuestTracker", "Completed", "완료!");
 		}
-		else if (InQuestData.HasKillObjective())
+		else if (InQuestData.HasObjective())
 		{
+			FText Verb;
+			switch (InQuestData.ObjectiveType)
+			{
+				case EQuestObjectiveType::Kill:    Verb = NSLOCTEXT("UI_QuestTracker", "Kill", "처치"); break;
+				case EQuestObjectiveType::Gather:  Verb = NSLOCTEXT("UI_QuestTracker", "Gather", "채집"); break;
+				case EQuestObjectiveType::Enhance: Verb = NSLOCTEXT("UI_QuestTracker", "Enhance", "강화"); break;
+				default: break;
+			}
+
 			ProgressStr = FText::Format(
-				NSLOCTEXT("UI_QuestTracker", "ProgressFormat", "처치 {0} / {1}"),
-				InQuestData.CurrentKillCount,
-				InQuestData.KillTargetCount);
+				NSLOCTEXT("UI_QuestTracker", "ProgressFormat", "{0} {1} / {2}"),
+				Verb, InQuestData.CurrentCount, InQuestData.TargetCount);
 		}
 
 		ProgressText->SetText(ProgressStr);

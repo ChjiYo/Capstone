@@ -1,9 +1,7 @@
-#include "NPC_Quest.h"
+﻿#include "NPC_Quest.h"
 #include "UI_Quest.h"
 #include "Py_Grey.h"
-#include "InventoryComponent.h"
 #include "QuestComponent.h"
-#include "ExperienceComponent.h"
 
 ANPC_Quest::ANPC_Quest()
 {}
@@ -11,8 +9,29 @@ ANPC_Quest::ANPC_Quest()
 void ANPC_Quest::Interact_Implementation(AActor * Interactor)
 {
 
-    if (IsValid(QuestWidget) || QuestData.bIsCompleted)
-        return;
+    if (IsValid(QuestWidget)) return;
+    if (!QuestChain.IsValidIndex(CurrentChainIndex)) return; // 체인 끝 — 더 줄 퀘스트 없음
+
+    APy_Grey* Player = Cast<APy_Grey>(Interactor);
+    if (!Player || !Player->QuestComponent) return;
+
+    UQuestComponent* QC = Player->QuestComponent;
+    const FName WantQuestID = QuestChain[CurrentChainIndex].QuestID;
+
+    if (QC->HasActiveQuest())
+    {
+        const FQuestData& Active = QC->GetActiveQuest();
+
+        if (Active.QuestID != WantQuestID)
+            return; // 이 NPC의 현재 체인 퀘스트가 아닌, 다른 진행 중 퀘스트가 있음 (동시 진행은 1개만 허용)
+
+        if (!Active.bIsCompleted)
+            return; // 이미 수락해서 진행 중 — 진행도는 좌측 퀘스트 트래커로 확인
+
+        // 방금 완료됨 -> 체인 다음 칸으로
+        ++CurrentChainIndex;
+        if (!QuestChain.IsValidIndex(CurrentChainIndex)) return;
+    }
 
     Super::Interact_Implementation(Interactor);
     if (QuestWidgetClass)
@@ -21,8 +40,7 @@ void ANPC_Quest::Interact_Implementation(AActor * Interactor)
         if (QuestWidget)
         {
             CurrentInteractor = Interactor;
-
-            QuestWidget->SetQuestData(QuestData);
+            QuestWidget->SetQuestData(QuestChain[CurrentChainIndex]);
             QuestWidget->OnQuestAccepted.AddDynamic(this, &ANPC_Quest::HandleQuestAccepted);
             QuestWidget->OnQuestDeclined.AddDynamic(this, &ANPC_Quest::HandleQuestDeclined);
             QuestWidget->AddToViewport();
@@ -39,37 +57,10 @@ void ANPC_Quest::Interact_Implementation(AActor * Interactor)
 
 void ANPC_Quest::HandleQuestAccepted()
 {
-    // NPC 입장에서는 "이미 지급함" 표시. 처치 목표가 아직 안 끝났어도 재상호작용으로
-    // 다시 받아서 진행도가 리셋되면 안 되므로 여기서 바로 완료 처리한다
-    QuestData.bIsCompleted = true;
-
     APy_Grey* Player = Cast<APy_Grey>(CurrentInteractor);
-
-    if (Player && QuestData.HasKillObjective())
+    if (Player && Player->QuestComponent && QuestChain.IsValidIndex(CurrentChainIndex))
     {
-        // 처치 목표가 있는 퀘스트는 QuestComponent가 진행도를 추적하고, 목표 달성 시 보상을 지급한다
-        if (Player->QuestComponent)
-        {
-            Player->QuestComponent->AcceptQuest(QuestData);
-        }
-    }
-    else if (Player)
-    {
-        // 처치 목표가 없는(대화/전달형) 퀘스트는 수락 즉시 보상 지급
-        if (Player->InventoryComponent && !QuestData.Reward.RewardItemID.IsNone())
-        {
-            Player->InventoryComponent->AddItem(QuestData.Reward.RewardItemID, QuestData.Reward.RewardItemCount);
-        }
-
-        if (Player->InventoryComponent && QuestData.Reward.RewardGold > 0)
-        {
-            Player->InventoryComponent->AddGold(QuestData.Reward.RewardGold);
-        }
-
-        if (Player->ExperienceComponent && QuestData.Reward.RewardExp > 0)
-        {
-            Player->ExperienceComponent->AddExp(QuestData.Reward.RewardExp);
-        }
+        Player->QuestComponent->AcceptQuest(QuestChain[CurrentChainIndex]);
     }
 
     RestoreInputMode();

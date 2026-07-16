@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "GameInfo.h"
 #include "Components/ActorComponent.h"
@@ -33,6 +33,13 @@ protected:
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 	void HandleMonsterKilled(FName MonsterID, int32 ExpReward, int32 GoldReward);
+	void HandleItemGathered(FName ItemID, int32 Count);
+	void HandleWeaponEnhanced(int32 NewLevel);
+
+	// 목표 타입이 일치하고(+ Kill/Gather는 TargetID까지 일치) 진행 중이면 CurrentCount를 Amount만큼 올린다.
+	// TargetCount에 도달하면 즉시 완료 처리 + 보상 지급.
+	void TryAdvanceObjective(EQuestObjectiveType Type, FName InTargetID, int32 Amount);
+
 	void GrantReward();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Quest")
@@ -41,4 +48,6 @@ protected:
 	bool bHasActiveQuest = false;
 
 	FDelegateHandle MonsterKilledHandle;
+	FDelegateHandle ItemGatheredHandle;
+	FDelegateHandle WeaponEnhancedHandle;
 };
