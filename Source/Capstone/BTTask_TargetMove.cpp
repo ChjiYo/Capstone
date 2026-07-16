@@ -38,6 +38,9 @@ void UBTTask_TargetMove::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Node
 	ACharacter* pTarget = pController->GetTarget();
 	AMonster* pMonster = Cast<AMonster>(pController->GetPawn());
 
+
+
+
 	if (!IsValid(pTarget) || !IsValid(pMonster))
 	{
 		pController->StopMovement();
