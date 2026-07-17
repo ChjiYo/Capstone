@@ -57,6 +57,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Stat")
 	int32 GetAttackPower() const { return m_tInfo.iAttack; }
 
+	// 현재 HP 비율(0~1). 적응형 AI가 플레이어의 회복 타이밍을 관측하는 데 사용
+	UFUNCTION(BlueprintPure, Category = "Stat")
+	float GetHpRatio() const { return m_tInfo.iMaxHp > 0 ? m_tInfo.iHp / static_cast<float>(m_tInfo.iMaxHp) : 0.f; }
+
 protected:
 	FINFO m_tInfo;
 };

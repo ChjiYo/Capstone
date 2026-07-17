@@ -39,5 +39,9 @@ protected:
     UPROPERTY(Category = "Portal", EditAnywhere )
     FName TargetLevelName;
 
+    // None이면 기존처럼 무조건 통과. 지정 시 플레이어의 활성 퀘스트 ID가 이 값과 같을 때만 작동 (8단계 보스 맵 게이트)
+    UPROPERTY(Category = "Portal", EditAnywhere)
+    FName RequiredQuestID;
+
 };
 

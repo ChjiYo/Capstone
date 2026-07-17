@@ -5,6 +5,7 @@
 #include "ItemBase.h"
 
 FOnMonsterKilled AMonster::OnMonsterKilled;
+FOnBossDefeated AMonster::OnBossDefeated;
 
 AMonster::AMonster()
 {
@@ -89,6 +90,11 @@ float AMonster::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, 
         m_tInfo.iHp = 0;
 
         OnMonsterKilled.Broadcast(MonsterID, ExpReward, GoldReward);
+
+        if (bIsBoss)
+        {
+            OnBossDefeated.Broadcast(MonsterID);
+        }
 
             if (DropItemClasses.Num() > 0 && FMath::FRand() <= DropChance)
             {

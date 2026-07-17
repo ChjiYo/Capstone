@@ -2,6 +2,14 @@
 #include "Mon_NarbashAnim.h"
 #include "Engine/DamageEvents.h"
 #include "DrawDebugHelpers.h"
+#include "MonsterAIController.h"
+#include "BehaviorTree/BlackboardComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Camera/CameraShakeBase.h"
+#include "UI_BossHpBar.h"
+#include "CombatPatternSubsystem.h"
+#include "Kismet/GameplayStatics.h"
+#include "Components/WidgetComponent.h"
 
 AMon_Narbash::AMon_Narbash()
 {
@@ -68,11 +76,107 @@ void AMon_Narbash::BeginPlay()
 	RightWeaponBox->SetBoxExtent({ 15.0f, 50.f, 15.f });
 	DashSphere->SetSphereRadius(150.f);
 
+	// 보스는 머리 위 HP바 대신 화면 상단 전용 보스 HP바를 사용
+	if (IsValid(HpBarComponent))
+		HpBarComponent->SetVisibility(false);
+
+	if (IsValid(BossHpBarClass))
+	{
+		BossHpBarWidget = CreateWidget<UUI_BossHpBar>(GetWorld(), BossHpBarClass);
+
+		if (IsValid(BossHpBarWidget))
+		{
+			BossHpBarWidget->AddToViewport();
+			BossHpBarWidget->SetBossHp(GetHpRatio());
+			BossHpBarWidget->SetPhase(CurrentPhase);
+		}
+	}
+}
+
+void AMon_Narbash::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	if (IsValid(BossHpBarWidget))
+	{
+		BossHpBarWidget->RemoveFromParent();
+		BossHpBarWidget = nullptr;
+	}
+
+	Super::EndPlay(EndPlayReason);
 }
 
 void AMon_Narbash::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+}
+
+float AMon_Narbash::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	// 페이즈 전환 연출 중에는 무적
+	if (bPhaseTransitioning)
+		return 0.f;
+
+	float ActualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+
+	float HpRatio = GetHpRatio();
+
+	if (IsValid(BossHpBarWidget))
+		BossHpBarWidget->SetBossHp(HpRatio);
+
+	if (CurrentPhase == 1 && HpRatio > 0.f && HpRatio <= Phase2HpRatio)
+	{
+		EnterPhase2();
+	}
+
+	return ActualDamage;
+}
+
+void AMon_Narbash::EnterPhase2()
+{
+	CurrentPhase = 2;
+	bPhaseTransitioning = true;
+
+	if (Phase2AttackPatterns.Num() > 0)
+	{
+		AttackPatterns = Phase2AttackPatterns;
+	}
+
+	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+	{
+		Movement->MaxWalkSpeed *= Phase2SpeedMultiplier;
+	}
+
+	if (IsValid(pNarbashAnim) && IsValid(PhaseTransitionMontage))
+	{
+		pNarbashAnim->Montage_Play(PhaseTransitionMontage, 1.f);
+	}
+
+	if (PhaseTransitionCameraShake)
+	{
+		if (APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0))
+		{
+			PC->ClientStartCameraShake(PhaseTransitionCameraShake);
+		}
+	}
+
+	if (AMonsterAIController* AICon = Cast<AMonsterAIController>(GetController()))
+	{
+		if (UBlackboardComponent* BB = AICon->GetBlackboardComponent())
+		{
+			BB->SetValueAsInt(TEXT("Phase"), CurrentPhase);
+		}
+	}
+
+	if (IsValid(BossHpBarWidget))
+	{
+		BossHpBarWidget->SetPhase(CurrentPhase);
+	}
+
+	GetWorldTimerManager().SetTimer(PhaseTransitionTimerHandle, this, &AMon_Narbash::EndPhaseTransition, PhaseTransitionInvincibleDuration, false);
+}
+
+void AMon_Narbash::EndPhaseTransition()
+{
+	bPhaseTransitioning = false;
 }
 
 void AMon_Narbash::EnableWeaponCollision(bool bEnable)
@@ -152,8 +256,16 @@ void AMon_Narbash::WepaonBeginOverlap(UPrimitiveComponent* OverlappedComponent, 
 		}
 	}
 
-	if(HitArray.Num() > 0)
+	if (HitArray.Num() > 0)
+	{
 		float fDamage = OtherActor->TakeDamage(m_tInfo.iAttack, DamageEvent, GetController(), this);
+
+		// 7단계 적응형 AI 학습에 이번 패턴의 명중/회피 결과를 반영 (보스도 플레이어 패턴에 적응)
+		if (UCombatPatternSubsystem* Subsystem = UGameplayStatics::GetGameInstance(this)->GetSubsystem<UCombatPatternSubsystem>())
+		{
+			Subsystem->RecordAttackResult(MonsterID, CurrentPatternIndex, fDamage > 0.f);
+		}
+	}
 
 #if ENABLE_DRAW_DEBUG
 	FVector vCenter = (vStart + vEnd) / 2.f;

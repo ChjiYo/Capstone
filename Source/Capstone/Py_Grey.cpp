@@ -10,12 +10,15 @@
 #include "UI_QuestTracker.h"
 #include "UI_ExpBar.h"
 #include "UI_SkillBar.h"
+#include "UI_Ending.h"
 #include "NPC_Base.h"
+#include "Monster.h"
 #include "Engine/DamageEvents.h"
 #include "DrawDebugHelpers.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Kismet/GameplayStatics.h"
 #include "Camera/CameraShakeBase.h"
+#include "CombatPatternSubsystem.h"
 
 APy_Grey::FOnPlayerDodge APy_Grey::OnPlayerDodge;
 
@@ -127,6 +130,15 @@ void APy_Grey::BeginPlay()
 			SkillBarWidget->InitSkillBar(this);
 		}
 	}
+
+	BossDefeatedHandle = AMonster::OnBossDefeated.AddUObject(this, &APy_Grey::HandleBossDefeated);
+}
+
+void APy_Grey::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	AMonster::OnBossDefeated.Remove(BossDefeatedHandle);
+
+	Super::EndPlay(EndPlayReason);
 }
 
 
@@ -362,6 +374,13 @@ void APy_Grey::UsePotionItem(FName ItemID)
 	}
 
 	int32 HpBeforeHeal = m_tInfo.iHp;
+
+	// 7단계 적응형 AI: 회복 시점의 HP 비율을 기록해 "저HP에 회복하는 습관"을 학습
+	if (UCombatPatternSubsystem* Subsystem = UGameplayStatics::GetGameInstance(this)->GetSubsystem<UCombatPatternSubsystem>())
+	{
+		Subsystem->RecordPlayerPotionUse(GetHpRatio());
+	}
+
 	Heal(Data->HealAmount);
 
 	LOG(TEXT("UsePotionItem(%s) 사용 : HealAmount=%d, HP %d -> %d / %d"), *ItemID.ToString(), Data->HealAmount, HpBeforeHeal, m_tInfo.iHp, m_tInfo.iMaxHp);
@@ -459,6 +478,38 @@ void APy_Grey::HandleLevelUp(int32 NewLevel)
 	{
 		PlayerHpBar->SetHp(m_tInfo.iHp / static_cast<float>(m_tInfo.iMaxHp));
 	}
+}
+
+void APy_Grey::HandleBossDefeated(FName MonsterID)
+{
+	GetWorldTimerManager().SetTimer(EndingTimerHandle, this, &APy_Grey::ShowEnding, EndingDelay, false);
+}
+
+void APy_Grey::ShowEnding()
+{
+	if (!IsValid(EndingWidgetClass))
+		return;
+
+	EndingWidget = CreateWidget<UUI_Ending>(GetWorld(), EndingWidgetClass);
+	if (!IsValid(EndingWidget))
+		return;
+
+	int32 FinalLevel = ExperienceComponent ? ExperienceComponent->GetCurrentLevel() : 1;
+	int32 FinalGold = InventoryComponent ? InventoryComponent->GetGold() : 0;
+
+	EndingWidget->InitEnding(StartLevelName, FinalLevel, FinalGold);
+	EndingWidget->AddToViewport();
+
+	SetGameplayInputLocked(true);
+
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (PC)
+	{
+		PC->bShowMouseCursor = true;
+		PC->SetInputMode(FInputModeUIOnly());
+	}
+
+	UGameplayStatics::SetGamePaused(GetWorld(), true);
 }
 
 int32 APy_Grey::GetNextEnhanceGoldCost() const

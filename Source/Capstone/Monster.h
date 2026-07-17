@@ -7,6 +7,8 @@
 DECLARE_MULTICAST_DELEGATE(FOnAttackEndDelegate)
 // MonsterID: 처치 퀘스트 판별용 / ExpReward, GoldReward: 처치 시 지급할 보상량
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnMonsterKilled, FName /*MonsterID*/, int32 /*ExpReward*/, int32 /*GoldReward*/)
+// bIsBoss인 몬스터가 죽을 때만 추가로 방송 (8단계 엔딩 트리거). APy_Grey가 구독해 지연 후 엔딩 화면을 띄운다
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnBossDefeated, FName /*MonsterID*/)
 
 UCLASS()
 class CAPSTONE_API AMonster : public ACharBase
@@ -24,6 +26,12 @@ public:
 
 	// 몬스터가 죽을 때마다 전역으로 방송. QuestComponent가 이 이벤트를 구독해 처치 퀘스트 진행도를 갱신
 	static FOnMonsterKilled OnMonsterKilled;
+
+	static FOnBossDefeated OnBossDefeated;
+
+	// 보스로 취급할지 여부. true면 처치 시 OnMonsterKilled와 별도로 OnBossDefeated도 방송됨 (8단계)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Boss")
+	bool bIsBoss = false;
 
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI")
@@ -58,6 +66,13 @@ public:
 	// 피격 시 공격자 반대 방향으로 밀려나는 세기
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MonsterAttack")
 	float KnockbackStrength = 300.f;
+
+	// 공격 패턴별 몽타주 (7단계 적응형 AI). 비어 있으면 UBTTask_Attack의 단일 AttackMontage로 폴백해 기존 몬스터는 그대로 동작
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
+	TArray<UAnimMontage*> AttackPatterns;
+
+	// UBTService_PatternAnalysis가 매 공격 전 골라 기록해 두는 인덱스. AWeapon이 명중/회피 결과를 이 인덱스로 귀속시킨다
+	int32 CurrentPatternIndex = 0;
 
 	class UUI_HpBar* HpBarWidget;
 

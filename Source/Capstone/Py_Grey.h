@@ -59,6 +59,18 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<class UUI_SkillBar> SkillBarWidgetClass;
 
+	// 8단계 엔딩 화면. 보스 처치 후 EndingDelay초 뒤에 생성
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "UI")
+	TSubclassOf<class UUI_Ending> EndingWidgetClass;
+
+	// 엔딩 화면의 [메인으로] 버튼이 다시 로드할 레벨 이름
+	UPROPERTY(EditAnywhere, Category = "UI")
+	FName StartLevelName;
+
+	// 보스 처치 연출을 감상할 시간(초) 후 엔딩 화면을 띄운다
+	UPROPERTY(EditAnywhere, Category = "UI")
+	float EndingDelay = 3.f;
+
 	UPROPERTY()
 	class UUI_HpBar* PlayerHpBar;
 
@@ -79,6 +91,9 @@ protected:
 
 	UPROPERTY()
 	class UUI_ExpBar* ExpBarWidget = nullptr;
+
+	UPROPERTY()
+	class UUI_Ending* EndingWidget = nullptr;
 
 
 private:
@@ -176,6 +191,7 @@ public:
 	class UPy_GreyAnim* pGreyAnim;
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
 public:
 	virtual void Tick(float DeltaTime) override;
@@ -217,6 +233,12 @@ private:
 
 	UFUNCTION()
 	void HandleLevelUp(int32 NewLevel);
+
+	void HandleBossDefeated(FName MonsterID);
+	void ShowEnding();
+
+	FDelegateHandle BossDefeatedHandle;
+	FTimerHandle EndingTimerHandle;
 
 private:
 	void MoveFront(float _fScale);

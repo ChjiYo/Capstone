@@ -3,6 +3,8 @@
 #include "Monster.h"
 #include "DrawDebugHelpers.h"
 #include "Engine/OverlapResult.h"
+#include "CombatPatternSubsystem.h"
+#include "Kismet/GameplayStatics.h"
 
 
 UBTService_Detect::UBTService_Detect()
@@ -41,7 +43,15 @@ void UBTService_Detect::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeM
 #endif
 	if (bOverlap)
 	{
-		pController->SetTarget(resultArray[0].GetActor());
+		AActor* pTargetActor = resultArray[0].GetActor();
+		pController->SetTarget(pTargetActor);
+
+		// 7단계 적응형 AI: 교전 거리 샘플링 (플레이어가 원거리를 유지하는 성향인지 관측)
+		if (UCombatPatternSubsystem* Subsystem = UGameplayStatics::GetGameInstance(pMonster)->GetSubsystem<UCombatPatternSubsystem>())
+		{
+			float Dist = FVector::Dist(pMonster->GetActorLocation(), pTargetActor->GetActorLocation());
+			Subsystem->RecordEngageDistance(Dist);
+		}
 	}
 	else
 	{

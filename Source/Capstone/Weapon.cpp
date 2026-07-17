@@ -1,6 +1,9 @@
 ﻿#include "Weapon.h"
 #include "Engine/DamageEvents.h"
 #include "DrawDebugHelpers.h"
+#include "Monster.h"
+#include "CombatPatternSubsystem.h"
+#include "Kismet/GameplayStatics.h"
 
 AWeapon::AWeapon()
 {
@@ -97,7 +100,20 @@ void AWeapon::WepaonBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActo
 
 
 	if (HitArray.Num() > 0)
+	{
 		float fDamage = OtherActor->TakeDamage(WeaponInfo.BaseDamage, DamageEvent, this->GetInstigatorController(), this);
+
+		// 이 무기의 소유 몬스터(부착 부모)를 찾아 이번 공격 패턴의 명중/회피(무적 프레임) 결과를 학습 서브시스템에 기록
+		AMonster* OwnerMonster = Cast<AMonster>(GetAttachParentActor());
+
+		if (IsValid(OwnerMonster))
+		{
+			if (UCombatPatternSubsystem* Subsystem = UGameplayStatics::GetGameInstance(this)->GetSubsystem<UCombatPatternSubsystem>())
+			{
+				Subsystem->RecordAttackResult(OwnerMonster->MonsterID, OwnerMonster->CurrentPatternIndex, fDamage > 0.f);
+			}
+		}
+	}
 
 #if ENABLE_DRAW_DEBUG
 	FVector vCenter = (vStart + vEnd) / 2.f;
