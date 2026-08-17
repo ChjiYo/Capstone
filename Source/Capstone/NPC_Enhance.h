@@ -22,7 +22,16 @@ protected:
     UPROPERTY()
     AActor* CurrentInteractor;
 
+    // 11단계: 고든과 처음 만났을 때 1회만 재생되는 대사
+    UPROPERTY(EditAnywhere, Category = "Story")
+    TArray<FName> FirstMeetDialogueLines;
+
+    UPROPERTY(EditAnywhere, Category = "Story")
+    FName FirstMeetBeatID = TEXT("Beat_GodonFirstMeet");
+
     virtual void Interact_Implementation(AActor* Interactor) override;
+
+    void OpenEnhanceWidget();
 
     UFUNCTION()
     void CloseEnhance();

@@ -11,6 +11,7 @@
 #include "UI_ExpBar.h"
 #include "UI_SkillBar.h"
 #include "UI_Ending.h"
+#include "StoryComponent.h"
 #include "NPC_Base.h"
 #include "Monster.h"
 #include "Engine/DamageEvents.h"
@@ -54,6 +55,7 @@ APy_Grey::APy_Grey()
 	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>(TEXT("InventoryComponent"));
 	QuestComponent = CreateDefaultSubobject<UQuestComponent>(TEXT("QuestComponent"));
 	ExperienceComponent = CreateDefaultSubobject<UExperienceComponent>(TEXT("ExperienceComponent"));
+	StoryComponent = CreateDefaultSubobject<UStoryComponent>(TEXT("StoryComponent"));
 
 }
 
@@ -274,6 +276,12 @@ void APy_Grey::SkillSlotC()
 
 void APy_Grey::OnInteractKeyPressed()
 {
+	if (StoryComponent && StoryComponent->IsPlaying())
+	{
+		StoryComponent->AdvanceLine();
+		return; // 대사 중에는 아이템 줍기/NPC 상호작용을 하지 않는다
+	}
+
 	if (CurrItem)
 	{
 		CurrItem->PickupItem(this);
@@ -482,7 +490,24 @@ void APy_Grey::HandleLevelUp(int32 NewLevel)
 
 void APy_Grey::HandleBossDefeated(FName MonsterID)
 {
-	GetWorldTimerManager().SetTimer(EndingTimerHandle, this, &APy_Grey::ShowEnding, EndingDelay, false);
+	// 보스 유언은 쓰러지는 연출 위에 겹쳐 나와야 하므로 입력을 막지 않는다
+	if (StoryComponent && BossDeathDialogueLines.Num() > 0)
+		StoryComponent->PlayDialogue(BossDeathDialogueLines, false);
+
+	GetWorldTimerManager().SetTimer(EndingTimerHandle, this, &APy_Grey::PlayEpilogue, EndingDelay, false);
+}
+
+void APy_Grey::PlayEpilogue()
+{
+	if (StoryComponent)
+	{
+		StoryComponent->StopDialogue(); // 유언이 아직 떠 있으면 정리하고 시작
+
+		if (EpilogueDialogueLines.Num() > 0 &&
+			StoryComponent->PlayDialogue(EpilogueDialogueLines, true, FSimpleDelegate::CreateUObject(this, &APy_Grey::ShowEnding)))
+			return;
+	}
+	ShowEnding(); // 대사 데이터가 없으면 기존 8단계 동작 그대로
 }
 
 void APy_Grey::ShowEnding()

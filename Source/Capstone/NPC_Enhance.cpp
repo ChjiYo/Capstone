@@ -1,6 +1,7 @@
-﻿#include "NPC_Enhance.h"
+#include "NPC_Enhance.h"
 #include "UI_Enhance.h"
 #include "Py_Grey.h"
+#include "StoryComponent.h"
 
 ANPC_Enhance::ANPC_Enhance()
 {}
@@ -10,20 +11,44 @@ void ANPC_Enhance::Interact_Implementation(AActor* Interactor)
     if (IsValid(EnhanceWidget))
         return;
 
-    Super::Interact_Implementation(Interactor);
+    APy_Grey* Player = Cast<APy_Grey>(Interactor);
+    if (!Player || !Player->InventoryComponent)
+        return;
+
+    UStoryComponent* Story = Player->StoryComponent;
+    if (Story && Story->IsPlaying())
+        return; // 다른 대사 재생 중 재진입 차단 (강화창이 대사 위에 겹쳐 뜨는 것을 방지)
+
+    CurrentInteractor = Interactor;
+
+    if (Story && FirstMeetDialogueLines.Num() > 0)
+    {
+        // 처음 만났을 때만 대사 → 끝나면 강화창. 두 번째부터는 곧장 강화창
+        if (Story->PlayDialogueOnce(FirstMeetBeatID, FirstMeetDialogueLines, true,
+                FSimpleDelegate::CreateUObject(this, &ANPC_Enhance::OpenEnhanceWidget)))
+            return;
+    }
+
+    OpenEnhanceWidget();
+}
+
+void ANPC_Enhance::OpenEnhanceWidget()
+{
+    if (!CurrentInteractor)
+        return;
+
+    Super::Interact_Implementation(CurrentInteractor);
 
     if (!EnhanceWidgetClass)
         return;
 
-    APy_Grey* Player = Cast<APy_Grey>(Interactor);
+    APy_Grey* Player = Cast<APy_Grey>(CurrentInteractor);
     if (!Player || !Player->InventoryComponent)
         return;
 
     EnhanceWidget = CreateWidget<UUI_Enhance>(GetWorld(), EnhanceWidgetClass);
     if (EnhanceWidget)
     {
-        CurrentInteractor = Interactor;
-
         EnhanceWidget->InitEnhance(Player);
         EnhanceWidget->OnEnhanceClosed.AddDynamic(this, &ANPC_Enhance::CloseEnhance);
         EnhanceWidget->AddToViewport();

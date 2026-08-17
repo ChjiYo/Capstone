@@ -47,7 +47,7 @@ void APortalPoint::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* O
 
 		if (!QC || !QC->HasActiveQuest() || QC->GetActiveQuest().QuestID != RequiredQuestID)
 		{
-			PrintViewport(2.f, FColor::Red, TEXT("아직 들어갈 수 없다."));
+			PrintViewport(2.f, FColor::Red, TEXT("아직은 아니다. 하란에게 먼저 얘기하자."));
 			return;
 		}
 	}

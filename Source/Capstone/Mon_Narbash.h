@@ -64,6 +64,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "UI")
 	TSubclassOf<class UUI_BossHpBar> BossHpBarClass;
 
+	// 11단계: 2페이즈 전환 시 재생되는 대사. 전투 중이라 입력을 막지 않고 AutoAdvanceTime으로 자동 진행된다
+	UPROPERTY(EditAnywhere, Category = "Boss|Story")
+	TArray<FName> Phase2DialogueLines;
+
 	int32 CurrentPhase = 1;
 
 private:

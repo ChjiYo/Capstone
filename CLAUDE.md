@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Capstone은 Unreal Engine 5.7 기반 C++ 액션 RPG 프로젝트입니다 (모듈명 `Capstone`, `CAPSTONE_API`). 게임플레이 코드는 `Source/Capstone/`에 있고, 그 외(레벨, 블루프린트, 메시, 애니메이션, 위젯)는 `Content/UE_Asset/` 아래의 바이너리 콘텐츠로 언리얼 에디터에서 직접 편집합니다.
 
-엔진 설치 경로: `C:\Program Files\Epic Games\UE_5.7`.
+엔진 설치 경로: `C:\Epic_Game\UE_5.7`.
 
 ## 빌드 / 실행 명령
 
@@ -15,7 +15,7 @@ Capstone은 Unreal Engine 5.7 기반 C++ 액션 RPG 프로젝트입니다 (모�
 - **VS 프로젝트 파일 생성**: `Capstone.uproject` 우클릭 → "Generate Visual Studio project files", 또는 엔진 설치 경로의 UBT `GenerateProjectFiles`를 직접 실행.
 - **컴파일 (에디터 타겟, Development 구성)**:
   ```
-  "C:\Program Files\Epic Games\UE_5.7\Engine\Build\BatchFiles\Build.bat" CapstoneEditor Win64 Development -project="D:\Unreal_Project\Capstone\Capstone.uproject"
+  "C:\Epic_Game\UE_5.7\Engine\Build\BatchFiles\Build.bat" CapstoneEditor Win64 Development -project="C:\Unreal_Script\Capstone\Capstone.uproject"
   ```
 - **에디터 실행**: `Capstone.uproject`를 열면 됨 (`.uproject`의 `EngineAssociation`에 따라 UE 5.7이 실행됨). 이미 빌드된 경우 `Binaries/Win64`의 실행 파일을 직접 실행해도 됨.
 - 자동화된 테스트는 없음 (`Test` 타겟 없음, CI 설정 없음) — 검증은 에디터에서 수동으로(PIE) 플레이테스트하는 방식.

@@ -10,6 +10,8 @@
 #include "CombatPatternSubsystem.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/WidgetComponent.h"
+#include "Py_Grey.h"
+#include "StoryComponent.h"
 
 AMon_Narbash::AMon_Narbash()
 {
@@ -169,6 +171,12 @@ void AMon_Narbash::EnterPhase2()
 	if (IsValid(BossHpBarWidget))
 	{
 		BossHpBarWidget->SetPhase(CurrentPhase);
+	}
+
+	if (APy_Grey* Player = Cast<APy_Grey>(UGameplayStatics::GetPlayerPawn(this, 0)))
+	{
+		if (Player->StoryComponent && Phase2DialogueLines.Num() > 0)
+			Player->StoryComponent->PlayDialogue(Phase2DialogueLines, false);
 	}
 
 	GetWorldTimerManager().SetTimer(PhaseTransitionTimerHandle, this, &AMon_Narbash::EndPhaseTransition, PhaseTransitionInvincibleDuration, false);

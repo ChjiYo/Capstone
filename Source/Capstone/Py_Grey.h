@@ -124,6 +124,18 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	class UExperienceComponent* ExperienceComponent;
 
+	// 11단계 대사/연출 재생기
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	class UStoryComponent* StoryComponent;
+
+	// 보스 유언 대사 (DL_BOSS_DEAD_01). 전투 연출 위에 겹쳐 나와야 하므로 입력을 막지 않는다
+	UPROPERTY(EditAnywhere, Category = "Story")
+	TArray<FName> BossDeathDialogueLines;
+
+	// 엔딩 화면 직전 나레이션 (DL_EPI_01~03)
+	UPROPERTY(EditAnywhere, Category = "Story")
+	TArray<FName> EpilogueDialogueLines;
+
 	// 레벨업 1회당 증가하는 체력/공격력. 체력은 최대치와 현재치에 동일하게 더해진다
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Level")
 	int32 HpIncreasePerLevel = 50;
@@ -235,6 +247,7 @@ private:
 	void HandleLevelUp(int32 NewLevel);
 
 	void HandleBossDefeated(FName MonsterID);
+	void PlayEpilogue();
 	void ShowEnding();
 
 	FDelegateHandle BossDefeatedHandle;

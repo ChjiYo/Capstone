@@ -82,6 +82,19 @@ struct FQuestData
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest")
     bool bIsCompleted = false;
 
+    // 9~11단계 스토리. 전부 선택 사항 — 비워두면 대사 없이 기존 동작 그대로다
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest|Story")
+    FText ChapterLabel;                         // "제 2장" (챕터 제목은 QuestTitle을 그대로 쓴다)
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest|Story")
+    TArray<FName> IntroDialogueLines;           // 수락창 열기 전
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest|Story")
+    TArray<FName> InProgressDialogueLines;      // 진행 중 다시 말 걸었을 때
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest|Story")
+    TArray<FName> CompleteDialogueLines;        // 완료 후 다시 말 걸었을 때
+
     bool HasObjective() const { return ObjectiveType != EQuestObjectiveType::None && TargetCount > 0; }
 };
 

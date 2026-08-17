@@ -37,4 +37,10 @@ protected:
 
     void RestoreInputMode();
 
+    // 11단계: 인트로 대사(있으면) 재생 후 수락창을 연다. 대사가 없으면 곧바로 OpenQuestWidget으로
+    void BeginNextQuestIntro();
+
+    // 기존 수락창 생성 블록을 그대로 옮긴 것. CurrentInteractor/CurrentChainIndex를 그대로 사용
+    void OpenQuestWidget();
+
 };
