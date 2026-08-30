@@ -4,7 +4,9 @@
 #include "InventoryComponent.h"
 
 ANPC_Shop::ANPC_Shop()
-{}
+{
+    NPCTypeTitle = TEXT("상점");
+}
 
 void ANPC_Shop::Interact_Implementation(AActor* Interactor)
 {

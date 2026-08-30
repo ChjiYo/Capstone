@@ -1,4 +1,4 @@
-#pragma once
+癤�#pragma once
 
 #include "CharBase.h"
 #include "NPC_Base.generated.h"
@@ -22,8 +22,11 @@ protected:
     UPROPERTY(Category = Collision, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
     class USphereComponent* InteractionSphere;
 
+  
+    UPROPERTY(Category = "NPC", VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+    class UWidgetComponent* NameplateComponent;
+
 public:
-    // C++/BP 양쪽에서 재정의 가능한 상호작용 함수
     UFUNCTION(BlueprintNativeEvent, Category = "NPC")
     void Interact(AActor* Interactor);
 
@@ -36,13 +39,11 @@ public:
     virtual void Tick(float DeltaTime) override;
 
 protected:
-    // 콜리전에 들어왔을 때
     UFUNCTION()
     void OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
         UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
         bool bFromSweep, const FHitResult& SweepResult);
 
-    // 콜리전에서 나갔을 때
     UFUNCTION()
     void OnOverlapEnd(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
         UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);

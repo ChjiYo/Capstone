@@ -1,10 +1,12 @@
-#include "NPC_Enhance.h"
+﻿#include "NPC_Enhance.h"
 #include "UI_Enhance.h"
 #include "Py_Grey.h"
 #include "StoryComponent.h"
 
 ANPC_Enhance::ANPC_Enhance()
-{}
+{
+    NPCTypeTitle = TEXT("강화");
+}
 
 void ANPC_Enhance::Interact_Implementation(AActor* Interactor)
 {

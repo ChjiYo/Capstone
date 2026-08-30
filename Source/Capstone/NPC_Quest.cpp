@@ -1,4 +1,4 @@
-#include "NPC_Quest.h"
+﻿#include "NPC_Quest.h"
 #include "UI_Quest.h"
 #include "Py_Grey.h"
 #include "QuestComponent.h"
@@ -7,7 +7,9 @@
 #include "Kismet/GameplayStatics.h"
 
 ANPC_Quest::ANPC_Quest()
-{}
+{
+    NPCTypeTitle = TEXT("퀘스트");
+}
 
 void ANPC_Quest::Interact_Implementation(AActor * Interactor)
 {
