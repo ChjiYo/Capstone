@@ -11,7 +11,9 @@ APortalPoint::APortalPoint()
 	m_pCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("Collision"));
 	RootComponent = m_pCollision;
 
-	m_pParticle = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("Particle"));
+	m_pNiagara = CreateDefaultSubobject<UNiagaraComponent>(TEXT("NiagaraEffect"));
+	m_pNiagara->SetupAttachment(RootComponent);
+	m_pNiagara->bAutoActivate = true;
 
 }
 
@@ -21,11 +23,11 @@ void APortalPoint::BeginPlay()
 
 	m_pCollision->OnComponentBeginOverlap.AddDynamic(this, &APortalPoint::OnOverlapBegin);
 
-	//AEffectDestroy::SpawnVFX(
-	//	GetRootComponent(),
-	//	NAME_None,
-	//	TEXT("NiagaraSystem'/Game/PortalSystem/FX/NS_Portal_02.NS_Portal_02'"),
-	//	TEXT("SoundWave'/Game/UE_Asset/Sounds/Portal_Sound.Portal_Sound'"));
+	if (NiagaraTemplate)
+	{
+		m_pNiagara->SetAsset(NiagaraTemplate);
+	}
+	m_pNiagara->Activate(true);
 
 }
 
