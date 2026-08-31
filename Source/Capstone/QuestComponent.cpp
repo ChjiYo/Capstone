@@ -4,6 +4,8 @@
 #include "Py_Grey.h"
 #include "InventoryComponent.h"
 #include "ExperienceComponent.h"
+#include "QuestStateSubsystem.h"
+#include "Kismet/GameplayStatics.h"
 
 UQuestComponent::UQuestComponent()
 {
@@ -17,6 +19,17 @@ void UQuestComponent::BeginPlay()
 	MonsterKilledHandle = AMonster::OnMonsterKilled.AddUObject(this, &UQuestComponent::HandleMonsterKilled);
 	ItemGatheredHandle = AGatherableObject::OnItemGathered.AddUObject(this, &UQuestComponent::HandleItemGathered);
 	WeaponEnhancedHandle = APy_Grey::OnWeaponEnhanced.AddUObject(this, &UQuestComponent::HandleWeaponEnhanced);
+
+	// 이전 레벨에서 진행 중이던 퀘스트가 있으면 복원한다 (UI 갱신은 소유 액터가 델리게이트를 바인딩한 뒤 직접 호출)
+	if (UQuestStateSubsystem* QS = UGameplayStatics::GetGameInstance(this)->GetSubsystem<UQuestStateSubsystem>())
+	{
+		FQuestData Restored;
+		if (QS->LoadActiveQuest(Restored))
+		{
+			ActiveQuest = Restored;
+			bHasActiveQuest = true;
+		}
+	}
 }
 
 void UQuestComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -41,6 +54,7 @@ void UQuestComponent::AcceptQuest(const FQuestData& InQuestData)
 		GrantReward();
 	}
 
+	SyncToStateSubsystem();
 	OnQuestTrackerChanged.Broadcast();
 }
 
@@ -82,7 +96,16 @@ void UQuestComponent::TryAdvanceObjective(EQuestObjectiveType Type, FName InTarg
 		GrantReward();
 	}
 
+	SyncToStateSubsystem();
 	OnQuestTrackerChanged.Broadcast();
+}
+
+void UQuestComponent::SyncToStateSubsystem()
+{
+	if (UQuestStateSubsystem* QS = UGameplayStatics::GetGameInstance(this)->GetSubsystem<UQuestStateSubsystem>())
+	{
+		QS->SaveActiveQuest(bHasActiveQuest, ActiveQuest);
+	}
 }
 
 void UQuestComponent::GrantReward()

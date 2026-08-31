@@ -40,6 +40,9 @@ APy_Grey::APy_Grey()
 	pCamera->SetupAttachment(pArm);
 
 	pArm->bUsePawnControlRotation = true;
+	pArm->bDoCollisionTest = true;
+	pArm->ProbeChannel = ECC_Camera;
+	pArm->ProbeSize = 12.f;
 	
 	static ConstructorHelpers::FClassFinder<UPy_GreyAnim> AP_PlayerGrey(TEXT("AnimBlueprint'/Game/UE_Asset/Character/Player/Grey/AP_PyGrey.AP_PyGrey_C'"));
 
@@ -105,6 +108,8 @@ void APy_Grey::BeginPlay()
 	if (QuestComponent)
 	{
 		QuestComponent->OnQuestTrackerChanged.AddDynamic(this, &APy_Grey::RefreshQuestTracker);
+		// 이전 레벨에서 복원된 퀘스트가 있을 수 있으므로 바인딩 직후 한 번 동기화
+		RefreshQuestTracker();
 	}
 
 	if (IsValid(ExpBarWidgetClass))

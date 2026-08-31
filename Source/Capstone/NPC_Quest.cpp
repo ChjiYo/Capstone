@@ -108,11 +108,31 @@ void ANPC_Quest::OpenQuestWidget()
 void ANPC_Quest::GrantCurrentQuestFor(AActor* Interactor)
 {
     APy_Grey* Player = Cast<APy_Grey>(Interactor);
-    if (!Player || !Player->QuestComponent || !QuestChain.IsValidIndex(CurrentChainIndex))
+    if (!Player || !Player->QuestComponent)
+        return;
+
+    UQuestComponent* QC = Player->QuestComponent;
+
+    // 현재 체인 퀘스트를 이미 완료한 채로 남아있으면(NPC를 직접 재방문하지 않고
+    // 트리거로만 스토리가 진행되는 경우, Interact_Implementation의 체인 진행 로직을 못 타므로)
+    // 여기서 대신 다음 체인으로 넘긴다
+    if (QC->HasActiveQuest() && QuestChain.IsValidIndex(CurrentChainIndex)
+        && QC->GetActiveQuest().QuestID == QuestChain[CurrentChainIndex].QuestID
+        && QC->GetActiveQuest().bIsCompleted)
+    {
+        ++CurrentChainIndex;
+    }
+
+    if (!QuestChain.IsValidIndex(CurrentChainIndex))
         return;
 
     const FQuestData& Q = QuestChain[CurrentChainIndex];
-    Player->QuestComponent->AcceptQuest(Q);
+
+    // 이미 받은(진행 중이거나 완료된) 퀘스트면 트리거 재진입 등으로 다시 지급하지 않는다
+    if (QC->HasActiveQuest() && QC->GetActiveQuest().QuestID == Q.QuestID)
+        return;
+
+    QC->AcceptQuest(Q);
 
     if (Player->StoryComponent && !Q.ChapterLabel.IsEmpty())
     {

@@ -42,6 +42,9 @@ protected:
 
 	void GrantReward();
 
+	// 레벨 이동 후에도 진행 중인 퀘스트가 유지되도록 게임 인스턴스 서브시스템에 현재 상태를 저장
+	void SyncToStateSubsystem();
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Quest")
 	FQuestData ActiveQuest;
 
