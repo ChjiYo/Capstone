@@ -66,6 +66,9 @@ void APy_Grey::BeginPlay()
 
 	pGreyAnim = Cast<UPy_GreyAnim>(GetMesh()->GetAnimInstance());
 
+	DefaultBrakingDecelerationFalling = GetCharacterMovement()->BrakingDecelerationFalling;
+	DefaultFallingLateralFriction = GetCharacterMovement()->FallingLateralFriction;
+
 	GetCapsuleComponent()->SetCollisionProfileName(TEXT("Player"));
 	WeaponBox->SetCollisionProfileName(TEXT("PlayerAttack"));
 
@@ -437,7 +440,21 @@ void APy_Grey::RollOrDash()
 	}
 
 	// 4. 캐릭터 발사
-	LaunchCharacter(InputDirection * 8000.f, true, true);
+	// 공중(단차 낙하/점프 중)에서는 기존 수직 속도를 덮어쓰지 않아야 체공 시간이 늘어나지 않는다
+	const bool bIsFalling = GetCharacterMovement()->IsFalling();
+	const float LaunchSpeed = bIsFalling ? 8000.f * AirDashSpeedMultiplier : 8000.f;
+	LaunchCharacter(InputDirection * LaunchSpeed, true, !bIsFalling);
+
+	// 공중에서는 기본적으로 FallingLateralFriction=0, BrakingDecelerationFalling=0이라 대시 속도가
+	// 착지할 때까지 전혀 줄지 않는다. 지상 대시가 자연스럽게 느껴지는 이유는 BrakingDecelerationWalking뿐
+	// 아니라 속도에 비례해 급격히 감속시키는 GroundFriction 항 덕분이므로, 숫자를 새로 튜닝하는 대신
+	// 대시 동안만 지상과 동일한 감속/마찰 값을 그대로 빌려쓴다.
+	// bIsFalling이 아니라 항상 걸어야 하는 이유: 대시 시작 시점엔 땅 위여서 false지만, 단차 끝으로
+	// 대시하면 도중에 공중으로 전환된다 - 그때는 이미 이 함수를 다시 타지 않으므로 기본값(0)이 남아
+	// 브레이크 없이 계속 날아간다. 그래서 시작 상태와 무관하게 미리 걸어두고 대시가 끝나면 되돌린다.
+	GetCharacterMovement()->BrakingDecelerationFalling = GetCharacterMovement()->BrakingDecelerationWalking;
+	GetCharacterMovement()->FallingLateralFriction = GetCharacterMovement()->GroundFriction;
+	GetWorldTimerManager().SetTimer(AirDashBrakingTimerHandle, this, &APy_Grey::RestoreAirBraking, InvincibleDuration, false);
 
 	bInvincible = true;
 	GetWorldTimerManager().SetTimer(InvincibilityTimerHandle, this, &APy_Grey::EndInvincibility, InvincibleDuration, false);
@@ -449,6 +466,12 @@ void APy_Grey::RollOrDash()
 void APy_Grey::EndInvincibility()
 {
 	bInvincible = false;
+}
+
+void APy_Grey::RestoreAirBraking()
+{
+	GetCharacterMovement()->BrakingDecelerationFalling = DefaultBrakingDecelerationFalling;
+	GetCharacterMovement()->FallingLateralFriction = DefaultFallingLateralFriction;
 }
 
 void APy_Grey::RefreshQuestTracker()

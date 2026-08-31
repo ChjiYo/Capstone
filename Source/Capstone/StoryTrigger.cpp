@@ -1,6 +1,7 @@
-#include "StoryTrigger.h"
+﻿#include "StoryTrigger.h"
 #include "StoryComponent.h"
 #include "Py_Grey.h"
+#include "NPC_Quest.h"
 #include "Components/BoxComponent.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -47,14 +48,21 @@ void AStoryTrigger::TryPlay(AActor* PlayerActor)
 	if (!Player || !Player->StoryComponent || DialogueLines.Num() == 0)
 		return;
 
+	// QuestGiver가 지정돼 있으면 대사가 끝나는 즉시 수락/거절 UI 없이 현재 체인 퀘스트를 지급한다
+	FSimpleDelegate OnFinished;
+	if (QuestGiver)
+	{
+		OnFinished = FSimpleDelegate::CreateUObject(QuestGiver, &ANPC_Quest::GrantCurrentQuestFor, static_cast<AActor*>(Player));
+	}
+
 	bool bStarted = false;
 	if (!BeatID.IsNone())
 	{
-		bStarted = Player->StoryComponent->PlayDialogueOnce(BeatID, DialogueLines, bLockInput);
+		bStarted = Player->StoryComponent->PlayDialogueOnce(BeatID, DialogueLines, bLockInput, OnFinished);
 	}
 	else
 	{
-		bStarted = Player->StoryComponent->PlayDialogue(DialogueLines, bLockInput);
+		bStarted = Player->StoryComponent->PlayDialogue(DialogueLines, bLockInput, OnFinished);
 	}
 
 	if (bStarted && bDestroyAfterPlay)

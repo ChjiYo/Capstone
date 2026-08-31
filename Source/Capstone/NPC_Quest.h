@@ -29,6 +29,11 @@ protected:
 
     virtual void Interact_Implementation(AActor* Interactor) override;
 
+public:
+    // 현재 체인 퀘스트를 수락/거절 UI 없이 Interactor에게 즉시 지급한다 (AStoryTrigger가 대사 종료 콜백으로 호출)
+    void GrantCurrentQuestFor(AActor* Interactor);
+
+protected:
     UFUNCTION()
     void HandleQuestAccepted();
 

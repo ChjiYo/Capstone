@@ -188,6 +188,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dash")
 	float InvincibleDuration = 0.4f;
 
+	// 공중(점프/낙하 중) 대시 발사 속도에 곱해지는 배율. 감속은 지상과 동일한 값을 빌려쓰므로,
+	// 이 배율만 올리면 착지 거리를 자연스럽게 지상 대시보다 더 멀리 늘릴 수 있다.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dash")
+	float AirDashSpeedMultiplier = 2.f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel")
 	float HitStopTimeDilation = 0.05f;
 
@@ -275,8 +280,12 @@ private:
 	bool bInvincible = false;
 	FTimerHandle InvincibilityTimerHandle;
 	FTimerHandle HitStopTimerHandle;
+	FTimerHandle AirDashBrakingTimerHandle;
+	float DefaultBrakingDecelerationFalling = 0.f;
+	float DefaultFallingLateralFriction = 0.f;
 
 	void EndInvincibility();
+	void RestoreAirBraking();
 	void PlayHitStop();
 	void EndHitStop();
 	void PlayCameraShake(TSubclassOf<class UCameraShakeBase> ShakeClass);

@@ -105,24 +105,29 @@ void ANPC_Quest::OpenQuestWidget()
     }
 }
 
-void ANPC_Quest::HandleQuestAccepted()
+void ANPC_Quest::GrantCurrentQuestFor(AActor* Interactor)
 {
-    APy_Grey* Player = Cast<APy_Grey>(CurrentInteractor);
-    if (Player && Player->QuestComponent && QuestChain.IsValidIndex(CurrentChainIndex))
+    APy_Grey* Player = Cast<APy_Grey>(Interactor);
+    if (!Player || !Player->QuestComponent || !QuestChain.IsValidIndex(CurrentChainIndex))
+        return;
+
+    const FQuestData& Q = QuestChain[CurrentChainIndex];
+    Player->QuestComponent->AcceptQuest(Q);
+
+    if (Player->StoryComponent && !Q.ChapterLabel.IsEmpty())
     {
-        const FQuestData& Q = QuestChain[CurrentChainIndex];
-        Player->QuestComponent->AcceptQuest(Q);
+        Player->StoryComponent->ShowChapterTitle(Q.ChapterLabel, Q.QuestTitle);
 
-        if (Player->StoryComponent && !Q.ChapterLabel.IsEmpty())
+        if (UStoryStateSubsystem* SS = UGameplayStatics::GetGameInstance(this)->GetSubsystem<UStoryStateSubsystem>())
         {
-            Player->StoryComponent->ShowChapterTitle(Q.ChapterLabel, Q.QuestTitle);
-
-            if (UStoryStateSubsystem* SS = UGameplayStatics::GetGameInstance(this)->GetSubsystem<UStoryStateSubsystem>())
-            {
-                SS->SetChapter(CurrentChainIndex + 1);
-            }
+            SS->SetChapter(CurrentChainIndex + 1);
         }
     }
+}
+
+void ANPC_Quest::HandleQuestAccepted()
+{
+    GrantCurrentQuestFor(CurrentInteractor);
 
     RestoreInputMode();
     QuestWidget = nullptr;

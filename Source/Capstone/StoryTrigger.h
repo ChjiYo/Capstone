@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "GameInfo.h"
 #include "GameFramework/Actor.h"
@@ -44,6 +44,10 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Story")
 	bool bDestroyAfterPlay = true;
+
+	// 지정하면 대사가 끝나는 즉시 이 NPC의 현재 체인 퀘스트를 수락/거절 UI 없이 바로 지급한다
+	UPROPERTY(EditAnywhere, Category = "Story")
+	class ANPC_Quest* QuestGiver = nullptr;
 
 	UFUNCTION()
 	void OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
