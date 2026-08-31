@@ -47,5 +47,9 @@ protected:
     UPROPERTY(Category = "Portal", EditAnywhere)
     FName RequiredQuestID;
 
+    // 도착 레벨에서 스폰될 PlayerStart의 태그(PlayerStartTag). None이면 엔진 기본 선택(맵 중앙 등 첫 스폰용 PlayerStart)에 맡김
+    UPROPERTY(Category = "Portal", EditAnywhere)
+    FName TargetPlayerStartTag;
+
 };
 

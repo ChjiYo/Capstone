@@ -85,8 +85,11 @@ void AEffectDestroy::InitializeEffect()
     SpawnVFX(GetRootComponent(), NAME_None, NiagaraTemplate, SoundTemplate, fLifeTime);
 
 
+    if (!bGrantsExplosiveBuff)
+        return;
+
     AActor* EffectOwner = GetInstigator();
-    
+
     // 이 주인이 인터페이스를 장착하고 있는지(SetExplosiveBuffState 기능이 있는지) 확인
     ICombatInterface* CombatTarget = Cast<ICombatInterface>(EffectOwner);
     if (CombatTarget)

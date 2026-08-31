@@ -2,6 +2,7 @@
 #include "Py_Grey.h"
 #include "EffectDestroy.h"
 #include "QuestComponent.h"
+#include "LevelTransitionSubsystem.h"
 #include "Kismet/GameplayStatics.h"
 
 APortalPoint::APortalPoint()
@@ -51,6 +52,14 @@ void APortalPoint::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* O
 		{
 			PrintViewport(2.f, FColor::Red, TEXT("아직은 아니다. 하란에게 먼저 얘기하자."));
 			return;
+		}
+	}
+
+	if (!TargetPlayerStartTag.IsNone())
+	{
+		if (ULevelTransitionSubsystem* TransitionSubsystem = GetGameInstance()->GetSubsystem<ULevelTransitionSubsystem>())
+		{
+			TransitionSubsystem->SetPendingPlayerStartTag(TargetPlayerStartTag);
 		}
 	}
 

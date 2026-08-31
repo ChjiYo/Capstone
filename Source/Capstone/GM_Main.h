@@ -11,5 +11,6 @@ class CAPSTONE_API AGM_Main : public AGameModeBase
 
 public:
 	AGM_Main();
-	
+
+	virtual AActor* ChoosePlayerStart_Implementation(AController* Player) override;
 };
