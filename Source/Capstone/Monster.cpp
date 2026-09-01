@@ -3,6 +3,7 @@
 #include "Components/WidgetComponent.h"
 #include "UI_HpBar.h"
 #include "ItemBase.h"
+#include "Materials/MaterialInstanceDynamic.h"
 
 FOnMonsterKilled AMonster::OnMonsterKilled;
 FOnBossDefeated AMonster::OnBossDefeated;
@@ -55,12 +56,43 @@ void AMonster::BeginPlay()
 
 	if (IsValid(HpBarWidget))
 		HpBarWidget->SetHp(m_tInfo.iHp / static_cast<float>(m_tInfo.iMaxHp));
+
+	if (USkeletalMeshComponent* MonsterMesh = GetMesh())
+	{
+		HitFlashMaterials.Reset();
+
+		const int32 NumMaterials = MonsterMesh->GetNumMaterials();
+		for (int32 i = 0; i < NumMaterials; ++i)
+		{
+			if (UMaterialInstanceDynamic* DynMat = MonsterMesh->CreateAndSetMaterialInstanceDynamic(i))
+			{
+				HitFlashMaterials.Add(DynMat);
+			}
+		}
+	}
 }
 
 void AMonster::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	UpdateHitFlash(DeltaTime);
+}
+
+void AMonster::UpdateHitFlash(float DeltaTime)
+{
+	if (HitFlashTimeRemaining <= 0.f)
+		return;
+
+	HitFlashTimeRemaining = FMath::Max(0.f, HitFlashTimeRemaining - DeltaTime);
+
+	const float FlashAmount = HitFlashDuration > 0.f ? HitFlashTimeRemaining / HitFlashDuration : 0.f;
+
+	for (UMaterialInstanceDynamic* DynMat : HitFlashMaterials)
+	{
+		if (IsValid(DynMat))
+			DynMat->SetScalarParameterValue(HitFlashParamName, FlashAmount);
+	}
 }
 
 float AMonster::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
@@ -138,4 +170,6 @@ void AMonster::Hit()
 		pMonAnim->Hit();
 
 	bHit = true;
+
+	HitFlashTimeRemaining = HitFlashDuration;
 }

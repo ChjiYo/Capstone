@@ -56,6 +56,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill|FX")
 	TSubclassOf<class AEffectDestroy> HitEffectClass;
 
+	// 폭발 버프 여부와 무관하게 몬스터를 명중시킬 때마다 매번 스폰되는 기본 타격 이펙트(스파크+타격음)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel")
+	TSubclassOf<class AEffectDestroy> NormalHitEffectClass;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<class UUI_SkillBar> SkillBarWidgetClass;
 
@@ -205,6 +209,20 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel")
 	TSubclassOf<class UCameraShakeBase> StrongCameraShakeClass;
 
+	// 콤보 한 타당 카메라 셰이크/히트스탑이 강해지는 배율. 콤보가 이어질수록 타격감이 점점 커지는 연출용
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel")
+	float ComboFeelScalePerHit = 0.15f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel")
+	float MaxComboFeelScale = 2.f;
+
+	// 타격/피격 시 컨트롤러 진동 세기(0~1) 및 지속시간(초). 에셋 없이 코드만으로 동작
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel")
+	float HitLandedRumbleIntensity = 0.25f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel")
+	float HitTakenRumbleIntensity = 0.6f;
+
 	class UPy_GreyAnim* pGreyAnim;
 protected:
 	virtual void BeginPlay() override;
@@ -286,9 +304,10 @@ private:
 
 	void EndInvincibility();
 	void RestoreAirBraking();
-	void PlayHitStop();
+	void PlayHitStop(float DurationScale = 1.f);
 	void EndHitStop();
-	void PlayCameraShake(TSubclassOf<class UCameraShakeBase> ShakeClass);
+	void PlayCameraShake(TSubclassOf<class UCameraShakeBase> ShakeClass, float Scale = 1.f);
+	void PlayHitRumble(float Intensity, float Duration);
 
 public:
 	void EnableWeaponCollision(bool bEnable);

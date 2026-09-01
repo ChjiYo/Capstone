@@ -23,8 +23,10 @@ void AEffectDestroy::SpawnVFX(USceneComponent* AttachComp, FName SocketName, UNi
             SocketName,
             FVector::ZeroVector,
             FRotator::ZeroRotator,
+            EffectScale,
             EAttachLocation::KeepRelativeOffset,
-            true
+            true,
+            ENCPoolMethod::None
         );
 
         if (NiagaraComp)

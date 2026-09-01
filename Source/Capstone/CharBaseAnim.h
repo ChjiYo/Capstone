@@ -59,6 +59,8 @@ public:
 		eDir = _eDir;
 	}
 
+	int32 GetCurrentCombo() const { return CurrentCombo; }
+
 private:
 	UFUNCTION()
 	void AnimNotify_MoveStop();

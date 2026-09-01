@@ -20,6 +20,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "Camera/CameraShakeBase.h"
 #include "CombatPatternSubsystem.h"
+#include "GameFramework/PlayerController.h"
 
 APy_Grey::FOnPlayerDodge APy_Grey::OnPlayerDodge;
 
@@ -638,7 +639,7 @@ float APy_Grey::GetSkillCooldown(int32 SlotIndex) const
 	return SkillSlots[SlotIndex].Cooldown;
 }
 
-void APy_Grey::PlayHitStop()
+void APy_Grey::PlayHitStop(float DurationScale)
 {
 	UWorld* World = GetWorld();
 	if (!World)
@@ -647,7 +648,7 @@ void APy_Grey::PlayHitStop()
 	UGameplayStatics::SetGlobalTimeDilation(World, HitStopTimeDilation);
 
 	// dilation이 적용된 뒤라 SetTimer의 실시간 길이가 짧아지므로, 노출된 실시간(초) 값에 dilation을 곱해 보정
-	World->GetTimerManager().SetTimer(HitStopTimerHandle, this, &APy_Grey::EndHitStop, HitStopDuration * HitStopTimeDilation, false);
+	World->GetTimerManager().SetTimer(HitStopTimerHandle, this, &APy_Grey::EndHitStop, HitStopDuration * DurationScale * HitStopTimeDilation, false);
 }
 
 void APy_Grey::EndHitStop()
@@ -657,14 +658,23 @@ void APy_Grey::EndHitStop()
 		UGameplayStatics::SetGlobalTimeDilation(World, 1.f);
 }
 
-void APy_Grey::PlayCameraShake(TSubclassOf<UCameraShakeBase> ShakeClass)
+void APy_Grey::PlayCameraShake(TSubclassOf<UCameraShakeBase> ShakeClass, float Scale)
 {
 	if (!ShakeClass)
 		return;
 
 	APlayerController* PC = Cast<APlayerController>(GetController());
 	if (PC)
-		PC->ClientStartCameraShake(ShakeClass);
+		PC->ClientStartCameraShake(ShakeClass, Scale);
+}
+
+void APy_Grey::PlayHitRumble(float Intensity, float Duration)
+{
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!PC)
+		return;
+
+	PC->PlayDynamicForceFeedback(Intensity, Duration, false, false, true, true, EDynamicForceFeedbackAction::Start);
 }
 
 void APy_Grey::EnableWeaponCollision(bool bEnable)
@@ -716,22 +726,73 @@ void APy_Grey::WepaonBeginOverlap(UPrimitiveComponent* OverlappedComponent, AAct
 
 		float fDamage = OtherActor->TakeDamage(m_tInfo.iAttack, DamageEvent, GetController(), this);
 
-		PlayHitStop();
-		PlayCameraShake(WeakCameraShakeClass);
+		// 콤보가 이어질수록 카메라 셰이크/히트스탑이 점점 강해져서 연타에 무게감이 붙도록
+		int32 CurrentCombo = IsValid(pGreyAnim) ? pGreyAnim->GetCurrentCombo() : 0;
+		float ComboScale = FMath::Clamp(1.f + CurrentCombo * ComboFeelScalePerHit, 1.f, MaxComboFeelScale);
 
-		if (bIsExplosiveBuffActive && HitEffectClass)
+		PlayHitStop(ComboScale);
+		PlayCameraShake(WeakCameraShakeClass, ComboScale);
+		PlayHitRumble(HitLandedRumbleIntensity * ComboScale, HitStopDuration * 2.f);
+
+		// 타격 지점에 스폰하되, 몬스터의 루트 컴포넌트에 붙여서 넉백 등으로 몬스터가 움직여도
+		// 이펙트가 허공에 남지 않고 몬스터를 따라가도록 함
+		auto SpawnAttachedHitEffect = [&](TSubclassOf<AEffectDestroy> EffectClass)
 		{
+			if (!EffectClass)
+				return;
+
 			AEffectDestroy* Effect = GetWorld()->SpawnActor<AEffectDestroy>(
-				HitEffectClass,          
-				vImpactPoint,            
+				EffectClass,
+				vImpactPoint,
 				vImpactNormal.Rotation(),
 				params
 			);
 
-			if (IsValid(Effect))
+			if (!IsValid(Effect))
+				return;
+
+			if (IsValid(OtherActor) && OtherActor->GetRootComponent())
 			{
-				Effect->InitializeEffect();
+				USceneComponent* AttachComp = OtherActor->GetRootComponent();
+				FName SocketName = NAME_None;
+
+				// 맞은 대상이 몬스터고 BP에 소켓 이름이 지정돼 있으면 그 소켓 위치에 정확히 스폰
+				if (AMonster* HitMonster = Cast<AMonster>(OtherActor))
+				{
+					if (HitMonster->HitEffectSocketName != NAME_None)
+					{
+						if (USkeletalMeshComponent* HitMesh = HitMonster->GetMesh())
+						{
+							if (HitMesh->DoesSocketExist(HitMonster->HitEffectSocketName))
+							{
+								AttachComp = HitMesh;
+								SocketName = HitMonster->HitEffectSocketName;
+							}
+						}
+					}
+				}
+
+				if (SocketName != NAME_None)
+				{
+					// 소켓 위치/회전에 딱 맞춰 붙임 (계산된 임팩트 지점 대신 소켓을 사용)
+					Effect->AttachToComponent(AttachComp, FAttachmentTransformRules::SnapToTargetNotIncludingScale, SocketName);
+				}
+				else
+				{
+					// 소켓이 없으면 기존처럼 실제 타격 지점에서 시작해 몬스터를 따라가도록 붙임
+					Effect->AttachToComponent(AttachComp, FAttachmentTransformRules::KeepWorldTransform);
+				}
 			}
+
+			Effect->InitializeEffect();
+		};
+
+		// 폭발 버프 중이 아니어도 매 타격마다 항상 나가는 기본 임팩트 이펙트(스파크+타격음)
+		SpawnAttachedHitEffect(NormalHitEffectClass);
+
+		if (bIsExplosiveBuffActive)
+		{
+			SpawnAttachedHitEffect(HitEffectClass);
 		}
 	}
 
@@ -759,6 +820,7 @@ float APy_Grey::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, 
 
 	PlayHitStop();
 	PlayCameraShake(StrongCameraShakeClass);
+	PlayHitRumble(HitTakenRumbleIntensity, HitStopDuration * 3.f);
 
 	return fDamage;
 }

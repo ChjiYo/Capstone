@@ -28,6 +28,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
 	float fLifeTime;
 
+	// 나이아가라 이펙트 크기 배율. 1보다 작게 주면 축소, 크게 주면 확대됨 (에셋 자체를 건드리지 않고 이 BP에서만 조절)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
+	FVector EffectScale = FVector(1.f, 1.f, 1.f);
+
 	// 이 이펙트가 시전자에게 폭발/화염 무기 버프(ICombatInterface::SetExplosiveBuffState)를 부여하는지 여부.
 	// 폭발 스킬 전용 이펙트에서만 true로 설정할 것 — 보호막 등 다른 스킬 이펙트까지 이 버프를 켜버리는 버그가 있었음
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")

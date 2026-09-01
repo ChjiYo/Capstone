@@ -67,6 +67,19 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MonsterAttack")
 	float KnockbackStrength = 300.f;
 
+	// 피격 시 잠깐 번쩍이는 머티리얼 플래시 효과. 몬스터 머티리얼에 이 이름의 스칼라 파라미터가 있어야 실제로 보임
+	// (없으면 조용히 무시됨 - 에디터에서 머티리얼에 파라미터를 추가해줘야 함)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel")
+	FName HitFlashParamName = TEXT("FlashAmount");
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel")
+	float HitFlashDuration = 0.15f;
+
+	// 플레이어 타격 이펙트가 스폰될 소켓 이름 (몬스터 스켈레톤마다 다르므로 몬스터 BP별로 지정).
+	// 비워두면(None) 기존처럼 무기가 실제로 닿은 지점에 스폰됨
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel")
+	FName HitEffectSocketName = NAME_None;
+
 	// 공격 패턴별 몽타주 (7단계 적응형 AI). 비어 있으면 UBTTask_Attack의 단일 AttackMontage로 폴백해 기존 몬스터는 그대로 동작
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
 	TArray<UAnimMontage*> AttackPatterns;
@@ -81,6 +94,13 @@ public:
 
 private:
 	bool bHit;
+
+	UPROPERTY()
+	TArray<class UMaterialInstanceDynamic*> HitFlashMaterials;
+
+	float HitFlashTimeRemaining = 0.f;
+
+	void UpdateHitFlash(float DeltaTime);
 
 
 public:
