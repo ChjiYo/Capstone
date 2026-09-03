@@ -103,15 +103,6 @@ float AMonster::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, 
 
 	Hit();
 
-    if (DamageCauser)
-    {
-        FVector KnockbackDir = GetActorLocation() - DamageCauser->GetActorLocation();
-        KnockbackDir.Z = 0.f;
-        KnockbackDir.Normalize();
-
-        LaunchCharacter(KnockbackDir * KnockbackStrength, true, false);
-    }
-
     if (IsValid(HpBarWidget))
     {
         HpBarWidget->SetHp(m_tInfo.iHp / static_cast<float>(m_tInfo.iMaxHp));
