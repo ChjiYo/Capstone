@@ -166,10 +166,10 @@ void AMonster::Hit()
 {
 	UMonsterAnim* pMonAnim = Cast<UMonsterAnim >(GetMesh()->GetAnimInstance());
 
+	bHit = true;
+	HitFlashTimeRemaining = HitFlashDuration;
+
+	// bHit은 UMonsterAnim이 Hit 몽타주의 실제 종료 시점(OnHitMontageEnded)에 맞춰 false로 되돌린다
 	if (IsValid(pMonAnim))
 		pMonAnim->Hit();
-
-	bHit = true;
-
-	HitFlashTimeRemaining = HitFlashDuration;
 }

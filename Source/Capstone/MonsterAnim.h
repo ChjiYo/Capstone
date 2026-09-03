@@ -27,4 +27,9 @@ public:
 private:
 	UFUNCTION()
 	void AnimNotify_HitEnd();
+
+	// Hit 몽타주가 실제로 끝나는(중단되든 끝까지 재생되든) 순간을 정확히 잡기 위한 델리게이트.
+	// 노티파이 위치에 의존하지 않으므로, 몽타주에 HitEnd 노티파이가 없거나 잘못 찍혀 있어도 안전하다
+	UFUNCTION()
+	void OnHitMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 };

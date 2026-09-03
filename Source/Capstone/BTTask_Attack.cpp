@@ -25,6 +25,9 @@ EBTNodeResult::Type UBTTask_Attack::ExecuteTask(UBehaviorTreeComponent& OwnerCom
 	AMonster* pMonster = Cast<AMonster>(pController->GetPawn());
 	if (!IsValid(pMonster)) return EBTNodeResult::Failed;
 
+	// 피격 리액션 몽타주가 재생 중일 때 공격 몽타주가 끼어들어 끊어버리는 것을 막는다
+	if (pMonster->GetHit()) return EBTNodeResult::Failed;
+
 	UMonsterAnim* pMonsterAnim = Cast<UMonsterAnim>(pMonster->GetMesh()->GetAnimInstance());
 	if (!IsValid(pMonsterAnim)) return EBTNodeResult::Failed;
 
