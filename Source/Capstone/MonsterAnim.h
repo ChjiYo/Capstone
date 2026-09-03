@@ -32,4 +32,7 @@ private:
 	// 노티파이 위치에 의존하지 않으므로, 몽타주에 HitEnd 노티파이가 없거나 잘못 찍혀 있어도 안전하다
 	UFUNCTION()
 	void OnHitMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+	// AnimNotify_HitEnd/OnHitMontageEnded/Hit()의 실패 경로가 모두 공유하는 공통 정리 로직
+	void ResetAfterHit();
 };
