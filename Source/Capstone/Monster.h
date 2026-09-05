@@ -75,6 +75,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel")
 	float HitFlashDuration = 0.15f;
 
+	// 디졸브(서서히 사라짐) 진행 시간(초). 사망 판정과 동시에 시작되므로, 죽는 애니메이션 길이와
+	// 비슷하게(혹은 원하는 타이밍에 맞춰) 조절하면 됨
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Death")
+	float DissolveDuration = 2.f;
+
+	// 디졸브 효과에 쓰이는 머티리얼 스칼라 파라미터 이름 (0=원래대로, 1=완전히 사라짐).
+	// HitFlashParamName과 마찬가지로 몬스터 머티리얼에 이 이름의 파라미터가 있어야 실제로 보임
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Death")
+	FName DissolveParamName = TEXT("DissolveAmount");
+
 	// 플레이어 타격 이펙트가 스폰될 소켓 이름 (몬스터 스켈레톤마다 다르므로 몬스터 BP별로 지정).
 	// 비워두면(None) 기존처럼 무기가 실제로 닿은 지점에 스폰됨
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel")
@@ -95,12 +105,25 @@ public:
 private:
 	bool bHit;
 
+	// 첫 Tick에서 스프링암 카메라 콜리전 무시 설정을 한 번만 적용했는지 여부
+	bool bAppliedCameraCollisionIgnore = false;
+
 	UPROPERTY()
 	TArray<class UMaterialInstanceDynamic*> HitFlashMaterials;
 
 	float HitFlashTimeRemaining = 0.f;
 
 	void UpdateHitFlash(float DeltaTime);
+
+	// 디졸브 진행 중인지 여부. 사망 판정과 동시에 true가 되어 데스 모션과 디졸브가 함께 재생되고,
+	// DissolveDuration이 지나면 실제로 Destroy한다
+	bool bDissolving = false;
+	float DissolveTimeElapsed = 0.f;
+
+	void UpdateDeathSequence(float DeltaTime);
+
+	// [TEMP DEBUG] 디졸브 진행 로그를 너무 자주 찍지 않기 위한 누적 타이머. 디버깅 끝나면 제거할 것
+	float DebugDissolveLogAccum = 0.f;
 
 
 public:

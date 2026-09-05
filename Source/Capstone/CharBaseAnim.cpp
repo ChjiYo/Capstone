@@ -37,8 +37,10 @@ void UCharBaseAnim::NativeUpdateAnimation(float DeltaSeconds)
 					// Hit 몽타주 재생 중에는 넉백으로 생긴 순간적인 속도 때문에 eAnimType이
 					// Run으로 덮어써지면 안 된다. 그대로 두면 Hit 몽타주가 블렌드 아웃되는
 					// 순간 밑에 깔린 로코모션 상태가 Run이라 "Hit -> Run -> 다음 모션"처럼
-					// 새어 보이는 원인이 된다 (의도된 흐름은 "Hit -> Idle -> 다음 모션")
-					if (eAnimType != EBaseAnim::Hit)
+					// 새어 보이는 원인이 된다 (의도된 흐름은 "Hit -> Idle -> 다음 모션").
+					// Death도 마찬가지로 보호해야 한다 - 안 그러면 죽는 순간 넉백으로 남은 속도
+					// 때문에 데스 애니메이션이 재생되자마자 Run으로 덮어써져 버릴 수 있다
+					if (eAnimType != EBaseAnim::Hit && eAnimType != EBaseAnim::Death)
 					{
 						eAnimType = EBaseAnim::Run;
 					}

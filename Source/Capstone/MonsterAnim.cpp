@@ -44,7 +44,11 @@ void UMonsterAnim::OnHitMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 
 void UMonsterAnim::ResetAfterHit()
 {
-    SetAnimType(EBaseAnim::Idle);
+    // 이전 히트의 Hit 몽타주가 늦게(블렌드아웃 후) 끝나면서 이 함수가 호출될 때, 그 사이에 치명타를
+    // 맞아 이미 Death 상태로 넘어가 있을 수 있다. 그 경우 Idle로 되돌리면 죽는 애니메이션이 재생되지
+    // 못하고 Idle로 있다가 그대로 사라지는 것처럼 보인다 - Death 상태는 절대 덮어쓰지 않는다
+    if (eAnimType != EBaseAnim::Death)
+        SetAnimType(EBaseAnim::Idle);
 
     AMonster* pMonster = Cast<AMonster>(TryGetPawnOwner());
 
