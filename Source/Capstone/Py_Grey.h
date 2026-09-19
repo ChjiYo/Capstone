@@ -63,6 +63,13 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<class UUI_SkillBar> SkillBarWidgetClass;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "UI")
+	TSubclassOf<class UUI_Minimap> MinimapWidgetClass;
+
+	// 퀘스트 목표 지점 위에 "몇 m 남았는지"를 띄우는 월드 마커 위젯 (WBP_QuestWaypoint). 비워두면 마커를 만들지 않는다
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "UI")
+	TSubclassOf<class UUI_QuestWaypoint> QuestWaypointWidgetClass;
+
 	// 8단계 엔딩 화면. 보스 처치 후 EndingDelay초 뒤에 생성
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<class UUI_Ending> EndingWidgetClass;
@@ -80,6 +87,12 @@ protected:
 
 	UPROPERTY()
 	class UUI_SkillBar* SkillBarWidget = nullptr;
+
+	UPROPERTY()
+	class UUI_Minimap* MinimapWidget = nullptr;
+
+	UPROPERTY()
+	class AQuestWaypoint* QuestWaypoint = nullptr;
 
 	UPROPERTY()
 	class AItemBase* CurrItem;

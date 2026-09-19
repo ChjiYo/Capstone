@@ -10,6 +10,9 @@
 #include "UI_QuestTracker.h"
 #include "UI_ExpBar.h"
 #include "UI_SkillBar.h"
+#include "UI_Minimap.h"
+#include "QuestWaypoint.h"
+#include "UI_QuestWaypoint.h"
 #include "UI_Ending.h"
 #include "StoryComponent.h"
 #include "NPC_Base.h"
@@ -21,6 +24,7 @@
 #include "Camera/CameraShakeBase.h"
 #include "CombatPatternSubsystem.h"
 #include "GameFramework/PlayerController.h"
+#include "LevelTransitionSubsystem.h"
 
 APy_Grey::FOnPlayerDodge APy_Grey::OnPlayerDodge;
 
@@ -79,8 +83,43 @@ void APy_Grey::BeginPlay()
 	WeaponBox->OnComponentBeginOverlap.AddDynamic(this, &APy_Grey::WepaonBeginOverlap);
 	WeaponBox->OnComponentEndOverlap.AddDynamic(this, &APy_Grey::WeaponEndOverlap);
 
+	// 포탈(OpenLevel)로 이동하면 새 폰이 PlayerStart 위치에 곧바로 스폰되는데, 언리얼은 스폰 시점에
+	// 이미 겹쳐 있는 콜리전에 대해서는 BeginOverlap 이벤트를 쏘지 않는다. PlayerStart가 NPC의
+	// InteractionSphere나 채집물의 CollisionComponent 안쪽에 있으면(예: NPC 바로 옆으로 복귀하는 태그)
+	// OnOverlapBegin이 영영 호출되지 않아 CurrNPC/CurrItem이 비어 있고 상호작용(E)이 먹통이 된다.
+	// BeginPlay에서 한 번 직접 겹침을 검사해 이 경우를 보정한다.
+	TArray<AActor*> OverlappingActors;
+	GetCapsuleComponent()->GetOverlappingActors(OverlappingActors);
+	for (AActor* Overlapping : OverlappingActors)
+	{
+		if (ANPC_Base* NPC = Cast<ANPC_Base>(Overlapping))
+		{
+			CurrNPC = NPC;
+		}
+		else if (AItemBase* Item = Cast<AItemBase>(Overlapping))
+		{
+			CurrItem = Item;
+		}
+	}
+
 	WeaponBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	WeaponBox->SetBoxExtent({ 7.5f, 2.5f, 60.f});
+
+	// 포탈을 통해 방금 다른 레벨에서 넘어온 경우, 파괴되기 전 폰이 맡겨둔 체력을 복원한다
+	// (인벤토리/경험치와 동일한 패턴 — 안 하면 OpenLevel로 폰이 새로 생성될 때마다 생성자의 풀피로 되돌아감)
+	if (UGameInstance* GI = GetGameInstance())
+	{
+		if (ULevelTransitionSubsystem* TransitionSubsystem = GI->GetSubsystem<ULevelTransitionSubsystem>())
+		{
+			int32 SavedMaxHp = 0;
+			int32 SavedCurrentHp = 0;
+			if (TransitionSubsystem->ConsumePendingHp(SavedMaxHp, SavedCurrentHp))
+			{
+				m_tInfo.iMaxHp = SavedMaxHp;
+				m_tInfo.iHp = SavedCurrentHp;
+			}
+		}
+	}
 
 	if (IsValid(PlayerHpBarClass))
 	{
@@ -90,8 +129,7 @@ void APy_Grey::BeginPlay()
 		{
 			PlayerHpBar->AddToViewport();
 
-			float fPercent = m_tInfo.iHp / m_tInfo.iMaxHp;
-			PlayerHpBar->SetHp(fPercent);
+			PlayerHpBar->SetHpValue(m_tInfo.iHp, m_tInfo.iMaxHp);
 		}
 	}
 
@@ -142,12 +180,56 @@ void APy_Grey::BeginPlay()
 		}
 	}
 
+	if (IsValid(MinimapWidgetClass))
+	{
+		MinimapWidget = CreateWidget<UUI_Minimap>(GetWorld(), MinimapWidgetClass);
+
+		if (IsValid(MinimapWidget))
+		{
+			MinimapWidget->AddToViewport();
+			MinimapWidget->InitMinimap(this);
+
+			LOG(TEXT("미니맵 위젯 생성 및 AddToViewport 완료 (클래스=%s)."), *MinimapWidgetClass->GetName());
+		}
+		else
+		{
+			LOG(TEXT("MinimapWidgetClass는 지정됐지만 CreateWidget이 실패했습니다 (WBP_Minimap의 Parent Class가 UI_Minimap인지 확인)."));
+		}
+	}
+	else
+	{
+		LOG(TEXT("MinimapWidgetClass가 비어 있어 미니맵이 생성되지 않았습니다 (이 폰의 블루프린트 Class Defaults에서 Minimap Widget Class를 WBP_Minimap으로 지정하세요)."));
+	}
+
+	if (IsValid(QuestWaypointWidgetClass))
+	{
+		// 위젯 클래스를 먼저 지정한 뒤 FinishSpawning으로 컴포넌트를 등록해야 위젯이 올바른 클래스로 만들어진다
+		const FTransform SpawnTransform(GetActorLocation());
+		QuestWaypoint = GetWorld()->SpawnActorDeferred<AQuestWaypoint>(AQuestWaypoint::StaticClass(), SpawnTransform, this, nullptr, ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+
+		if (IsValid(QuestWaypoint))
+		{
+			QuestWaypoint->InitWaypoint(this, QuestWaypointWidgetClass);
+			QuestWaypoint->FinishSpawning(SpawnTransform);
+		}
+	}
+	else
+	{
+		LOG(TEXT("QuestWaypointWidgetClass가 비어 있어 퀘스트 위치 마커가 생성되지 않았습니다 (이 폰의 블루프린트 Class Defaults에서 Quest Waypoint Widget Class를 WBP_QuestWaypoint로 지정하세요)."));
+	}
+
 	BossDefeatedHandle = AMonster::OnBossDefeated.AddUObject(this, &APy_Grey::HandleBossDefeated);
 }
 
 void APy_Grey::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	AMonster::OnBossDefeated.Remove(BossDefeatedHandle);
+
+	if (IsValid(QuestWaypoint))
+	{
+		QuestWaypoint->Destroy();
+		QuestWaypoint = nullptr;
+	}
 
 	Super::EndPlay(EndPlayReason);
 }
@@ -404,7 +486,7 @@ void APy_Grey::UsePotionItem(FName ItemID)
 
 	if (IsValid(PlayerHpBar))
 	{
-		PlayerHpBar->SetHp(m_tInfo.iHp / static_cast<float>(m_tInfo.iMaxHp));
+		PlayerHpBar->SetHpValue(m_tInfo.iHp, m_tInfo.iMaxHp);
 	}
 }
 
@@ -513,7 +595,7 @@ void APy_Grey::HandleLevelUp(int32 NewLevel)
 
 	if (IsValid(PlayerHpBar))
 	{
-		PlayerHpBar->SetHp(m_tInfo.iHp / static_cast<float>(m_tInfo.iMaxHp));
+		PlayerHpBar->SetHpValue(m_tInfo.iHp, m_tInfo.iMaxHp);
 	}
 }
 
@@ -816,7 +898,7 @@ float APy_Grey::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, 
 
 	float fDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 	if (IsValid(PlayerHpBar))
-		PlayerHpBar->SetHp(m_tInfo.iHp / static_cast<float>(m_tInfo.iMaxHp));
+		PlayerHpBar->SetHpValue(m_tInfo.iHp, m_tInfo.iMaxHp);
 
 	PlayHitStop();
 	PlayCameraShake(StrongCameraShakeClass);

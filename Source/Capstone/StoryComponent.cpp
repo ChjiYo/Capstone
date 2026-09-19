@@ -1,4 +1,4 @@
-#include "StoryComponent.h"
+﻿#include "StoryComponent.h"
 #include "DialogueData.h"
 #include "UI_Dialogue.h"
 #include "UI_ChapterTitle.h"
@@ -132,22 +132,37 @@ void UStoryComponent::StopDialogue()
 void UStoryComponent::FinishDialogue()
 {
 	GetWorld()->GetTimerManager().ClearTimer(AutoAdvanceTimerHandle);
-	if (IsValid(DialogueWidget))
-	{
-		DialogueWidget->RemoveFromParent();
-	}
+
+	bIsPlaying = false;
+	PendingLines.Reset();
+
+	// 입력 모드는 콜백보다 먼저 원복한다. 콜백(예: 퀘스트 수락창 열기)이 자기 나름의 입력 모드/마우스
+	// 커서 상태를 설정할 수 있는데, 이걸 콜백 실행 뒤에 원복해버리면 콜백이 방금 켠 마우스 커서를
+	// 이 함수가 다시 꺼버리는 문제가 생긴다(퀘스트 수락/거절창에서 마우스 커서가 사라지는 버그).
+	// 대사가 콜백 안에서 곧바로 이어지는 경우(아래)에는 PlayDialogue가 SetDialogueInputMode(true)를
+	// 다시 걸어주므로 여기서 먼저 꺼도 문제없다.
 	if (bInputLocked)
 	{
 		SetDialogueInputMode(false);
 	}
 
-	bIsPlaying = false;
-	PendingLines.Reset();
-
-	// 콜백 안에서 다시 PlayDialogue를 호출할 수 있으므로(완료 대사 → 다음 인트로) 먼저 비우고 실행한다
+	// 콜백 안에서 다시 PlayDialogue를 호출할 수 있으므로(완료 대사 → 다음 인트로) 먼저 비우고 실행한다.
+	// 이때 위젯을 미리 RemoveFromParent()로 내렸다가 콜백이 같은 프레임에 PlayDialogue로 다시
+	// AddToViewport()하면, UMG가 그 위젯의 NativeConstruct를 재실행해서 버튼 델리게이트가 중복
+	// 바인딩되고(엔진 ensure: InvocationList[...] != InDelegate) 화면이 마지막 줄에서 멈춘 것처럼
+	// 보이는 버그가 있었다. 콜백을 먼저 실행해서 새 대사가 바로 시작됐는지(bIsPlaying) 확인한 뒤에만
+	// 위젯을 정리한다 — 새 대사가 이어지면 위젯은 그대로 두고 화면 갱신은 그쪽에 맡긴다.
 	FSimpleDelegate Callback = FinishedCallback;
 	FinishedCallback.Unbind();
 	Callback.ExecuteIfBound();
+
+	if (bIsPlaying)
+		return;
+
+	if (IsValid(DialogueWidget))
+	{
+		DialogueWidget->RemoveFromParent();
+	}
 }
 
 void UStoryComponent::SetDialogueInputMode(bool bEnable)

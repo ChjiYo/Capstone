@@ -23,7 +23,8 @@ protected:
 	UPROPERTY(Category = Collision, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	USphereComponent* DashSphere;
 
-
+	// LaunchCharacter로 돌진 중인 동안 true. Tick에서 근접 사거리 도달/타겟 상실 여부를 체크해 돌진을 멈추는 데 쓰인다
+	bool bIsDashing = false;
 
 protected:
 	virtual void BeginPlay() override;

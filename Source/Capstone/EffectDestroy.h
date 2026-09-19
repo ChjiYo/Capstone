@@ -37,6 +37,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
 	bool bGrantsExplosiveBuff = true;
 
+	// bGrantsExplosiveBuff인 이펙트인데 fLifeTime을 0(기본값) 그대로 둔 경우 사용할 기본 버프 지속시간(초).
+	// fLifeTime<=0이면 FTimerManager::SetTimer가 타이머 등록 자체를 조용히 무시해서 버프 해제 타이머가
+	// 영원히 실행되지 않는 버그가 있었음 — 검불꽃 스킬(SwordAuror)이 계속 유지되던 원인이 이것.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
+	float DefaultExplosiveBuffDuration = 10.f;
+
 public:
 	 void SpawnVFX(USceneComponent* AttachComp, FName SocketName,UNiagaraSystem* NiagaraAsset, USoundBase* SoundAsset, float fDuration);
 	 void SetEffectPath(const FString& strPath, const FString& strSoundPath);

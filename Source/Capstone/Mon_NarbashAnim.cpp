@@ -11,7 +11,7 @@ UMon_NarbashAnim::UMon_NarbashAnim()
 	NextAttackMax = 3;
 	bIsComboInputOn = true;
 
-	static ConstructorHelpers::FObjectFinder<UAnimMontage> NormalAttackAsset(TEXT("AnimMontage'/Game/UE_Asset/Character/Monster/Narbash/MTG_Narbash_Attack.MTG_Narbash_Attack'"));
+	static ConstructorHelpers::FObjectFinder<UAnimMontage> NormalAttackAsset(TEXT("AnimMontage'/Game/UE_Asset/Character/Monster/Narbash/MTG_MonNarbash_Attack.MTG_MonNarbash_Attack'"));
 
 	if (NormalAttackAsset.Succeeded())
 	{

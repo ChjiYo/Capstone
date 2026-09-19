@@ -1,5 +1,6 @@
-#include "InventoryComponent.h"
+﻿#include "InventoryComponent.h"
 #include "Monster.h"
+#include "LevelTransitionSubsystem.h"
 
 UInventoryComponent::UInventoryComponent()
 {
@@ -11,6 +12,22 @@ void UInventoryComponent::BeginPlay()
     Super::BeginPlay();
 
     MonsterKilledHandle = AMonster::OnMonsterKilled.AddUObject(this, &UInventoryComponent::HandleMonsterKilled);
+
+    // 포탈을 통해 방금 다른 레벨에서 넘어온 경우, 파괴되기 전 폰이 맡겨둔 인벤토리를 복원한다
+    if (UGameInstance* GI = GetWorld()->GetGameInstance())
+    {
+        if (ULevelTransitionSubsystem* TransitionSubsystem = GI->GetSubsystem<ULevelTransitionSubsystem>())
+        {
+            TArray<FInventorySlot> SavedItems;
+            int32 SavedGold = 0;
+            if (TransitionSubsystem->ConsumePendingInventory(SavedItems, SavedGold))
+            {
+                Items = SavedItems;
+                Gold = SavedGold;
+                OnInventoryChanged.Broadcast();
+            }
+        }
+    }
 }
 
 void UInventoryComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)

@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "GameInfo.h"
+#include "InventoryComponent.h"
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "LevelTransitionSubsystem.generated.h"
 
@@ -24,6 +25,83 @@ public:
 		return Tag;
 	}
 
+	// 포탈로 OpenLevel 하기 직전, 파괴될 플레이어 폰의 인벤토리를 게임 인스턴스에 잠깐 보관해둔다.
+	// OpenLevel(하드 레벨 전환)은 폰을 포함한 월드 전체를 파괴하고 새로 생성하므로,
+	// 폰에 붙어있는 UInventoryComponent는 그대로는 새 레벨로 넘어가지 않는다.
+	void SetPendingInventory(const TArray<FInventorySlot>& InItems, int32 InGold)
+	{
+		PendingInventoryItems = InItems;
+		PendingInventoryGold = InGold;
+		bHasPendingInventory = true;
+	}
+
+	// 한 번 읽으면 비워짐 — 인벤토리를 들고 있지 않은 최초 시작 시에는 false를 반환해 기본값(빈 인벤토리)을 유지
+	bool ConsumePendingInventory(TArray<FInventorySlot>& OutItems, int32& OutGold)
+	{
+		if (!bHasPendingInventory)
+			return false;
+
+		OutItems = PendingInventoryItems;
+		OutGold = PendingInventoryGold;
+		bHasPendingInventory = false;
+		return true;
+	}
+
+	// 포탈로 OpenLevel 하기 직전, 파괴될 플레이어 폰의 레벨/경험치를 게임 인스턴스에 잠깐 보관해둔다.
+	// 인벤토리와 마찬가지로 UExperienceComponent도 폰이 파괴되면 같이 사라지므로 별도로 넘겨줘야 한다.
+	void SetPendingExperience(int32 InLevel, int32 InExp)
+	{
+		PendingLevel = InLevel;
+		PendingExp = InExp;
+		bHasPendingExperience = true;
+	}
+
+	// 한 번 읽으면 비워짐 — 경험치를 들고 있지 않은 최초 시작 시에는 false를 반환해 기본값(레벨 1)을 유지
+	bool ConsumePendingExperience(int32& OutLevel, int32& OutExp)
+	{
+		if (!bHasPendingExperience)
+			return false;
+
+		OutLevel = PendingLevel;
+		OutExp = PendingExp;
+		bHasPendingExperience = false;
+		return true;
+	}
+
+	// 포탈로 OpenLevel 하기 직전, 파괴될 플레이어 폰의 체력을 게임 인스턴스에 잠깐 보관해둔다.
+	// 인벤토리/경험치와 마찬가지로 폰이 파괴되면 체력도 같이 사라져 생성자의 기본값(풀피)으로
+	// 되돌아가므로, 레벨 이동마다 체력이 초기화되는 것을 막기 위해 넘겨서 새 폰이 복원하게 한다.
+	void SetPendingHp(int32 InMaxHp, int32 InCurrentHp)
+	{
+		PendingMaxHp = InMaxHp;
+		PendingCurrentHp = InCurrentHp;
+		bHasPendingHp = true;
+	}
+
+	// 한 번 읽으면 비워짐 — 체력을 들고 있지 않은 최초 시작 시에는 false를 반환해 기본값(풀피)을 유지
+	bool ConsumePendingHp(int32& OutMaxHp, int32& OutCurrentHp)
+	{
+		if (!bHasPendingHp)
+			return false;
+
+		OutMaxHp = PendingMaxHp;
+		OutCurrentHp = PendingCurrentHp;
+		bHasPendingHp = false;
+		return true;
+	}
+
 private:
 	FName PendingPlayerStartTag = NAME_None;
+
+	TArray<FInventorySlot> PendingInventoryItems;
+	int32 PendingInventoryGold = 0;
+	bool bHasPendingInventory = false;
+
+	int32 PendingLevel = 1;
+	int32 PendingExp = 0;
+	bool bHasPendingExperience = false;
+
+	int32 PendingMaxHp = 0;
+	int32 PendingCurrentHp = 0;
+	bool bHasPendingHp = false;
 };

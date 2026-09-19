@@ -61,6 +61,13 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Stat")
 	float GetHpRatio() const { return m_tInfo.iMaxHp > 0 ? m_tInfo.iHp / static_cast<float>(m_tInfo.iMaxHp) : 0.f; }
 
+	// 레벨 이동(OpenLevel) 시 체력을 게임 인스턴스에 맡겼다가 복원하는 용도
+	UFUNCTION(BlueprintPure, Category = "Stat")
+	int32 GetCurrentHp() const { return m_tInfo.iHp; }
+
+	UFUNCTION(BlueprintPure, Category = "Stat")
+	int32 GetMaxHp() const { return m_tInfo.iMaxHp; }
+
 protected:
 	FINFO m_tInfo;
 };

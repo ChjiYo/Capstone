@@ -83,8 +83,17 @@ void AEffectDestroy::Finish(UParticleSystemComponent* Component)
 }
 
 void AEffectDestroy::InitializeEffect()
-{   
-    SpawnVFX(GetRootComponent(), NAME_None, NiagaraTemplate, SoundTemplate, fLifeTime);
+{
+    // fLifeTime이 0 이하(설정을 깜빡한 경우)면 SetTimer(Rate<=0)가 조용히 무시되어 아래 버프 해제
+    // 타이머가 아예 등록되지 않고, Niagara도 AutoDestroy(재생이 끝나야 파괴)로 스폰되어 루프 이펙트라면
+    // 영원히 남는다. 버프를 부여하는 이펙트는 최소 지속시간을 보장해 이 문제를 막는다.
+    float EffectiveLifeTime = fLifeTime;
+    if (bGrantsExplosiveBuff && EffectiveLifeTime <= 0.f)
+    {
+        EffectiveLifeTime = DefaultExplosiveBuffDuration;
+    }
+
+    SpawnVFX(GetRootComponent(), NAME_None, NiagaraTemplate, SoundTemplate, EffectiveLifeTime);
 
 
     if (!bGrantsExplosiveBuff)
@@ -98,10 +107,10 @@ void AEffectDestroy::InitializeEffect()
     {
         // 1. 이펙트 생성 시점: 버프를 ON으로 설정
         CombatTarget->SetExplosiveBuffState(true);
-    
+
         // 캐릭터가 죽어서 사라지는 등 예외 처리를 위해 Weak Pointer 사용
         TWeakObjectPtr<AActor> WeakOwner = EffectOwner;
-    
+
         // 2. LifeTime이 지났을 때: 버프를 OFF로 설정하는 타이머 실행
         FTimerHandle BuffTimerHandle;
         GetWorld()->GetTimerManager().SetTimer(BuffTimerHandle, [WeakOwner]()
@@ -113,6 +122,6 @@ void AEffectDestroy::InitializeEffect()
                         Target->SetExplosiveBuffState(false);
                     }
                 }
-            }, fLifeTime, false);
+            }, EffectiveLifeTime, false);
     }
 }

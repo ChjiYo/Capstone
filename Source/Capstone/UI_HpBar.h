@@ -13,6 +13,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true", BindWidget) )
 	class UProgressBar* HpBar;
 
+	UPROPERTY(meta = (BindWidgetOptional))
+	class UTextBlock* HpText;
+
 protected:
 	virtual void NativeConstruct();
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime);
@@ -20,4 +23,7 @@ protected:
 public:
 	UFUNCTION(BlueprintCallable)
 	void  SetHp(float fPercent);
+
+	UFUNCTION(BlueprintCallable)
+	void SetHpValue(int32 CurrentHp, int32 MaxHp);
 };

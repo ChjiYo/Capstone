@@ -109,6 +109,21 @@ void AMon_Narbash::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void AMon_Narbash::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	if (bIsDashing)
+	{
+		AMonsterAIController* pAIController = Cast<AMonsterAIController>(GetController());
+		ACharacter* pTarget = IsValid(pAIController) ? pAIController->GetTarget() : nullptr;
+
+		// 타겟을 잃었거나 근접 사거리에 도달하면 즉시 멈춘다 (안 그러면 8000 속도 돌진이 타겟을
+		// 훌쩍 지나쳐서 탐지 범위 밖으로 나가버리고, 그러면 BT 전체가 타겟을 잃어 Idle로 굳어버린다)
+		if (!IsValid(pTarget) || FVector::Dist2D(GetActorLocation(), pTarget->GetActorLocation()) <= GetAttackDist())
+		{
+			GetCharacterMovement()->StopMovementImmediately();
+			DashSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			bIsDashing = false;
+		}
+	}
 }
 
 float AMon_Narbash::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
@@ -205,6 +220,7 @@ void AMon_Narbash::EnableWeaponCollision(bool bEnable)
 void AMon_Narbash::ExecutePhysicalDash()
 {
 	DashSphere->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	bIsDashing = true;
 
 	FVector DashDirection = GetActorForwardVector();
 	LaunchCharacter(DashDirection * 8000.f, true, true);

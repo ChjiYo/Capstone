@@ -6,3 +6,7 @@ Content/*
 !Content/UE_Asset/
 !Content/UE_Asset/**
 Content/UE_Asset/Levels/**
+
+Windows/
+DerivedDataCache/
+Build/Windows/FileOpenOrder/

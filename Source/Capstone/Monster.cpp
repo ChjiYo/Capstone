@@ -1,5 +1,6 @@
 ﻿#include "Monster.h"
 #include "MonsterAnim.h"
+#include "MonsterAIController.h"
 #include "Components/WidgetComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "UI_HpBar.h"
@@ -22,8 +23,10 @@ AMonster::AMonster()
 	HpBarComponent->SetupAttachment(GetMesh());
 	HpBarComponent->SetWidgetSpace(EWidgetSpace::Screen);
 	HpBarComponent->SetRelativeLocation(FVector(0.f, 0.f, 100.f));
+	// 탐지 범위 밖에서는 숨겨두고, Tick에서 AI가 플레이어를 감지했을 때만(UBTService_Detect -> SetTarget) 보이게 한다
+	HpBarComponent->SetVisibility(false);
 
-	static ConstructorHelpers::FClassFinder<UUserWidget> HpBarWidgetClass(TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/UE_Asset/UI/BP_UI_Mon_HpBar.BP_UI_Mon_HpBar_C'"));
+	static ConstructorHelpers::FClassFinder<UUserWidget> HpBarWidgetClass(TEXT("/Script/UMGEditor.WidgetBlueprint'/Game/UE_Asset/UI/WBP_UI_Mon_HpBar.WBP_UI_Mon_HpBar_C'"));
 
 	if (HpBarWidgetClass.Succeeded())
 		HpBarComponent->SetWidgetClass(HpBarWidgetClass.Class);
@@ -34,11 +37,26 @@ AMonster::AMonster()
 
 AMonster::~AMonster()
 {
-	if (pSpawnPoint)
-		pSpawnPoint->Respawn();
-
 	OnAttackEnd.Clear();
 	AttackEndHandle.Reset(0);
+}
+
+void AMonster::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	// SpawnPoint에 대한 재생성 통지는 반드시 EndPlay에서 처리해야 한다. 이전에는 이 로직이
+	// ~AMonster() 소멸자에 있었는데, UObject의 C++ 소멸자는 가비지 컬렉션 타이밍에 임의로
+	// (죽은 직후가 아니라 한참 뒤에, 또는 레벨 전환/PIE 종료로 SpawnPoint 자신도 같이 파괴되는
+	// 도중에) 호출되기 때문에 pSpawnPoint가 이미 해제된 상태를 가리킬 수 있었다. 그 결과
+	// (1) "체크박스를 꺼도 확률적으로 몬스터가 다시 생성되는" 것처럼 보이는 현상과
+	// (2) pSpawnPoint->Respawn() 호출 시 EXCEPTION_ACCESS_VIOLATION 크래시가 둘 다 발생했다.
+	// EndPlayReason이 Destroyed(실제 처치로 인한 Destroy() 호출)일 때만 재생성을 통지해서,
+	// 레벨 전환(OpenLevel)이나 PIE 종료로 월드 전체가 정리되는 중에는 재생성이 일어나지 않게 한다.
+	if (EndPlayReason == EEndPlayReason::Destroyed && IsValid(pSpawnPoint))
+	{
+		pSpawnPoint->Respawn();
+	}
+
+	Super::EndPlay(EndPlayReason);
 }
 
 void AMonster::ClearAttackEndDelegate()
@@ -123,6 +141,21 @@ void AMonster::Tick(float DeltaTime)
 
 	UpdateHitFlash(DeltaTime);
 	UpdateDeathSequence(DeltaTime);
+	UpdateHpBarVisibility();
+}
+
+void AMonster::UpdateHpBarVisibility()
+{
+	if (!HpBarComponent)
+		return;
+
+	// UBTService_Detect가 fTraceRange 안에서 플레이어를 찾으면 SetTarget으로 채워두므로,
+	// 이 값의 유무로 탐지 여부를 그대로 판단한다
+	AMonsterAIController* pAIController = Cast<AMonsterAIController>(GetController());
+	const bool bDetected = pAIController && pAIController->GetTarget() != nullptr;
+
+	if (HpBarComponent->IsVisible() != bDetected)
+		HpBarComponent->SetVisibility(bDetected);
 }
 
 void AMonster::UpdateHitFlash(float DeltaTime)
@@ -173,6 +206,13 @@ void AMonster::UpdateDeathSequence(float DeltaTime)
 
 float AMonster::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
+    // 이미 사망(디졸브 시작)한 몬스터는 추가 데미지를 무시한다. 무기 콜리전 박스가 몬스터의
+    // 캡슐/메시 등 여러 콜리전 컴포넌트와 동시에 겹치면 한 스윙에 WepaonBeginOverlap이 두 번
+    // 호출될 수 있는데, 이때 사망 처리(OnMonsterKilled 방송 포함)가 중복 실행되어 퀘스트
+    // 킬 카운트가 한 마리당 2씩 올라가는 버그의 원인이었다
+    if (bDissolving)
+        return 0.f;
+
     float ActualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 
     // 여기서 다시 m_tInfo.iHp를 빼면 안 된다 - Super::TakeDamage(ACharBase)가 이미 실제 피해량만큼

@@ -13,7 +13,8 @@ public:
 	UBTDecorator_AttackDist();
 
 protected:
-	virtual bool CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const;
+	virtual bool CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const override;
+	virtual void TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
 
 public:
 		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill Condition")

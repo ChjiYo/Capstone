@@ -16,6 +16,10 @@ public:
     UFUNCTION(BlueprintCallable, Category = "Item")
     virtual void PickupItem(class ACharacter* Picker);
 
+    // 채집 퀘스트 미니맵 마커가 TargetID와 대조할 수 있도록 노출
+    UFUNCTION(BlueprintPure, Category = "Item Data")
+    FName GetItemID() const { return ItemID; }
+
 protected:
     virtual void BeginPlay() override;
 

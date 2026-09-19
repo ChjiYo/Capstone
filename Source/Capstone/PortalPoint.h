@@ -51,5 +51,12 @@ protected:
     UPROPERTY(Category = "Portal", EditAnywhere)
     FName TargetPlayerStartTag;
 
+    // 마을로 돌아가는 길 등 미니맵에 표시하고 싶은 포탈에만 체크. 기본은 꺼짐(보스 게이트 등은 굳이 안 보여줘도 됨)
+    UPROPERTY(Category = "Portal", EditAnywhere)
+    bool bShowOnMinimap = false;
+
+public:
+    bool ShouldShowOnMinimap() const { return bShowOnMinimap; }
+
 };
 

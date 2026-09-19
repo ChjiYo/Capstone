@@ -5,6 +5,10 @@
 #include "InventoryComponent.h"
 #include "ExperienceComponent.h"
 #include "QuestStateSubsystem.h"
+#include "SpawnPoint.h"
+#include "ItemBase.h"
+#include "NPC_Enhance.h"
+#include "EngineUtils.h"
 #include "Kismet/GameplayStatics.h"
 
 UQuestComponent::UQuestComponent()
@@ -105,6 +109,104 @@ void UQuestComponent::SyncToStateSubsystem()
 	if (UQuestStateSubsystem* QS = UGameplayStatics::GetGameInstance(this)->GetSubsystem<UQuestStateSubsystem>())
 	{
 		QS->SaveActiveQuest(bHasActiveQuest, ActiveQuest);
+	}
+}
+
+AActor* UQuestComponent::GetQuestTargetActor()
+{
+	// 처치/채집/강화 목표가 없거나(대화형 퀘스트) 이미 완료돼 보상까지 지급된 상태면 더 갈 곳이 없다
+	if (!bHasActiveQuest || ActiveQuest.bIsCompleted || !ActiveQuest.HasObjective())
+	{
+		CachedTargetActor.Reset();
+		return nullptr;
+	}
+
+	// 퀘스트/목표 종류가 바뀌었거나 캐시해둔 대상이 사라졌을 때만(몬스터 처치 등) 다시 월드를 탐색한다
+	if (!CachedTargetActor.IsValid() || CachedObjectiveType != ActiveQuest.ObjectiveType || CachedTargetID != ActiveQuest.TargetID)
+	{
+		CachedObjectiveType = ActiveQuest.ObjectiveType;
+		CachedTargetID = ActiveQuest.TargetID;
+		CachedTargetActor = FindQuestTargetActor(ActiveQuest);
+	}
+
+	return CachedTargetActor.Get();
+}
+
+AActor* UQuestComponent::FindQuestTargetActor(const FQuestData& Quest) const
+{
+	UWorld* World = GetWorld();
+	if (!World)
+		return nullptr;
+
+	const AActor* Owner = GetOwner();
+	const FVector OwnerLoc = Owner ? Owner->GetActorLocation() : FVector::ZeroVector;
+
+	switch (Quest.ObjectiveType)
+	{
+	case EQuestObjectiveType::Kill:
+	{
+		AActor* Nearest = nullptr;
+		float BestDistSq = -1.f;
+		for (TActorIterator<AMonster> It(World); It; ++It)
+		{
+			AMonster* Monster = *It;
+			if (!IsValid(Monster) || Monster->MonsterID != Quest.TargetID)
+				continue;
+
+			const float DistSq = FVector::DistSquared(OwnerLoc, Monster->GetActorLocation());
+			if (!Nearest || DistSq < BestDistSq)
+			{
+				BestDistSq = DistSq;
+				Nearest = Monster;
+			}
+		}
+
+		if (Nearest)
+			return Nearest;
+
+		// 생존 개체가 하나도 없으면(리스폰 대기 등) 해당 몬스터를 스폰하는 스폰포인트를 대신 가리킨다
+		for (TActorIterator<ASpawnPoint> It(World); It; ++It)
+		{
+			TSubclassOf<AMonster> SpawnType = It->GetSpawnType();
+			if (!SpawnType)
+				continue;
+
+			const AMonster* DefaultMonster = SpawnType->GetDefaultObject<AMonster>();
+			if (DefaultMonster && DefaultMonster->MonsterID == Quest.TargetID)
+				return *It;
+		}
+		return nullptr;
+	}
+	case EQuestObjectiveType::Gather:
+	{
+		AActor* Nearest = nullptr;
+		float BestDistSq = -1.f;
+		for (TActorIterator<AItemBase> It(World); It; ++It)
+		{
+			AItemBase* Item = *It;
+			if (!IsValid(Item) || Item->GetItemID() != Quest.TargetID)
+				continue;
+
+			const float DistSq = FVector::DistSquared(OwnerLoc, Item->GetActorLocation());
+			if (!Nearest || DistSq < BestDistSq)
+			{
+				BestDistSq = DistSq;
+				Nearest = Item;
+			}
+		}
+		return Nearest;
+	}
+	case EQuestObjectiveType::Enhance:
+	{
+		for (TActorIterator<ANPC_Enhance> It(World); It; ++It)
+		{
+			if (IsValid(*It))
+				return *It;
+		}
+		return nullptr;
+	}
+	default:
+		return nullptr;
 	}
 }
 

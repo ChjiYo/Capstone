@@ -122,6 +122,9 @@ private:
 
 	void UpdateDeathSequence(float DeltaTime);
 
+	// 탐지 범위(fTraceRange) 안에 플레이어가 들어와 AI가 타겟을 잡았을 때만 HP바를 보이게 한다
+	void UpdateHpBarVisibility();
+
 	// [TEMP DEBUG] 디졸브 진행 로그를 너무 자주 찍지 않기 위한 누적 타이머. 디버깅 끝나면 제거할 것
 	float DebugDissolveLogAccum = 0.f;
 
@@ -167,8 +170,9 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
-public:	
+public:
 	virtual void Tick(float DeltaTime) override;
 
 protected:

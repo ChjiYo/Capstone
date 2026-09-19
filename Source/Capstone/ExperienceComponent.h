@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "GameInfo.h"
 #include "Components/ActorComponent.h"
@@ -27,6 +27,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Experience")
 	int32 GetRequiredExp() const { return RequiredExp; }
+
+	// 레벨 전환으로 이전 폰에서 넘어온 레벨/경험치를 그대로 복원할 때 사용. AddExp와 달리 레벨업 연출/델리게이트를 트리거하지 않는다
+	void RestoreExp(int32 InLevel, int32 InExp);
 
 	// EXP 바 등 HUD 위젯이 구독해서 갱신
 	UPROPERTY(BlueprintAssignable, Category = "Experience")
