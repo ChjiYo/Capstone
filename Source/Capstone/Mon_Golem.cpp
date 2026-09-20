@@ -6,9 +6,9 @@ AMon_Golem::AMon_Golem()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	m_tInfo.iMaxHp = 150;
-	m_tInfo.iHp = 150;
-	m_tInfo.iAttack = 15;
+	m_tInfo.iMaxHp = 200;
+	m_tInfo.iHp = 200;
+	m_tInfo.iAttack = 20;
 
 	fTraceRange = 800.f;
 	fAttackDist = 250.f;

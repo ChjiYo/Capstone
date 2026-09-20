@@ -216,6 +216,11 @@ void UQuestComponent::GrantReward()
 	if (!Owner)
 		return;
 
+	if (QuestCompleteSound)
+	{
+		UGameplayStatics::PlaySound2D(this, QuestCompleteSound);
+	}
+
 	UInventoryComponent* Inventory = Owner->FindComponentByClass<UInventoryComponent>();
 
 	if (Inventory && !ActiveQuest.Reward.RewardItemID.IsNone())

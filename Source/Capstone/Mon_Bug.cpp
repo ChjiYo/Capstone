@@ -6,9 +6,9 @@ AMon_Bug::AMon_Bug()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	m_tInfo.iMaxHp = 100;
-	m_tInfo.iHp = 100;
-	m_tInfo.iAttack = 10;
+	m_tInfo.iMaxHp = 70;
+	m_tInfo.iHp = 70;
+	m_tInfo.iAttack = 12;
 
 	fTraceRange = 1000.f;
 	fAttackDist = 200.f;

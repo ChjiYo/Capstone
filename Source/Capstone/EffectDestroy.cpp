@@ -40,14 +40,17 @@ void AEffectDestroy::SpawnVFX(USceneComponent* AttachComp, FName SocketName, UNi
                 NiagaraComp->SetAutoDestroy(false);
                 FTimerHandle TimerHandle;
 
+                // 보호막처럼 지속시간이 끝나기 전에 액터가 먼저 파괴될 수 있으므로 날포인터 대신 WeakPtr로 잡는다
+                TWeakObjectPtr<UNiagaraComponent> WeakNiagaraComp = NiagaraComp;
+
                 AttachComp->GetWorld()->GetTimerManager().SetTimer(
                     TimerHandle,
-                    [NiagaraComp]()
+                    [WeakNiagaraComp]()
                     {
-                        if (NiagaraComp)
+                        if (WeakNiagaraComp.IsValid())
                         {
-                            NiagaraComp->DestroyComponent();
-                            
+                            WeakNiagaraComp->DestroyComponent();
+
                         }
                     },
                     fDuration,
@@ -88,12 +91,28 @@ void AEffectDestroy::InitializeEffect()
     // 타이머가 아예 등록되지 않고, Niagara도 AutoDestroy(재생이 끝나야 파괴)로 스폰되어 루프 이펙트라면
     // 영원히 남는다. 버프를 부여하는 이펙트는 최소 지속시간을 보장해 이 문제를 막는다.
     float EffectiveLifeTime = fLifeTime;
-    if (bGrantsExplosiveBuff && EffectiveLifeTime <= 0.f)
+    if (EffectiveLifeTime <= 0.f)
     {
-        EffectiveLifeTime = DefaultExplosiveBuffDuration;
+        if (bGrantsShield)
+        {
+            EffectiveLifeTime = DefaultShieldDuration;
+        }
+        else if (bGrantsExplosiveBuff)
+        {
+            EffectiveLifeTime = DefaultExplosiveBuffDuration;
+        }
     }
 
     SpawnVFX(GetRootComponent(), NAME_None, NiagaraTemplate, SoundTemplate, EffectiveLifeTime);
+
+    if (bGrantsShield)
+    {
+        // 보호막 상태(수치/타이머)는 시전자가 들고 있고, 시전자가 이 액터를 직접 파괴해서 VFX를 걷는다
+        if (ICombatInterface* ShieldTarget = Cast<ICombatInterface>(GetInstigator()))
+        {
+            ShieldTarget->ActivateShield(ShieldAmount, EffectiveLifeTime, this);
+        }
+    }
 
 
     if (!bGrantsExplosiveBuff)

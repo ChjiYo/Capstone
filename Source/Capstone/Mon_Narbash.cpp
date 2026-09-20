@@ -17,9 +17,9 @@ AMon_Narbash::AMon_Narbash()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	m_tInfo.iMaxHp = 100;
-	m_tInfo.iHp = 100;
-	m_tInfo.iAttack = 10;
+	m_tInfo.iMaxHp = 1000;
+	m_tInfo.iHp = 1000;
+	m_tInfo.iAttack = 20;
 
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> MeshAsset(TEXT("SkeletalMesh'/Game/ParagonNarbash/Characters/Heroes/Narbash/Meshes/Narbash.Narbash'"));
 

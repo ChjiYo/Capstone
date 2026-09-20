@@ -155,7 +155,7 @@ public:
 
 	// 레벨업 1회당 증가하는 체력/공격력. 체력은 최대치와 현재치에 동일하게 더해진다
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Level")
-	int32 HpIncreasePerLevel = 50;
+	int32 HpIncreasePerLevel = 30;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Level")
 	int32 AttackIncreasePerLevel = 5;
@@ -250,6 +250,15 @@ public:
 	
 	virtual void SetExplosiveBuffState(bool bIsActive) override;
 
+	// 스킬 B(보호막) 이펙트가 InitializeEffect에서 호출. 이미 보호막이 있으면 새 것으로 교체된다
+	virtual void ActivateShield(int32 Amount, float Duration, class AEffectDestroy* ShieldEffect) override;
+
+	UFUNCTION(BlueprintPure, Category = "Skill|Shield")
+	bool HasShield() const { return CurrentShield > 0.f; }
+
+	UFUNCTION(BlueprintPure, Category = "Skill|Shield")
+	float GetCurrentShield() const { return CurrentShield; }
+
 	// 인벤토리/상점 등 UI가 열려 있는 동안 공격·스킬 입력만 막는다 (이동은 계속 허용)
 	void SetGameplayInputLocked(bool bLocked) { bGameplayInputLocked = bLocked; }
 
@@ -270,6 +279,20 @@ public:
 
 	const FSkillSlotData* GetSkillSlots() const { return SkillSlots; }
 
+	// 스킬 A(공격력 강화) 사용 시 지속시간 동안 공격력에 곱해지는 배율 (1.5 = 50% 증가)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill|AttackBuff")
+	float AttackBuffMultiplier = 1.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill|AttackBuff")
+	float AttackBuffDuration = 10.f;
+
+	UFUNCTION(BlueprintPure, Category = "Skill|AttackBuff")
+	bool IsAttackBuffActive() const { return bAttackBuffActive; }
+
+	// 공격력 강화 버프가 반영된, 실제 타격에 쓰이는 공격력
+	UFUNCTION(BlueprintPure, Category = "Skill|AttackBuff")
+	float GetEffectiveAttackPower() const;
+
 
 
 private:
@@ -288,6 +311,22 @@ private:
 
 	FDelegateHandle BossDefeatedHandle;
 	FTimerHandle EndingTimerHandle;
+
+	// 재사용하면 지속시간만 갱신되고 배율은 중첩되지 않는다
+	void ActivateAttackBuff();
+	void EndAttackBuff();
+
+	bool bAttackBuffActive = false;
+	FTimerHandle AttackBuffTimerHandle;
+
+	// 보호막이 깨지거나 지속시간이 끝나면 호출: 수치 초기화 + 보호막 VFX 액터 파괴 + 게이지 숨김
+	void EndShield();
+	void RefreshShieldUI();
+
+	float CurrentShield = 0.f;
+	float MaxShield = 0.f;
+	FTimerHandle ShieldTimerHandle;
+	TWeakObjectPtr<class AEffectDestroy> ShieldEffectActor;
 
 private:
 	void MoveFront(float _fScale);

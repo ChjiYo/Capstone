@@ -47,6 +47,9 @@ protected:
 public:
 	FORCEINLINE class USkeletalMeshComponent* GetWeaponMesh() const { return Mesh; }
 
+	// 무기를 든 몬스터의 공격력(iAttack)을 이 무기의 타격 피해량에 반영할 때 사용
+	FORCEINLINE void SetBaseDamage(float Damage) { WeaponInfo.BaseDamage = Damage; }
+
 protected:
 	virtual void BeginPlay() override;
 

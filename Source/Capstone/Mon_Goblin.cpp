@@ -6,9 +6,9 @@ AMon_Goblin::AMon_Goblin()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	m_tInfo.iMaxHp = 100;
-	m_tInfo.iHp = 100;
-	m_tInfo.iAttack = 10;
+	m_tInfo.iMaxHp = 60;
+	m_tInfo.iHp = 60;
+	m_tInfo.iAttack = 12;
 
 	fAttackDist = 200.f;
 	
@@ -36,6 +36,9 @@ void AMon_Goblin::BeginPlay()
 	params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
 	AWeapon* pWeapon = GetWorld()->SpawnActor<AWeapon>(FVector::ZeroVector, FRotator::ZeroRotator, params);
+
+	// 고블린의 타격 피해는 AWeapon이 계산하므로, 몬스터 공격력 스탯을 무기에 넘겨준다
+	pWeapon->SetBaseDamage(static_cast<float>(m_tInfo.iAttack));
 
 	mapWeapon.Add(EWEAPON::RHAND, pWeapon);
 	mapWeapon[EWEAPON::RHAND]->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, TEXT("Damage_Socket"));

@@ -43,6 +43,19 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
 	float DefaultExplosiveBuffDuration = 10.f;
 
+	// 이 이펙트가 시전자에게 보호막(ICombatInterface::ActivateShield)을 부여하는지 여부. 보호막 스킬(스킬 B) 전용 이펙트에서만 true.
+	// 보호막의 지속시간은 fLifeTime을 그대로 따르고, 시전자가 보호막이 깨지는 순간 이 이펙트 액터를 파괴해서 VFX도 함께 사라진다.
+	// 이 값을 true로 둘 때는 bGrantsExplosiveBuff는 반드시 false로 둘 것
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect|Shield")
+	bool bGrantsShield = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect|Shield", meta = (EditCondition = "bGrantsShield", ClampMin = "1"))
+	int32 ShieldAmount = 50;
+
+	// fLifeTime을 0(기본값) 그대로 둔 경우 사용할 보호막 지속시간(초)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect|Shield", meta = (EditCondition = "bGrantsShield", ClampMin = "0.1"))
+	float DefaultShieldDuration = 10.f;
+
 public:
 	 void SpawnVFX(USceneComponent* AttachComp, FName SocketName,UNiagaraSystem* NiagaraAsset, USoundBase* SoundAsset, float fDuration);
 	 void SetEffectPath(const FString& strPath, const FString& strSoundPath);

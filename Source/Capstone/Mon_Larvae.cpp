@@ -7,8 +7,8 @@ AMon_Larvae::AMon_Larvae()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	m_tInfo.iMaxHp = 100;
-	m_tInfo.iHp = 100;
+	m_tInfo.iMaxHp = 50;
+	m_tInfo.iHp = 50;
 	m_tInfo.iAttack = 10;
 
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> MeshAsset(TEXT("SkeletalMesh'/Game/Megaspikan/MegaspikanLarvae/Meshes/SK_MegaspikanLarvae.SK_MegaspikanLarvae'"));

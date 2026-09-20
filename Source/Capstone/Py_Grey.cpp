@@ -34,8 +34,8 @@ APy_Grey::APy_Grey()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	m_tInfo.iMaxHp = 500;
-	m_tInfo.iHp = 500;
+	m_tInfo.iMaxHp = 200;
+	m_tInfo.iHp = 200;
 	m_tInfo.iAttack = 10;
 
 	pArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("Arm"));
@@ -225,6 +225,12 @@ void APy_Grey::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	AMonster::OnBossDefeated.Remove(BossDefeatedHandle);
 
+	if (UWorld* World = GetWorld())
+	{
+		World->GetTimerManager().ClearTimer(AttackBuffTimerHandle);
+		World->GetTimerManager().ClearTimer(ShieldTimerHandle);
+	}
+
 	if (IsValid(QuestWaypoint))
 	{
 		QuestWaypoint->Destroy();
@@ -267,6 +273,68 @@ void  APy_Grey::SetupPlayerInputComponent(class UInputComponent* PlayerInputComp
 void APy_Grey::SetExplosiveBuffState(bool bIsActive)
 {
 	bIsExplosiveBuffActive = bIsActive;
+}
+
+void APy_Grey::ActivateShield(int32 Amount, float Duration, AEffectDestroy* ShieldEffect)
+{
+	if (Amount <= 0)
+		return;
+
+	// 재사용하면 수치/지속시간이 새로 시작되고, 이전 보호막의 VFX는 겹치지 않게 걷어낸다
+	if (AEffectDestroy* OldEffect = ShieldEffectActor.Get())
+	{
+		if (OldEffect != ShieldEffect)
+			OldEffect->Destroy();
+	}
+
+	ShieldEffectActor = ShieldEffect;
+	CurrentShield = Amount;
+	MaxShield = Amount;
+
+	// 노티파이에서 bAttachToTarget을 꺼둔 경우에도 보호막이 이동하는 플레이어를 따라다니도록 보정
+	if (IsValid(ShieldEffect) && ShieldEffect->GetRootComponent() && !ShieldEffect->GetAttachParentActor())
+	{
+		ShieldEffect->AttachToActor(this, FAttachmentTransformRules::KeepWorldTransform);
+	}
+
+	if (Duration > 0.f)
+	{
+		GetWorldTimerManager().SetTimer(ShieldTimerHandle, this, &APy_Grey::EndShield, Duration, false);
+	}
+	else
+	{
+		GetWorldTimerManager().ClearTimer(ShieldTimerHandle);
+	}
+
+	RefreshShieldUI();
+
+	LOG(TEXT("스킬 B 보호막 시작 : %d, %.1f초"), Amount, Duration);
+}
+
+void APy_Grey::EndShield()
+{
+	GetWorldTimerManager().ClearTimer(ShieldTimerHandle);
+
+	CurrentShield = 0.f;
+	MaxShield = 0.f;
+
+	if (AEffectDestroy* Effect = ShieldEffectActor.Get())
+	{
+		Effect->Destroy();
+	}
+	ShieldEffectActor.Reset();
+
+	RefreshShieldUI();
+
+	LOG(TEXT("스킬 B 보호막 종료"));
+}
+
+void APy_Grey::RefreshShieldUI()
+{
+	if (IsValid(PlayerHpBar))
+	{
+		PlayerHpBar->SetShieldValue(CurrentShield, MaxShield);
+	}
 }
 
 void APy_Grey::MoveFront(float _fScale)
@@ -335,8 +403,35 @@ void APy_Grey::SkillSlotA()
 	if (!TryUseSkill(0))
 		return;
 
+	ActivateAttackBuff();
+
 	if (IsValid(pGreyAnim))
 		pGreyAnim->SkillSlotA();
+}
+
+void APy_Grey::ActivateAttackBuff()
+{
+	bAttackBuffActive = true;
+
+	GetWorldTimerManager().SetTimer(AttackBuffTimerHandle, this, &APy_Grey::EndAttackBuff, AttackBuffDuration, false);
+
+	LOG(TEXT("스킬 A 공격력 강화 시작 : x%.2f, %.1f초 (공격력 %d -> %.0f)"), AttackBuffMultiplier, AttackBuffDuration, m_tInfo.iAttack, GetEffectiveAttackPower());
+}
+
+void APy_Grey::EndAttackBuff()
+{
+	bAttackBuffActive = false;
+
+	LOG(TEXT("스킬 A 공격력 강화 종료"));
+}
+
+float APy_Grey::GetEffectiveAttackPower() const
+{
+	// m_tInfo.iAttack 자체는 건드리지 않고 타격 시점에만 배율을 곱한다.
+	// 버프 도중 레벨업/강화로 공격력이 바뀌어도 버프가 끝날 때 값이 꼬이지 않는다
+	const float Multiplier = bAttackBuffActive ? AttackBuffMultiplier : 1.f;
+
+	return FMath::RoundToFloat(m_tInfo.iAttack * Multiplier);
 }
 
 void APy_Grey::SkillSlotB()
@@ -806,7 +901,7 @@ void APy_Grey::WepaonBeginOverlap(UPrimitiveComponent* OverlappedComponent, AAct
 		FActorSpawnParameters params;
 		params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
-		float fDamage = OtherActor->TakeDamage(m_tInfo.iAttack, DamageEvent, GetController(), this);
+		float fDamage = OtherActor->TakeDamage(GetEffectiveAttackPower(), DamageEvent, GetController(), this);
 
 		// 콤보가 이어질수록 카메라 셰이크/히트스탑이 점점 강해져서 연타에 무게감이 붙도록
 		int32 CurrentCombo = IsValid(pGreyAnim) ? pGreyAnim->GetCurrentCombo() : 0;
@@ -895,6 +990,23 @@ float APy_Grey::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, 
 {
 	if (bInvincible)
 		return 0.f;
+
+	// 보호막이 체력보다 먼저 피해를 흡수한다. 남은 피해만 체력에 들어가고, 보호막이 바닥나면 VFX까지 함께 정리
+	if (CurrentShield > 0.f && DamageAmount > 0.f)
+	{
+		const float Absorbed = FMath::Min(CurrentShield, DamageAmount);
+		CurrentShield -= Absorbed;
+		DamageAmount -= Absorbed;
+
+		if (CurrentShield <= 0.f)
+			EndShield();
+		else
+			RefreshShieldUI();
+
+		// 보호막이 전부 막아낸 타격은 체력이 깎이지 않으므로 피격 연출(히트스톱/카메라 셰이크/진동)도 생략
+		if (DamageAmount <= 0.f)
+			return 0.f;
+	}
 
 	float fDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 	if (IsValid(PlayerHpBar))

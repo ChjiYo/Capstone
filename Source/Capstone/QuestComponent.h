@@ -4,6 +4,8 @@
 #include "Components/ActorComponent.h"
 #include "QuestComponent.generated.h"
 
+class USoundBase;
+
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnQuestTrackerChanged);
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
@@ -27,6 +29,10 @@ public:
 	// 좌측 퀘스트 트래커 UI가 이 델리게이트를 구독해서 갱신
 	UPROPERTY(BlueprintAssignable, Category = "Quest")
 	FOnQuestTrackerChanged OnQuestTrackerChanged;
+
+	// 퀘스트 완료(보상 지급) 시 재생할 효과음. BP_PyGrey의 QuestComponent에서 지정
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest|Sound")
+	TObjectPtr<USoundBase> QuestCompleteSound;
 
 	// 활성 퀘스트가 진행돼야 하는 지점의 액터.
 	// 처치: 가장 가까운 생존 개체(없으면 해당 몬스터의 스폰포인트) / 채집: 가장 가까운 채집물 / 강화: 강화 NPC.
