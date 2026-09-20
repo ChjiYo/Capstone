@@ -21,6 +21,9 @@
 #include "Engine/DamageEvents.h"
 #include "Engine/OverlapResult.h"
 #include "Animation/AnimSequence.h"
+#include "Animation/AnimMontage.h"
+#include "AnimNotify_PlayNiagaraEffect.h"
+#include "NiagaraComponent.h"
 #include "DrawDebugHelpers.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Kismet/GameplayStatics.h"
@@ -87,6 +90,11 @@ APy_Grey::APy_Grey()
 
 	if (PowerSlashHitFXAsset.Succeeded())
 		PowerSlashHitFX = PowerSlashHitFXAsset.Object;
+
+	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> DashFXAsset(TEXT("/Game/BlinkAndDashVFX/VFX_Niagara/NS_Dash_Mana.NS_Dash_Mana"));
+
+	if (DashFXAsset.Succeeded())
+		DashEffect = DashFXAsset.Object;
 }
 
 
@@ -98,6 +106,9 @@ void APy_Grey::BeginPlay()
 
 	DefaultBrakingDecelerationFalling = GetCharacterMovement()->BrakingDecelerationFalling;
 	DefaultFallingLateralFriction = GetCharacterMovement()->FallingLateralFriction;
+
+
+	SuppressMontageDashEffects();
 
 	GetCapsuleComponent()->SetCollisionProfileName(TEXT("Player"));
 	WeaponBox->SetCollisionProfileName(TEXT("PlayerAttack"));
@@ -256,6 +267,8 @@ void APy_Grey::BeginPlay()
 void APy_Grey::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	AMonster::OnBossDefeated.Remove(BossDefeatedHandle);
+
+	RestoreMontageDashEffects();
 
 	if (UWorld* World = GetWorld())
 	{
@@ -476,6 +489,13 @@ float APy_Grey::GetEffectiveAttackPower() const
 	return FMath::RoundToFloat(m_tInfo.iAttack * Multiplier);
 }
 
+float APy_Grey::RollAttackDamage() const
+{
+	const int32 Variance = FMath::RoundToInt(DamageVariance);
+
+	return FMath::Max(1.f, GetEffectiveAttackPower() + FMath::RandRange(-Variance, Variance));
+}
+
 void APy_Grey::SkillSlotB()
 {
 	if (bGameplayInputLocked)
@@ -675,6 +695,8 @@ void APy_Grey::RollOrDash()
 	const float LaunchSpeed = bIsFalling ? 8000.f * AirDashSpeedMultiplier : 8000.f;
 	LaunchCharacter(InputDirection * LaunchSpeed, true, !bIsFalling);
 
+	StartDashEffect(InputDirection);
+
 	// 공중에서는 기본적으로 FallingLateralFriction=0, BrakingDecelerationFalling=0이라 대시 속도가
 	// 착지할 때까지 전혀 줄지 않는다. 지상 대시가 자연스럽게 느껴지는 이유는 BrakingDecelerationWalking뿐
 	// 아니라 속도에 비례해 급격히 감속시키는 GroundFriction 항 덕분이므로, 숫자를 새로 튜닝하는 대신
@@ -702,6 +724,90 @@ void APy_Grey::RestoreAirBraking()
 {
 	GetCharacterMovement()->BrakingDecelerationFalling = DefaultBrakingDecelerationFalling;
 	GetCharacterMovement()->FallingLateralFriction = DefaultFallingLateralFriction;
+}
+
+void APy_Grey::SuppressMontageDashEffects()
+{
+	if (!DashEffect)
+		return;
+
+	// 대시 이펙트는 Paragon Jog_*_Dash 시퀀스에 AnimNotify_PlayNiagaraEffect로 박혀 있다. 이 노티파이는 Template이 비어 있으면
+	// 아무것도 재생하지 않으므로, 에셋을 저장하지 않고 메모리상의 Template만 비워서 끈다 (EndPlay에서 복원)
+	const TArray<UAnimMontage*> DashMontages = { DashForwardMontage, DashBackwardMontage, DashLeftMontage, DashRightMontage };
+
+	for (UAnimMontage* Montage : DashMontages)
+	{
+		if (!Montage)
+			continue;
+
+		TArray<UAnimSequenceBase*> Sources;
+		Sources.Add(Montage);
+
+		for (const FSlotAnimationTrack& Track : Montage->SlotAnimTracks)
+		{
+			for (const FAnimSegment& Segment : Track.AnimTrack.AnimSegments)
+			{
+				if (UAnimSequenceBase* Sequence = Segment.GetAnimReference())
+					Sources.AddUnique(Sequence);
+			}
+		}
+
+		for (UAnimSequenceBase* Source : Sources)
+		{
+			for (FAnimNotifyEvent& NotifyEvent : Source->Notifies)
+			{
+				UAnimNotify_PlayNiagaraEffect* NiagaraNotify = Cast<UAnimNotify_PlayNiagaraEffect>(NotifyEvent.Notify);
+				if (!NiagaraNotify || !NiagaraNotify->Template)
+					continue;
+
+				SuppressedDashNotifies.Emplace(NiagaraNotify, NiagaraNotify->Template);
+				NiagaraNotify->Template = nullptr;
+			}
+		}
+	}
+}
+
+void APy_Grey::RestoreMontageDashEffects()
+{
+	for (const TPair<TWeakObjectPtr<UAnimNotify_PlayNiagaraEffect>, TWeakObjectPtr<UNiagaraSystem>>& Suppressed : SuppressedDashNotifies)
+	{
+		if (Suppressed.Key.IsValid() && Suppressed.Value.IsValid())
+			Suppressed.Key->Template = Suppressed.Value.Get();
+	}
+
+	SuppressedDashNotifies.Reset();
+}
+
+void APy_Grey::StartDashEffect(const FVector& Direction)
+{
+	if (!DashEffect)
+		return;
+
+	// 실제 발사 방향을 그대로 쓴다. 몽타주는 앞/뒤/좌/우 4방향 중 가장 가까운 것만 고르므로 대각선 대시에서는 몽타주 방향과 어긋난다
+	FVector DashDirection = Direction.GetSafeNormal2D();
+	if (DashDirection.IsNearlyZero())
+		DashDirection = GetActorForwardVector().GetSafeNormal2D();
+
+	const FRotator EffectRotation = DashDirection.Rotation() + FRotator(0.f, DashEffectYawOffset, 0.f);
+	const FRotator OffsetRotation = DashDirection.Rotation();
+
+	const float HalfHeight = GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+	const FVector FeetLocation = GetActorLocation() - FVector(0.f, 0.f, HalfHeight);
+	FVector SpawnLocation = FeetLocation + OffsetRotation.RotateVector(DashEffectOffset);
+
+	// 출발점 뒤쪽에 벽이 바짝 붙어 있으면 이펙트가 벽 속에 박히므로, 캐릭터 몸통에서 스폰 지점까지 선을 쏴서 벽 앞까지만 당긴다
+	FHitResult WallHit;
+	FCollisionQueryParams TraceParams(SCENE_QUERY_STAT(DashEffectWallTrace), false, this);
+	const FVector TraceStart = GetActorLocation();
+	const FVector TraceEnd = FVector(SpawnLocation.X, SpawnLocation.Y, TraceStart.Z);
+	if (GetWorld()->LineTraceSingleByChannel(WallHit, TraceStart, TraceEnd, ECC_Visibility, TraceParams))
+	{
+		constexpr float WallMargin = 20.f;
+		SpawnLocation.X = WallHit.ImpactPoint.X + WallHit.ImpactNormal.X * WallMargin;
+		SpawnLocation.Y = WallHit.ImpactPoint.Y + WallHit.ImpactNormal.Y * WallMargin;
+	}
+
+	UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), DashEffect, SpawnLocation, EffectRotation, DashEffectScale);
 }
 
 void APy_Grey::RefreshQuestTracker()
@@ -1096,7 +1202,7 @@ void APy_Grey::WepaonBeginOverlap(UPrimitiveComponent* OverlappedComponent, AAct
 
 	if (HitArray.Num() > 0)
 	{
-		float fDamage = OtherActor->TakeDamage(GetEffectiveAttackPower(), DamageEvent, GetController(), this);
+		float fDamage = OtherActor->TakeDamage(RollAttackDamage(), DamageEvent, GetController(), this);
 
 		// 콤보가 이어질수록 카메라 셰이크/히트스탑이 점점 강해져서 연타에 무게감이 붙도록
 		int32 CurrentCombo = IsValid(pGreyAnim) ? pGreyAnim->GetCurrentCombo() : 0;
@@ -1307,7 +1413,7 @@ void APy_Grey::UpdatePowerSlashHit()
 				PowerSlashHitActors.Add(Monster);
 				bAnyNewHit = true;
 
-				const float Damage = GetEffectiveAttackPower() * PowerSlashDamageMultiplier;
+				const float Damage = RollAttackDamage() * PowerSlashDamageMultiplier;
 				const FVector HitDir = ToMonster.GetSafeNormal2D();
 
 				// AMonster::TakeDamage는 protected라서 AActor의 공개 진입점으로 호출한다 (일반 공격과 동일한 경로)

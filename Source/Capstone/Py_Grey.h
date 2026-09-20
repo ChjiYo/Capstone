@@ -232,6 +232,25 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dash")
 	float AirDashSpeedMultiplier = 2.f;
 
+	// 대시 이펙트. 기본값은 몽타주(Jog_*_Dash 시퀀스)의 AnimNotify_PlayNiagaraEffect가 재생하던 NS_Dash_Mana와 같은 시스템이다.
+	// 그 노티파이는 앞/뒤/좌/우 4방향 중 가장 가까운 몽타주의 고정 방향으로만 재생돼서, 대각선 대시나 벽 근처 대시에서
+	// 이펙트가 실제 이동 방향과 어긋나거나 벽 속에 박혔다. 이 값이 지정돼 있으면 노티파이 쪽 이펙트는 런타임에만 꺼두고
+	// (에셋은 저장하지 않음) 여기서 실제 대시 방향에 맞춰 한 번 재생한다. 비워두면 예전처럼 몽타주 노티파이 이펙트를 그대로 쓴다.
+	// 이펙트를 캐릭터에 붙여 끌고 다니면 Niagara가 컴포넌트의 이동 속도를 입자에 상속시켜 화면을 뒤덮는 줄무늬가 되므로 고정 스폰한다.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dash|Effect")
+	TObjectPtr<class UNiagaraSystem> DashEffect;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dash|Effect")
+	FVector DashEffectScale = FVector(1.f, 1.f, 1.f);
+
+	// 이펙트가 대시 진행 방향(X축)을 기준으로 놓이도록 더해주는 Yaw 보정. 이펙트 에셋이 다른 축을 정면으로 만들어져 있을 때 조절
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dash|Effect")
+	float DashEffectYawOffset = 0.f;
+
+	// 발 밑 기준, 대시 방향으로 회전된 좌표계의 스폰 위치 (X=진행방향, Y=오른쪽, Z=위). 기본값은 출발점 뒤쪽 가슴 높이
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Dash|Effect")
+	FVector DashEffectOffset = FVector(-60.f, 0.f, 60.f);
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel")
 	float HitStopTimeDilation = 0.05f;
 
@@ -326,6 +345,13 @@ public:
 	// 공격력 강화 버프가 반영된, 실제 타격에 쓰이는 공격력
 	UFUNCTION(BlueprintPure, Category = "Skill|AttackBuff")
 	float GetEffectiveAttackPower() const;
+
+	// 타격마다 피해량이 고정되지 않도록 공격력에 더해지는 무작위 편차의 최대 크기 (2 = -2 ~ +2)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Combat", meta = (ClampMin = "0.0"))
+	float DamageVariance = 2.f;
+
+	// GetEffectiveAttackPower()에 -DamageVariance ~ +DamageVariance 범위의 정수 난수를 더한 실제 타격 피해량 (최소 1)
+	float RollAttackDamage() const;
 
 	// ===== 스킬 C: 강력 가로베기 =====
 	// 검에 이펙트가 감긴 채 넓은 호를 그리며 가로로 벤다. 판정은 검이 실제로 지나가는 자리(HitDelay 이후 HitDuration 동안)를
@@ -474,6 +500,13 @@ private:
 	FTimerHandle AirDashBrakingTimerHandle;
 	float DefaultBrakingDecelerationFalling = 0.f;
 	float DefaultFallingLateralFriction = 0.f;
+
+	// 몽타주 시퀀스에 박혀 있는 대시 이펙트 노티파이를 런타임에만 꺼두기 위해 원래 Template을 기억해 두는 목록
+	TArray<TPair<TWeakObjectPtr<class UAnimNotify_PlayNiagaraEffect>, TWeakObjectPtr<class UNiagaraSystem>>> SuppressedDashNotifies;
+
+	void SuppressMontageDashEffects();
+	void RestoreMontageDashEffects();
+	void StartDashEffect(const FVector& Direction);
 
 	void EndInvincibility();
 	void RestoreAirBraking();
