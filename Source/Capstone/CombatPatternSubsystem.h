@@ -48,6 +48,9 @@ public:
 	// ε-greedy로 패턴 인덱스를 고른다. NumPatterns가 0 이하이면 -1 반환(호출측이 폴백 처리)
 	int32 SelectAttackPattern(FName MonsterID, int32 NumPatterns);
 
+	// 학습된 패턴별 성공 추정치(0~1). 아직 관측이 없으면 중립값 0.5. 보스가 스킬 가중치를 보정하는 데 사용
+	float GetPatternWeight(FName MonsterID, int32 PatternIndex) const;
+
 	float GetDodgeRate() const { return DodgeRate; }
 	float GetAvgEngageDistance() const { return AvgEngageDistance; }
 

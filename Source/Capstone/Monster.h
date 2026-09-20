@@ -45,6 +45,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI")
 	class UBehaviorTree* BehaviorTreeAsset;
 
+	// AMonsterAIController가 빙의 시점에 "AI.Subtree.Combat" 슬롯에 주입할 전투 서브트리를 물어보는 훅.
+	// 기본은 BP에 지정된 BehaviorTreeAsset이고, 코드로 트리를 조립하는 몬스터(예: 나르바쉬 보스)는 재정의한다
+	virtual class UBehaviorTree* GetCombatBehaviorTree(class UBlackboardData* BlackboardAsset) { return BehaviorTreeAsset; }
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
 	ASpawnPoint* pSpawnPoint;
 
@@ -118,6 +122,10 @@ public:
 
 	FOnAttackEndDelegate OnAttackEnd;
 	TArray<FDelegateHandle> AttackEndHandle;
+
+protected:
+	// 서브클래스(보스)가 피격 리액션(Hit 몽타주) 없이 피격 플래시만 재생하고 싶을 때 사용
+	void TriggerHitFlash() { HitFlashTimeRemaining = HitFlashDuration; }
 
 private:
 	bool bHit;
@@ -200,5 +208,7 @@ protected:
 
 public:
 	void AttackEnd();
-	void Hit();
+
+	// 보스처럼 슈퍼아머(피격 시 동작이 끊기지 않음)가 필요한 몬스터가 재정의한다
+	virtual void Hit();
 };

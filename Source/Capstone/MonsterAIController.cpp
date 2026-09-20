@@ -38,10 +38,12 @@ void AMonsterAIController::OnPossess(APawn* InPawn)
             {
                 UBehaviorTreeComponent* BTComp = Cast<UBehaviorTreeComponent>(BrainComponent);
 
-                if (IsValid(BTComp) && IsValid(pMonster->BehaviorTreeAsset))
+                UBehaviorTree* CombatTree = pMonster->GetCombatBehaviorTree(m_pBBAsset);
+
+                if (IsValid(BTComp) && IsValid(CombatTree))
                 {
                     FGameplayTag InjectionTag = FGameplayTag::RequestGameplayTag(TEXT("AI.Subtree.Combat"));
-                    BTComp->SetDynamicSubtree(InjectionTag, pMonster->BehaviorTreeAsset);
+                    BTComp->SetDynamicSubtree(InjectionTag, CombatTree);
                 }
             }
         }

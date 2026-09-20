@@ -44,12 +44,23 @@ void UMon_NarbashAnim::InherAttackStartNotify()
 	AMon_Narbash* pOwner = Cast<AMon_Narbash>(TryGetPawnOwner());
 
 	if (IsValid(pOwner))
+	{
 		pOwner->EnableWeaponCollision(true);
+		pOwner->OnComboSwingBegin();
+	}
 }
 
 void UMon_NarbashAnim::InherNextAttackEndNotify()
 {
-	bIsComboInputOn = (FMath::RandRange(1, 100) <= 60);
+	AMon_Narbash* pOwner = Cast<AMon_Narbash>(TryGetPawnOwner());
+
+	// 연속 공격 확률은 페이즈가 오를수록 높아진다 (보스가 브레인에서 결정)
+	const float ChainChance = IsValid(pOwner) ? pOwner->GetComboChainChance() : 0.6f;
+	bIsComboInputOn = FMath::FRand() <= ChainChance;
+
+	if (IsValid(pOwner))
+		pOwner->OnComboSwingWindowEnd();
+
 	if (bIsComboInputOn && (CurrentCombo < NextAttackMax))
 	{
 		CurrentCombo++;

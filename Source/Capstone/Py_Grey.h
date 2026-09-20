@@ -327,6 +327,60 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Skill|AttackBuff")
 	float GetEffectiveAttackPower() const;
 
+	// ===== 스킬 C: 강력 가로베기 =====
+	// 검에 이펙트가 감긴 채 넓은 호를 그리며 가로로 벤다. 판정은 검이 실제로 지나가는 자리(HitDelay 이후 HitDuration 동안)를
+	// 매 프레임 훑고, 몬스터마다 한 번만 들어간다. 애니메이션 노티파이가 필요 없어 몽타주(바이너리)를 건드리지 않는다
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill|PowerSlash")
+	float PowerSlashDamageMultiplier = 3.f;
+
+	// 몽타주 재생 시작부터 검이 휘둘러지기 시작하는(판정과 궤적이 켜지는) 시점까지의 시간(초)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill|PowerSlash")
+	float PowerSlashHitDelay = 0.14f;
+
+	// 판정과 궤적이 유지되는 시간(초). 검이 실제로 휘둘러지는 구간에 맞춘다
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill|PowerSlash")
+	float PowerSlashHitDuration = 0.24f;
+
+	// 검 중간과 검 끝, 두 지점을 중심으로 한 판정 구의 반지름. 클수록 넓게 벤다
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill|PowerSlash")
+	float PowerSlashHitRadius = 130.f;
+
+	// 플레이어로부터 이 거리(수평)보다 먼 몬스터는 맞지 않는다
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill|PowerSlash")
+	float PowerSlashMaxRange = 380.f;
+
+	// 몬스터의 KnockbackStrength에 곱해지는 밀어내기 배율 (보스는 밀리지 않음)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill|PowerSlash")
+	float PowerSlashKnockbackScale = 2.f;
+
+	// 일반 공격보다 무겁게 느껴지도록 히트스탑/카메라 셰이크를 키우는 배율
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill|PowerSlash")
+	float PowerSlashFeelScale = 2.f;
+
+	// 스킬 시작부터 끝까지 검에 붙어 있는 이펙트 (검 오라)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill|PowerSlash|FX")
+	TObjectPtr<class UNiagaraSystem> PowerSlashSwordFX;
+
+	// 검이 휘둘러지는 동안(판정 구간) 검 끝을 따라 그려지는 궤적 이펙트
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill|PowerSlash|FX")
+	TObjectPtr<class UNiagaraSystem> PowerSlashTrailFX;
+
+	// 몬스터를 벨 때마다 그 자리에 터지는 타격 이펙트
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill|PowerSlash|FX")
+	TObjectPtr<class UNiagaraSystem> PowerSlashHitFX;
+
+	// 검 오라와 궤적 이펙트의 크기 배율
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill|PowerSlash|FX")
+	float PowerSlashFXScale = 1.6f;
+
+	// 타격 이펙트의 크기 배율. 한 번에 여러 마리를 벨 수 있어서 검 이펙트보다 작게 잡는다
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill|PowerSlash|FX")
+	float PowerSlashHitFXScale = 0.5f;
+
+	// 타격 이펙트를 켜두는 시간(초). 팩의 NS_Hit_* 는 루프형이라 이 시간이 지나면 강제로 끄지 않으면 몇 초 뒤 다시 터진다
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Skill|PowerSlash|FX")
+	float PowerSlashHitFXDuration = 0.8f;
+
 
 
 private:
@@ -368,6 +422,32 @@ private:
 	float MaxShield = 0.f;
 	FTimerHandle ShieldTimerHandle;
 	TWeakObjectPtr<class AEffectDestroy> ShieldEffectActor;
+
+	// 스킬 C(강력 가로베기): 시작 시 검 오라를 붙이고, HitDelay 뒤에 궤적+판정을 켰다가 HitDuration 뒤에 모두 정리한다
+	void BeginPowerSlash();
+	void BeginPowerSlashSwing();
+	void EndPowerSlashSwing();
+	void EndPowerSlash();
+	void UpdatePowerSlashHit();
+
+	class UNiagaraComponent* SpawnPowerSlashFX(class UNiagaraSystem* System, FName SocketName);
+	void StopPowerSlashFX(TWeakObjectPtr<class UNiagaraComponent>& FXComp);
+
+	bool bPowerSlashSwinging = false;
+	FVector LastPowerSlashBladeMid = FVector::ZeroVector;
+	FVector LastPowerSlashBladeTop = FVector::ZeroVector;
+	FTimerHandle PowerSlashSwingStartTimerHandle;
+	FTimerHandle PowerSlashSwingEndTimerHandle;
+
+	// 이번 스윙에서 이미 벤 몬스터. 한 스윙에 한 마리당 한 번만 맞도록 막는다
+	TSet<TWeakObjectPtr<AActor>> PowerSlashHitActors;
+
+	TWeakObjectPtr<class UNiagaraComponent> PowerSlashSwordFXComp;
+	TWeakObjectPtr<class UNiagaraComponent> PowerSlashTrailFXComp;
+
+
+	// 무기 판정(WepaonBeginOverlap)과 스킬 C가 함께 쓰는 타격 이펙트 스폰. 맞은 대상에 붙여서 넉백 등으로 대상이 움직여도 따라가게 한다
+	void SpawnAttachedHitEffect(TSubclassOf<AEffectDestroy> EffectClass, AActor* Target, const FVector& ImpactPoint, const FVector& ImpactNormal);
 
 private:
 	void MoveFront(float _fScale);

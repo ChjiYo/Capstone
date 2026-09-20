@@ -62,6 +62,7 @@ ACharacter (엔진)
 - `AMonsterAIController`가 몬스터를 빙의해서 `UBehaviorTree`/블랙보드를 구동합니다.
 - 커스텀 BT 노드: `UBTService_Detect`(감지 틱), `UBTTask_TargetMove`, `UBTTask_Dash`, `UBTTask_Attack`(몽타주 기반 공격, abort 처리 포함), `UBTDecorator_AttackDist`(최소/최대 사거리 조건), `UBTDecorator_CheckHit`(피격 리액션 조건).
 - `ASpawnPoint`가 몬스터 (재)스폰을 담당하고(`SpawnType`, `SpawnTime`, 무한/유한 모드), 스폰된 `AMonster::pSpawnPoint`에서 역참조됩니다.
+- 보스 `AMon_Narbash`는 BP의 BT 에셋 대신 **코드로 조립한 전투 서브트리**를 씁니다 (`AMonster::GetCombatBehaviorTree()` 훅 → `AI.Subtree.Combat` 슬롯에 주입, `bUseCodeBuiltTree=false`면 기존 `BT_Narbash`로 폴백). 스킬 선택/실행 로직은 보스 클래스(`ENarbashSkill`, 타임라인 기반)에 있고 `UBTTask_BossSkill`/`UBTTask_BossApproach`/`UBTDecorator_BossSkillReady`는 그것을 호출만 합니다. 자세한 내용은 `Docs/13_boss_ai_overhaul.md`.
 
 ### 퀘스트 시스템
 

@@ -85,6 +85,17 @@ int32 UCombatPatternSubsystem::SelectAttackPattern(FName MonsterID, int32 NumPat
 	return BestIndex;
 }
 
+float UCombatPatternSubsystem::GetPatternWeight(FName MonsterID, int32 PatternIndex) const
+{
+	if (const FPatternStats* Stats = StatsByMonster.Find(MonsterID))
+	{
+		if (Stats->PatternWeights.IsValidIndex(PatternIndex))
+			return Stats->PatternWeights[PatternIndex];
+	}
+
+	return 0.5f;
+}
+
 bool UCombatPatternSubsystem::GetHealHpRatio(float& OutRatio) const
 {
 	OutRatio = HealHpRatio;

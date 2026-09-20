@@ -24,6 +24,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 	UAnimMontage* m_pMTGNormalAttack;
 
+	// 스킬 C(강력 가로베기) 모션. 지정돼 있으면 m_pMTGSkillSlotC 대신 이 시퀀스를 SlotA 슬롯에 동적 몽타주로 재생한다
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+	UAnimSequence* m_pSkillCSequence;
+
 protected:
 	virtual void NativeInitializeAnimation();
 	virtual void NativeUpdateAnimation(float DeltaSeconds);

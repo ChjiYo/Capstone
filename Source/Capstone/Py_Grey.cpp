@@ -19,6 +19,7 @@
 #include "NPC_Base.h"
 #include "Monster.h"
 #include "Engine/DamageEvents.h"
+#include "Engine/OverlapResult.h"
 #include "Animation/AnimSequence.h"
 #include "DrawDebugHelpers.h"
 #include "NiagaraFunctionLibrary.h"
@@ -73,6 +74,19 @@ APy_Grey::APy_Grey()
 
 	if (DeathAnimAsset.Succeeded())
 		DeathAnimation = DeathAnimAsset.Object;
+
+	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> PowerSlashSwordFXAsset(TEXT("/Game/SlashTrail_SoftTofu/Niagara/Fire/NS_Sword_Fire.NS_Sword_Fire"));
+	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> PowerSlashTrailFXAsset(TEXT("/Game/SlashTrail_SoftTofu/Niagara/Fire/NS_SlashTrail_Fire_Loop.NS_SlashTrail_Fire_Loop"));
+	static ConstructorHelpers::FObjectFinder<UNiagaraSystem> PowerSlashHitFXAsset(TEXT("/Game/SlashTrail_SoftTofu/Niagara/Fire/NS_Hit_Fire.NS_Hit_Fire"));
+
+	if (PowerSlashSwordFXAsset.Succeeded())
+		PowerSlashSwordFX = PowerSlashSwordFXAsset.Object;
+
+	if (PowerSlashTrailFXAsset.Succeeded())
+		PowerSlashTrailFX = PowerSlashTrailFXAsset.Object;
+
+	if (PowerSlashHitFXAsset.Succeeded())
+		PowerSlashHitFX = PowerSlashHitFXAsset.Object;
 }
 
 
@@ -236,6 +250,7 @@ void APy_Grey::BeginPlay()
 	}
 
 	BossDefeatedHandle = AMonster::OnBossDefeated.AddUObject(this, &APy_Grey::HandleBossDefeated);
+
 }
 
 void APy_Grey::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -247,6 +262,8 @@ void APy_Grey::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		World->GetTimerManager().ClearTimer(AttackBuffTimerHandle);
 		World->GetTimerManager().ClearTimer(ShieldTimerHandle);
 		World->GetTimerManager().ClearTimer(RespawnTimerHandle);
+
+		EndPowerSlash();
 	}
 
 	if (IsValid(QuestWaypoint))
@@ -262,6 +279,10 @@ void APy_Grey::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void APy_Grey::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	if (bPowerSlashSwinging)
+		UpdatePowerSlashHit();
+
 }
 
 void  APy_Grey::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
@@ -476,6 +497,8 @@ void APy_Grey::SkillSlotC()
 
 	if (!TryUseSkill(2))
 		return;
+
+	BeginPowerSlash();
 
 	if (IsValid(pGreyAnim))
 		pGreyAnim->SkillSlotC();
@@ -1073,9 +1096,6 @@ void APy_Grey::WepaonBeginOverlap(UPrimitiveComponent* OverlappedComponent, AAct
 
 	if (HitArray.Num() > 0)
 	{
-		FActorSpawnParameters params;
-		params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
-
 		float fDamage = OtherActor->TakeDamage(GetEffectiveAttackPower(), DamageEvent, GetController(), this);
 
 		// 콤보가 이어질수록 카메라 셰이크/히트스탑이 점점 강해져서 연타에 무게감이 붙도록
@@ -1086,65 +1106,12 @@ void APy_Grey::WepaonBeginOverlap(UPrimitiveComponent* OverlappedComponent, AAct
 		PlayCameraShake(WeakCameraShakeClass, ComboScale);
 		PlayHitRumble(HitLandedRumbleIntensity * ComboScale, HitStopDuration * 2.f);
 
-		// 타격 지점에 스폰하되, 몬스터의 루트 컴포넌트에 붙여서 넉백 등으로 몬스터가 움직여도
-		// 이펙트가 허공에 남지 않고 몬스터를 따라가도록 함
-		auto SpawnAttachedHitEffect = [&](TSubclassOf<AEffectDestroy> EffectClass)
-		{
-			if (!EffectClass)
-				return;
-
-			AEffectDestroy* Effect = GetWorld()->SpawnActor<AEffectDestroy>(
-				EffectClass,
-				vImpactPoint,
-				vImpactNormal.Rotation(),
-				params
-			);
-
-			if (!IsValid(Effect))
-				return;
-
-			if (IsValid(OtherActor) && OtherActor->GetRootComponent())
-			{
-				USceneComponent* AttachComp = OtherActor->GetRootComponent();
-				FName SocketName = NAME_None;
-
-				// 맞은 대상이 몬스터고 BP에 소켓 이름이 지정돼 있으면 그 소켓 위치에 정확히 스폰
-				if (AMonster* HitMonster = Cast<AMonster>(OtherActor))
-				{
-					if (HitMonster->HitEffectSocketName != NAME_None)
-					{
-						if (USkeletalMeshComponent* HitMesh = HitMonster->GetMesh())
-						{
-							if (HitMesh->DoesSocketExist(HitMonster->HitEffectSocketName))
-							{
-								AttachComp = HitMesh;
-								SocketName = HitMonster->HitEffectSocketName;
-							}
-						}
-					}
-				}
-
-				if (SocketName != NAME_None)
-				{
-					// 소켓 위치/회전에 딱 맞춰 붙임 (계산된 임팩트 지점 대신 소켓을 사용)
-					Effect->AttachToComponent(AttachComp, FAttachmentTransformRules::SnapToTargetNotIncludingScale, SocketName);
-				}
-				else
-				{
-					// 소켓이 없으면 기존처럼 실제 타격 지점에서 시작해 몬스터를 따라가도록 붙임
-					Effect->AttachToComponent(AttachComp, FAttachmentTransformRules::KeepWorldTransform);
-				}
-			}
-
-			Effect->InitializeEffect();
-		};
-
 		// 폭발 버프 중이 아니어도 매 타격마다 항상 나가는 기본 임팩트 이펙트(스파크+타격음)
-		SpawnAttachedHitEffect(NormalHitEffectClass);
+		SpawnAttachedHitEffect(NormalHitEffectClass, OtherActor, vImpactPoint, vImpactNormal);
 
 		if (bIsExplosiveBuffActive)
 		{
-			SpawnAttachedHitEffect(HitEffectClass);
+			SpawnAttachedHitEffect(HitEffectClass, OtherActor, vImpactPoint, vImpactNormal);
 		}
 	}
 
@@ -1159,6 +1126,238 @@ void APy_Grey::WepaonBeginOverlap(UPrimitiveComponent* OverlappedComponent, AAct
 void APy_Grey::WeaponEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
 
+}
+
+void APy_Grey::SpawnAttachedHitEffect(TSubclassOf<AEffectDestroy> EffectClass, AActor* Target, const FVector& ImpactPoint, const FVector& ImpactNormal)
+{
+	if (!EffectClass)
+		return;
+
+	FActorSpawnParameters params;
+	params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+	// 타격 지점에 스폰하되, 몬스터의 루트 컴포넌트에 붙여서 넉백 등으로 몬스터가 움직여도
+	// 이펙트가 허공에 남지 않고 몬스터를 따라가도록 함
+	AEffectDestroy* Effect = GetWorld()->SpawnActor<AEffectDestroy>(
+		EffectClass,
+		ImpactPoint,
+		ImpactNormal.Rotation(),
+		params
+	);
+
+	if (!IsValid(Effect))
+		return;
+
+	if (IsValid(Target) && Target->GetRootComponent())
+	{
+		USceneComponent* AttachComp = Target->GetRootComponent();
+		FName SocketName = NAME_None;
+
+		// 맞은 대상이 몬스터고 BP에 소켓 이름이 지정돼 있으면 그 소켓 위치에 정확히 스폰
+		if (AMonster* HitMonster = Cast<AMonster>(Target))
+		{
+			if (HitMonster->HitEffectSocketName != NAME_None)
+			{
+				if (USkeletalMeshComponent* HitMesh = HitMonster->GetMesh())
+				{
+					if (HitMesh->DoesSocketExist(HitMonster->HitEffectSocketName))
+					{
+						AttachComp = HitMesh;
+						SocketName = HitMonster->HitEffectSocketName;
+					}
+				}
+			}
+		}
+
+		if (SocketName != NAME_None)
+		{
+			// 소켓 위치/회전에 딱 맞춰 붙임 (계산된 임팩트 지점 대신 소켓을 사용)
+			Effect->AttachToComponent(AttachComp, FAttachmentTransformRules::SnapToTargetNotIncludingScale, SocketName);
+		}
+		else
+		{
+			// 소켓이 없으면 기존처럼 실제 타격 지점에서 시작해 몬스터를 따라가도록 붙임
+			Effect->AttachToComponent(AttachComp, FAttachmentTransformRules::KeepWorldTransform);
+		}
+	}
+
+	Effect->InitializeEffect();
+}
+
+UNiagaraComponent* APy_Grey::SpawnPowerSlashFX(UNiagaraSystem* System, FName SocketName)
+{
+	if (!IsValid(System))
+		return nullptr;
+
+	// 스킬이 끝나면 StopPowerSlashFX가 Deactivate만 하고, 남은 파티클이 다 사라진 뒤에 컴포넌트가 스스로 정리되도록 AutoDestroy로 스폰한다
+	return UNiagaraFunctionLibrary::SpawnSystemAttached(
+		System,
+		GetMesh(),
+		SocketName,
+		FVector::ZeroVector,
+		FRotator::ZeroRotator,
+		FVector(PowerSlashFXScale),
+		EAttachLocation::KeepRelativeOffset,
+		true,
+		ENCPoolMethod::None
+	);
+}
+
+void APy_Grey::StopPowerSlashFX(TWeakObjectPtr<UNiagaraComponent>& FXComp)
+{
+	if (UNiagaraComponent* Comp = FXComp.Get())
+	{
+		Comp->Deactivate();
+	}
+
+	FXComp.Reset();
+}
+
+void APy_Grey::BeginPowerSlash()
+{
+	// 이전 스윙이 남아 있으면(쿨다운을 짧게 조정한 경우 등) 먼저 정리한다
+	EndPowerSlash();
+
+	PowerSlashHitActors.Reset();
+
+	// 검 오라는 스킬을 쓰는 순간부터 붙어서, 검을 치켜드는 준비 동작 때부터 검이 달아오르는 것처럼 보이게 한다
+	PowerSlashSwordFXComp = SpawnPowerSlashFX(PowerSlashSwordFX, TEXT("FX_Sword_Mid"));
+
+	GetWorldTimerManager().SetTimer(PowerSlashSwingStartTimerHandle, this, &APy_Grey::BeginPowerSlashSwing, FMath::Max(PowerSlashHitDelay, KINDA_SMALL_NUMBER), false);
+
+	LOG(TEXT("스킬 C 강력 가로베기 시작 : 공격력 x%.2f, 판정 %.2f초 뒤 %.2f초간"), PowerSlashDamageMultiplier, PowerSlashHitDelay, PowerSlashHitDuration);
+}
+
+void APy_Grey::BeginPowerSlashSwing()
+{
+	bPowerSlashSwinging = true;
+	LastPowerSlashBladeMid = GetMesh()->GetSocketLocation(TEXT("FX_Sword_Mid"));
+	LastPowerSlashBladeTop = GetMesh()->GetSocketLocation(TEXT("FX_Sword_Top"));
+
+	PowerSlashTrailFXComp = SpawnPowerSlashFX(PowerSlashTrailFX, TEXT("FX_Sword_Top"));
+
+	GetWorldTimerManager().SetTimer(PowerSlashSwingEndTimerHandle, this, &APy_Grey::EndPowerSlashSwing, FMath::Max(PowerSlashHitDuration, KINDA_SMALL_NUMBER), false);
+}
+
+void APy_Grey::EndPowerSlashSwing()
+{
+	bPowerSlashSwinging = false;
+
+	StopPowerSlashFX(PowerSlashTrailFXComp);
+	StopPowerSlashFX(PowerSlashSwordFXComp);
+
+	LOG(TEXT("스킬 C 강력 가로베기 종료 : 명중 %d마리"), PowerSlashHitActors.Num());
+}
+
+void APy_Grey::EndPowerSlash()
+{
+	GetWorldTimerManager().ClearTimer(PowerSlashSwingStartTimerHandle);
+	GetWorldTimerManager().ClearTimer(PowerSlashSwingEndTimerHandle);
+
+	bPowerSlashSwinging = false;
+
+	StopPowerSlashFX(PowerSlashTrailFXComp);
+	StopPowerSlashFX(PowerSlashSwordFXComp);
+}
+
+void APy_Grey::UpdatePowerSlashHit()
+{
+	const FVector BladeMid = GetMesh()->GetSocketLocation(TEXT("FX_Sword_Mid"));
+	const FVector BladeTop = GetMesh()->GetSocketLocation(TEXT("FX_Sword_Top"));
+
+	// 이전 프레임의 검 위치와 지금 위치 사이를 촘촘히 훑어서, 검이 빠르게 휘둘러지거나 프레임이 떨어져도 몬스터를 건너뛰지 않게 한다
+	const float TravelDistance = FMath::Max(FVector::Dist(LastPowerSlashBladeMid, BladeMid), FVector::Dist(LastPowerSlashBladeTop, BladeTop));
+	const int32 Steps = FMath::Clamp(FMath::CeilToInt(TravelDistance / FMath::Max(PowerSlashHitRadius * 0.5f, 1.f)), 1, 8);
+
+	FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(PowerSlash), false, this);
+
+	// ECC_GameTraceChannel3 = 프로젝트 설정의 "Monster" 오브젝트 타입 (몬스터 캡슐이 쓰는 채널)
+	const FCollisionObjectQueryParams ObjectParams(ECC_GameTraceChannel3);
+	const FCollisionShape HitSphere = FCollisionShape::MakeSphere(PowerSlashHitRadius);
+
+	bool bAnyNewHit = false;
+
+
+	// 검 중간과 검 끝 두 지점에서 판정해서, 검이 닿는 범위 전체(손 앞 ~ 검 끝 너머)를 넓은 호로 커버한다
+	for (int32 Step = 1; Step <= Steps; ++Step)
+	{
+		const float Alpha = static_cast<float>(Step) / Steps;
+
+		for (int32 Sample = 0; Sample < 2; ++Sample)
+		{
+			const FVector Center = Sample == 0
+				? FMath::Lerp(LastPowerSlashBladeMid, BladeMid, Alpha)
+				: FMath::Lerp(LastPowerSlashBladeTop, BladeTop, Alpha);
+
+			TArray<FOverlapResult> Overlaps;
+			GetWorld()->OverlapMultiByObjectType(Overlaps, Center, FQuat::Identity, ObjectParams, HitSphere, QueryParams);
+
+			for (const FOverlapResult& Overlap : Overlaps)
+			{
+				AMonster* Monster = Cast<AMonster>(Overlap.GetActor());
+
+				if (!IsValid(Monster) || Monster->GetCurrentHp() <= 0 || PowerSlashHitActors.Contains(Monster))
+					continue;
+
+				const FVector ToMonster = Monster->GetActorLocation() - GetActorLocation();
+
+				if (ToMonster.Size2D() > PowerSlashMaxRange)
+					continue;
+
+				PowerSlashHitActors.Add(Monster);
+				bAnyNewHit = true;
+
+				const float Damage = GetEffectiveAttackPower() * PowerSlashDamageMultiplier;
+				const FVector HitDir = ToMonster.GetSafeNormal2D();
+
+				// AMonster::TakeDamage는 protected라서 AActor의 공개 진입점으로 호출한다 (일반 공격과 동일한 경로)
+				FDamageEvent DamageEvent;
+				static_cast<AActor*>(Monster)->TakeDamage(Damage, DamageEvent, GetController(), this);
+
+				LOG(TEXT("스킬 C 명중 : %s 피해 %.0f -> HP %d/%d"), *Monster->GetName(), Damage, Monster->GetCurrentHp(), Monster->GetMaxHp());
+
+				const FVector ImpactPoint = Monster->GetActorLocation();
+				const FVector ImpactNormal = -HitDir;
+
+				if (IsValid(PowerSlashHitFX))
+				{
+					UNiagaraComponent* HitFXComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), PowerSlashHitFX, ImpactPoint, ImpactNormal.Rotation(), FVector(PowerSlashHitFXScale));
+
+					if (IsValid(HitFXComp))
+					{
+						// 루프형 이펙트라서 정해진 시간 뒤에 끄면, 남은 파티클이 사라진 다음 컴포넌트가 스스로 정리된다
+						FTimerHandle HitFXTimerHandle;
+						TWeakObjectPtr<UNiagaraComponent> WeakHitFX = HitFXComp;
+						GetWorldTimerManager().SetTimer(HitFXTimerHandle, FTimerDelegate::CreateLambda([WeakHitFX]() { if (WeakHitFX.IsValid()) WeakHitFX->Deactivate(); }), PowerSlashHitFXDuration, false);
+					}
+				}
+
+				SpawnAttachedHitEffect(NormalHitEffectClass, Monster, ImpactPoint, ImpactNormal);
+
+				if (bIsExplosiveBuffActive)
+				{
+					SpawnAttachedHitEffect(HitEffectClass, Monster, ImpactPoint, ImpactNormal);
+				}
+
+				// 살아남았다면 검이 휘둘러진 방향으로 크게 밀어낸다. 보스는 밀리지 않는다
+				if (Monster->GetCurrentHp() > 0 && !Monster->bIsBoss)
+				{
+					Monster->LaunchCharacter(HitDir * Monster->KnockbackStrength * PowerSlashKnockbackScale + FVector(0.f, 0.f, 120.f), true, false);
+				}
+			}
+		}
+	}
+
+	LastPowerSlashBladeMid = BladeMid;
+	LastPowerSlashBladeTop = BladeTop;
+
+	// 여러 마리를 동시에 벨 때도 타격감 연출은 한 번만 (히트스탑이 마릿수만큼 연장되면 오히려 답답해진다)
+	if (bAnyNewHit)
+	{
+		PlayHitStop(PowerSlashFeelScale);
+		PlayCameraShake(WeakCameraShakeClass, PowerSlashFeelScale);
+		PlayHitRumble(HitLandedRumbleIntensity * PowerSlashFeelScale, HitStopDuration * 2.f);
+	}
 }
 
 float APy_Grey::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)

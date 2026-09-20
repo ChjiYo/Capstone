@@ -39,6 +39,13 @@ UPy_GreyAnim::UPy_GreyAnim()
 		m_pMTGNormalAttack = NormalAttackAsset.Object;
 	}
 
+	static ConstructorHelpers::FObjectFinder<UAnimSequence> SkillCSequenceAsset(TEXT("/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Attack_A_Med.Attack_A_Med"));
+
+	if (SkillCSequenceAsset.Succeeded())
+	{
+		m_pSkillCSequence = SkillCSequenceAsset.Object;
+	}
+
 }
 
 void UPy_GreyAnim::NativeInitializeAnimation()
@@ -65,6 +72,13 @@ void UPy_GreyAnim::SkillSlotB()
 
 void UPy_GreyAnim::SkillSlotC()
 {
+	if (IsValid(m_pSkillCSequence))
+	{
+		// 몽타주(바이너리)를 새로 만들지 않고도 가로베기 시퀀스를 재생한다. 슬롯 이름은 기존 스킬 몽타주들이 쓰는 SlotA
+		PlaySlotAnimationAsDynamicMontage(m_pSkillCSequence, TEXT("SlotA"), 0.05f, 0.15f, 1.f);
+		return;
+	}
+
 	if (!Montage_IsPlaying(m_pMTGSkillSlotC))
 		Montage_Play(m_pMTGSkillSlotC);
 }

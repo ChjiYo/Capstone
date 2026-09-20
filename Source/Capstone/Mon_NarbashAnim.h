@@ -15,6 +15,10 @@ protected:
 	virtual void NativeInitializeAnimation();
 	virtual void NativeUpdateAnimation(float DeltaSeconds);
 
+public:
+	// 보스 브레인이 콤보 스킬을 재생/슬롯 이름을 알아내는 데 쓴다
+	UAnimMontage* GetComboMontage() const { return m_pMTGNormalAttack; }
+
 private:
 	UFUNCTION()
 	void AnimNotify_DashStart();
