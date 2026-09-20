@@ -90,6 +90,28 @@ public:
 		return true;
 	}
 
+	// 포탈/리스폰으로 OpenLevel 하기 직전, 파괴될 플레이어 폰의 공격력과 무기 강화 단계를 보관해둔다.
+	// 레벨업/무기 강화로 오른 공격력은 폰(m_tInfo)에만 들어 있어서, 안 넘기면 새 폰이 생성자의 기본 공격력으로
+	// 되돌아간다. 체력과 달리 경험치 복원(RestoreExp)은 레벨업 이벤트를 다시 쏘지 않으므로 값을 직접 넘겨야 한다.
+	void SetPendingCombatStats(int32 InAttack, int32 InWeaponLevel)
+	{
+		PendingAttack = InAttack;
+		PendingWeaponLevel = InWeaponLevel;
+		bHasPendingCombatStats = true;
+	}
+
+	// 한 번 읽으면 비워짐 — 넘겨받은 값이 없는 최초 시작 시에는 false를 반환해 기본값(기본 공격력, +0)을 유지
+	bool ConsumePendingCombatStats(int32& OutAttack, int32& OutWeaponLevel)
+	{
+		if (!bHasPendingCombatStats)
+			return false;
+
+		OutAttack = PendingAttack;
+		OutWeaponLevel = PendingWeaponLevel;
+		bHasPendingCombatStats = false;
+		return true;
+	}
+
 private:
 	FName PendingPlayerStartTag = NAME_None;
 
@@ -104,4 +126,8 @@ private:
 	int32 PendingMaxHp = 0;
 	int32 PendingCurrentHp = 0;
 	bool bHasPendingHp = false;
+
+	int32 PendingAttack = 0;
+	int32 PendingWeaponLevel = 0;
+	bool bHasPendingCombatStats = false;
 };

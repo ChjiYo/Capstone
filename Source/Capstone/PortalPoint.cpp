@@ -64,21 +64,9 @@ void APortalPoint::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* O
 			TransitionSubsystem->SetPendingPlayerStartTag(TargetPlayerStartTag);
 		}
 
-		// OpenLevel(하드 레벨 전환)은 플레이어 폰까지 파괴하므로, 폰이 들고 있던 인벤토리(아이템/골드)를
+		// OpenLevel(하드 레벨 전환)은 플레이어 폰까지 파괴하므로, 폰이 들고 있던 인벤토리/경험치/체력/공격력을
 		// 게임 인스턴스 서브시스템에 잠깐 맡겨뒀다가 새 레벨의 새 폰이 BeginPlay에서 복원해간다
-		if (Player->InventoryComponent)
-		{
-			TransitionSubsystem->SetPendingInventory(Player->InventoryComponent->Items, Player->InventoryComponent->GetGold());
-		}
-
-		// 인벤토리와 마찬가지로 레벨/경험치도 폰과 함께 파괴되므로 넘겨서 새 폰이 복원하게 한다
-		if (Player->ExperienceComponent)
-		{
-			TransitionSubsystem->SetPendingExperience(Player->ExperienceComponent->GetCurrentLevel(), Player->ExperienceComponent->GetCurrentExp());
-		}
-
-		// 체력도 폰과 함께 파괴되므로 넘겨서 새 폰이 복원하게 한다 (그렇지 않으면 레벨 이동마다 풀피로 초기화됨)
-		TransitionSubsystem->SetPendingHp(Player->GetMaxHp(), Player->GetCurrentHp());
+		Player->SaveStateForLevelTransition(*TransitionSubsystem);
 	}
 
 	UGameplayStatics::OpenLevel(

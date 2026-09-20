@@ -109,8 +109,8 @@ void UCharBaseAnim::AnimNotify_Death()
 {
 	ACharBase* pOnwer = Cast<ACharBase>(TryGetPawnOwner());
 
-	if(IsValid(pOnwer))
-		pOnwer->Destroy();	
+	if (IsValid(pOnwer) && pOnwer->ShouldDestroyOnDeathNotify())
+		pOnwer->Destroy();
 
 	InherDeathNotify();
 }

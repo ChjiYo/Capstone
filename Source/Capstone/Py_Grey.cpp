@@ -14,10 +14,12 @@
 #include "QuestWaypoint.h"
 #include "UI_QuestWaypoint.h"
 #include "UI_Ending.h"
+#include "UI_Death.h"
 #include "StoryComponent.h"
 #include "NPC_Base.h"
 #include "Monster.h"
 #include "Engine/DamageEvents.h"
+#include "Animation/AnimSequence.h"
 #include "DrawDebugHelpers.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Kismet/GameplayStatics.h"
@@ -65,6 +67,12 @@ APy_Grey::APy_Grey()
 	ExperienceComponent = CreateDefaultSubobject<UExperienceComponent>(TEXT("ExperienceComponent"));
 	StoryComponent = CreateDefaultSubobject<UStoryComponent>(TEXT("StoryComponent"));
 
+	DeathWidgetClass = UUI_Death::StaticClass();
+
+	static ConstructorHelpers::FObjectFinder<UAnimSequence> DeathAnimAsset(TEXT("/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Death.Death"));
+
+	if (DeathAnimAsset.Succeeded())
+		DeathAnimation = DeathAnimAsset.Object;
 }
 
 
@@ -117,6 +125,15 @@ void APy_Grey::BeginPlay()
 			{
 				m_tInfo.iMaxHp = SavedMaxHp;
 				m_tInfo.iHp = SavedCurrentHp;
+			}
+
+			// 레벨업/무기 강화로 오른 공격력과 강화 단계도 같이 복원한다 (강화 비용/최대 단계 판정이 WeaponLevel에 의존)
+			int32 SavedAttack = 0;
+			int32 SavedWeaponLevel = 0;
+			if (TransitionSubsystem->ConsumePendingCombatStats(SavedAttack, SavedWeaponLevel))
+			{
+				m_tInfo.iAttack = SavedAttack;
+				WeaponLevel = SavedWeaponLevel;
 			}
 		}
 	}
@@ -229,6 +246,7 @@ void APy_Grey::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	{
 		World->GetTimerManager().ClearTimer(AttackBuffTimerHandle);
 		World->GetTimerManager().ClearTimer(ShieldTimerHandle);
+		World->GetTimerManager().ClearTimer(RespawnTimerHandle);
 	}
 
 	if (IsValid(QuestWaypoint))
@@ -380,6 +398,9 @@ void APy_Grey::RotationX(float _fScale)
 
 void APy_Grey::JumpKey()
 {
+	if (bIsDead)
+		return;
+
 	if (IsValid(pGreyAnim))
 		pGreyAnim->JumpKey();
 
@@ -587,6 +608,9 @@ void APy_Grey::UsePotionItem(FName ItemID)
 
 void APy_Grey::RollOrDash()
 {
+	if (bIsDead)
+		return;
+
 	FVector InputDirection = GetCharacterMovement()->GetLastInputVector();
 	FVector ActorForward = GetActorForwardVector();
 	FVector ActorRight = GetActorRightVector();
@@ -741,6 +765,157 @@ void APy_Grey::ShowEnding()
 	}
 
 	UGameplayStatics::SetGamePaused(GetWorld(), true);
+}
+
+// 데미지를 준 주체에서 몬스터를 찾는다. 몬스터 본체가 직접 때리는 경우(DamageCauser=몬스터),
+// 몬스터에 부착된 무기가 때리는 경우(무기의 부착 부모), 몬스터가 시전한 이펙트가 때리는 경우(이펙트의 Instigator)를 모두 다룬다
+static const AMonster* FindKillerMonster(AController* EventInstigator, AActor* DamageCauser)
+{
+	if (IsValid(DamageCauser))
+	{
+		if (const AMonster* Monster = Cast<AMonster>(DamageCauser))
+			return Monster;
+
+		if (const AMonster* Monster = Cast<AMonster>(DamageCauser->GetAttachParentActor()))
+			return Monster;
+
+		if (const AMonster* Monster = Cast<AMonster>(DamageCauser->GetInstigator()))
+			return Monster;
+
+		if (const AMonster* Monster = Cast<AMonster>(DamageCauser->GetOwner()))
+			return Monster;
+	}
+
+	if (IsValid(EventInstigator))
+		return Cast<AMonster>(EventInstigator->GetPawn());
+
+	return nullptr;
+}
+
+void APy_Grey::HandleDeath(AController* EventInstigator, AActor* DamageCauser)
+{
+	if (bIsDead)
+		return;
+
+	bIsDead = true;
+	m_tInfo.iHp = 0; // 초과 피해로 음수가 남지 않게 (HP 비율을 읽는 적응형 AI 등을 위해)
+
+	const AMonster* Killer = FindKillerMonster(EventInstigator, DamageCauser);
+	const FText KillerName = Killer ? Killer->GetDisplayName() : FText::GetEmpty();
+
+	LOG(TEXT("플레이어 사망 (사망 원인=%s), [계속] 버튼을 누르면 %s에서 리스폰"), *KillerName.ToString(), *RespawnLevelName.ToString());
+
+	// 인벤토리/대사창이 열린 채로 죽으면 마우스 커서와 입력 잠금이 남으므로 먼저 정리한다
+	if (IsValid(InventoryWidget) && InventoryWidget->IsInViewport())
+		ToggleInventory();
+
+	if (StoryComponent && StoryComponent->IsPlaying())
+		StoryComponent->StopDialogue();
+
+	// ACharBase::TakeDamage가 캡슐 콜리전을 끄므로, 이동 모드를 남겨두면 데스 모션 동안 바닥을 뚫고 떨어진다
+	if (UCharacterMovementComponent* Movement = GetCharacterMovement())
+	{
+		Movement->StopMovementImmediately();
+		Movement->DisableMovement();
+	}
+
+	EnableWeaponCollision(false);
+	SetGameplayInputLocked(true);
+
+	// 애님BP의 상태 머신과 무관하게 데스 모션을 확실히 재생한다. 단일 노드 재생으로 바꾸면 기존 애님 인스턴스는
+	// 폐기되므로 캐시해둔 pGreyAnim을 비워 이후 입력 처리가 죽은 포인터를 건드리지 않게 한다
+	if (IsValid(DeathAnimation))
+	{
+		pGreyAnim = nullptr;
+		GetMesh()->PlayAnimation(DeathAnimation, false);
+	}
+
+	APlayerController* PC = Cast<APlayerController>(GetController());
+
+	if (PC)
+	{
+		DisableInput(PC);
+
+		if (IsValid(DeathWidgetClass))
+		{
+			DeathWidget = CreateWidget<UUI_Death>(PC, DeathWidgetClass);
+		}
+	}
+
+	if (IsValid(DeathWidget))
+	{
+		DeathWidget->SetKillerName(KillerName);
+		DeathWidget->OnContinue.AddUObject(this, &APy_Grey::RespawnAtVillage);
+
+		// 체력바 등 다른 HUD 위젯 위에 덮이도록 높은 ZOrder로 띄운다
+		DeathWidget->AddToViewport(100);
+
+		// 게임 입력(공격/스킬/점프/대시 등)을 전부 끊고 UI만 받도록 하고, [계속] 버튼을 누를 수 있게 커서를 켠다
+		PC->FlushPressedKeys();
+		PC->bShowMouseCursor = true;
+
+		FInputModeUIOnly InputMode;
+		InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+		PC->SetInputMode(InputMode);
+	}
+	else
+	{
+		// 사망 위젯을 만들 수 없는 경우(클래스 미지정 등)에는 버튼이 없으므로 일정 시간 뒤 자동으로 리스폰한다
+		GetWorldTimerManager().SetTimer(RespawnTimerHandle, this, &APy_Grey::RespawnAtVillage, RespawnDelay, false);
+	}
+}
+
+void APy_Grey::RespawnAtVillage()
+{
+	// 사망 UI를 띄우며 바꾼 UIOnly 입력 모드/마우스 커서/포커스는 뷰포트 쪽에 남아 OpenLevel 뒤 새 폰까지 이어진다.
+	// 되돌리지 않으면 새 레벨에서 키 입력이 전혀 먹지 않으므로 레벨을 넘기기 전에 게임 입력으로 복원한다
+	// (다른 UI들이 닫힐 때 FInputModeGameOnly로 되돌리는 것과 같은 처리)
+	if (APlayerController* PC = Cast<APlayerController>(GetController()))
+	{
+		if (IsValid(DeathWidget))
+			DeathWidget->RemoveFromParent();
+
+		PC->bShowMouseCursor = false;
+		PC->SetInputMode(FInputModeGameOnly());
+		PC->FlushPressedKeys();
+	}
+
+	if (UGameInstance* GI = GetGameInstance())
+	{
+		if (ULevelTransitionSubsystem* TransitionSubsystem = GI->GetSubsystem<ULevelTransitionSubsystem>())
+		{
+			// 태그를 비워두면 AGM_Main::ChoosePlayerStart가 게임을 처음 시작할 때와 같은 태그 없는 PlayerStart를 고른다
+			TransitionSubsystem->SetPendingPlayerStartTag(NAME_None);
+
+			// 체력은 최대치로 되살아난다. 인벤토리(아이템/골드)/경험치/공격력/무기 강화 단계는 그대로 넘기고, 퀘스트는 UQuestStateSubsystem에 이미 저장돼 있다
+			m_tInfo.iHp = m_tInfo.iMaxHp;
+			SaveStateForLevelTransition(*TransitionSubsystem);
+		}
+	}
+
+	UGameplayStatics::OpenLevel(GetWorld(), RespawnLevelName);
+}
+
+void APy_Grey::SaveStateForLevelTransition(ULevelTransitionSubsystem& TransitionSubsystem) const
+{
+	// OpenLevel(하드 레벨 전환)은 플레이어 폰까지 파괴하므로, 폰이 들고 있던 인벤토리(아이템/골드)를
+	// 게임 인스턴스 서브시스템에 잠깐 맡겨뒀다가 새 레벨의 새 폰이 BeginPlay에서 복원해간다
+	if (InventoryComponent)
+	{
+		TransitionSubsystem.SetPendingInventory(InventoryComponent->Items, InventoryComponent->GetGold());
+	}
+
+	// 인벤토리와 마찬가지로 레벨/경험치도 폰과 함께 파괴되므로 넘겨서 새 폰이 복원하게 한다
+	if (ExperienceComponent)
+	{
+		TransitionSubsystem.SetPendingExperience(ExperienceComponent->GetCurrentLevel(), ExperienceComponent->GetCurrentExp());
+	}
+
+	// 체력도 폰과 함께 파괴되므로 넘겨서 새 폰이 복원하게 한다 (그렇지 않으면 레벨 이동마다 풀피로 초기화됨)
+	TransitionSubsystem.SetPendingHp(GetMaxHp(), GetCurrentHp());
+
+	// 레벨업/무기 강화로 오른 공격력과 강화 단계 (스킬 A 버프는 타격 시점에 배율만 곱하므로 m_tInfo.iAttack에는 들어 있지 않다)
+	TransitionSubsystem.SetPendingCombatStats(GetAttackPower(), WeaponLevel);
 }
 
 int32 APy_Grey::GetNextEnhanceGoldCost() const
@@ -988,7 +1163,8 @@ void APy_Grey::WeaponEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor
 
 float APy_Grey::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
-	if (bInvincible)
+	// 이미 사망했으면 리스폰을 기다리는 동안 들어오는 추가 피해(중복 사망 처리)를 무시한다
+	if (bInvincible || bIsDead)
 		return 0.f;
 
 	// 보호막이 체력보다 먼저 피해를 흡수한다. 남은 피해만 체력에 들어가고, 보호막이 바닥나면 VFX까지 함께 정리
@@ -1015,6 +1191,11 @@ float APy_Grey::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, 
 	PlayHitStop();
 	PlayCameraShake(StrongCameraShakeClass);
 	PlayHitRumble(HitTakenRumbleIntensity, HitStopDuration * 3.f);
+
+	if (m_tInfo.iHp <= 0)
+	{
+		HandleDeath(EventInstigator, DamageCauser);
+	}
 
 	return fDamage;
 }

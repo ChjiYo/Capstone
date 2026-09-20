@@ -4,6 +4,8 @@
 #include "Components/WidgetComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "UI_HpBar.h"
+#include "UI_DamageNumber.h"
+#include "Kismet/GameplayStatics.h"
 #include "ItemBase.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Materials/MaterialInterface.h"
@@ -33,6 +35,7 @@ AMonster::AMonster()
 
 	bHit = false;
 
+	DamageNumberWidgetClass = UUI_DamageNumber::StaticClass();
 }
 
 AMonster::~AMonster()
@@ -57,6 +60,14 @@ void AMonster::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	}
 
 	Super::EndPlay(EndPlayReason);
+}
+
+FText AMonster::GetDisplayName() const
+{
+	if (!DisplayName.IsEmpty())
+		return DisplayName;
+
+	return FText::FromName(MonsterID);
 }
 
 void AMonster::ClearAttackEndDelegate()
@@ -158,6 +169,24 @@ void AMonster::UpdateHpBarVisibility()
 		HpBarComponent->SetVisibility(bDetected);
 }
 
+void AMonster::ShowDamageNumber(float Damage)
+{
+	const int32 DamageValue = FMath::RoundToInt(Damage);
+
+	if (DamageValue <= 0)
+		return;
+
+	APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0);
+
+	if (!IsValid(PC))
+		return;
+
+	// 몬스터 머리 위에서 시작. 넉백으로 몬스터가 밀려나도 숫자는 맞은 자리에서 뜬다
+	const FVector SpawnLocation = GetActorLocation() + FVector(0.f, 0.f, GetCapsuleComponent()->GetScaledCapsuleHalfHeight() + DamageNumberHeightOffset);
+
+	UUI_DamageNumber::Spawn(PC, DamageNumberWidgetClass, DamageValue, SpawnLocation);
+}
+
 void AMonster::UpdateHitFlash(float DeltaTime)
 {
 	if (HitFlashTimeRemaining <= 0.f)
@@ -223,6 +252,9 @@ float AMonster::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, 
     {
         HpBarWidget->SetHp(m_tInfo.iHp / static_cast<float>(m_tInfo.iMaxHp));
     }
+
+    // 사망 여부와 상관없이(치명타도 숫자가 보여야 하므로) 실제로 들어간 피해량을 띄운다
+    ShowDamageNumber(ActualDamage);
 
     if (m_tInfo.iHp <= 0)
     {

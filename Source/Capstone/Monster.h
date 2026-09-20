@@ -24,6 +24,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster")
 	FName MonsterID;
 
+	// 플레이어 사망 문구("OOO에 의해 사망하셨습니다.") 등 UI에 표시할 몬스터 이름. 몬스터 클래스별 기본값이
+	// 생성자에서 채워지며, 같은 클래스의 변종(예: 고블린 마법사)은 블루프린트에서 덮어쓰면 된다
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Monster")
+	FText DisplayName;
+
+	// DisplayName이 비어 있으면 MonsterID로 폴백한다
+	FText GetDisplayName() const;
+
 	// 몬스터가 죽을 때마다 전역으로 방송. QuestComponent가 이 이벤트를 구독해 처치 퀘스트 진행도를 갱신
 	static FOnMonsterKilled OnMonsterKilled;
 
@@ -90,6 +98,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel")
 	FName HitEffectSocketName = NAME_None;
 
+	// 피격 시 띄울 데미지 숫자 위젯 클래스. 기본값은 위젯 블루프린트 없이 C++로 만든 기본 스타일이고,
+	// 폰트 등을 바꾸고 싶으면 UUI_DamageNumber를 부모로 한 WBP를 만들어 여기에 지정하면 됨
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel")
+	TSubclassOf<class UUI_DamageNumber> DamageNumberWidgetClass;
+
+	// 데미지 숫자가 뜨는 높이. 캡슐 절반 높이(머리 위치)에 이 값을 더한 지점에서 시작함
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel")
+	float DamageNumberHeightOffset = 20.f;
+
 	// 공격 패턴별 몽타주 (7단계 적응형 AI). 비어 있으면 UBTTask_Attack의 단일 AttackMontage로 폴백해 기존 몬스터는 그대로 동작
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "AI")
 	TArray<UAnimMontage*> AttackPatterns;
@@ -124,6 +141,9 @@ private:
 
 	// 탐지 범위(fTraceRange) 안에 플레이어가 들어와 AI가 타겟을 잡았을 때만 HP바를 보이게 한다
 	void UpdateHpBarVisibility();
+
+	// 플레이어 화면에 데미지 숫자를 띄운다 (포물선을 그리며 떨어지는 UUI_DamageNumber)
+	void ShowDamageNumber(float Damage);
 
 	// [TEMP DEBUG] 디졸브 진행 로그를 너무 자주 찍지 않기 위한 누적 타이머. 디버깅 끝나면 제거할 것
 	float DebugDissolveLogAccum = 0.f;

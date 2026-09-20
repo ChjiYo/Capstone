@@ -9,6 +9,7 @@ AMon_Bug::AMon_Bug()
 	m_tInfo.iMaxHp = 70;
 	m_tInfo.iHp = 70;
 	m_tInfo.iAttack = 12;
+	DisplayName = FText::FromString(TEXT("벌레"));
 
 	fTraceRange = 1000.f;
 	fAttackDist = 200.f;

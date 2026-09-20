@@ -20,6 +20,7 @@ AMon_Narbash::AMon_Narbash()
 	m_tInfo.iMaxHp = 1000;
 	m_tInfo.iHp = 1000;
 	m_tInfo.iAttack = 20;
+	DisplayName = FText::FromString(TEXT("나르바쉬"));
 
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> MeshAsset(TEXT("SkeletalMesh'/Game/ParagonNarbash/Characters/Heroes/Narbash/Meshes/Narbash.Narbash'"));
 
@@ -204,6 +205,9 @@ void AMon_Narbash::EndPhaseTransition()
 
 void AMon_Narbash::EnableWeaponCollision(bool bEnable)
 {
+	// 켤 때/끌 때 모두 초기화해서 다음 스윙(다음 콤보 포함)에서 다시 한 번 맞을 수 있게 한다
+	HitActorsThisSwing.Empty();
+
 	if (bEnable)
 	{
 		LeftWeaponBox->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
@@ -234,6 +238,9 @@ void AMon_Narbash::OnCollisionOverlap(UPrimitiveComponent* OverlappedComp, AActo
 
 void AMon_Narbash::WepaonBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+	if (!IsValid(OtherActor) || HitActorsThisSwing.Contains(OtherActor))
+		return;
+
 	FDamageEvent	DamageEvent;
 
 	FName StartSocket;
@@ -282,6 +289,8 @@ void AMon_Narbash::WepaonBeginOverlap(UPrimitiveComponent* OverlappedComponent, 
 
 	if (HitArray.Num() > 0)
 	{
+		HitActorsThisSwing.Add(OtherActor);
+
 		float fDamage = OtherActor->TakeDamage(m_tInfo.iAttack, DamageEvent, GetController(), this);
 
 		// 7단계 적응형 AI 학습에 이번 패턴의 명중/회피 결과를 반영 (보스도 플레이어 패턴에 적응)

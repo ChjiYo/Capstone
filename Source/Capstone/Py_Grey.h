@@ -78,6 +78,28 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "UI")
 	FName StartLevelName;
 
+	// 사망 시 띄울 "OOO에 의해 사망하셨습니다." 위젯. 기본값은 위젯 블루프린트 없이 C++로 만든 기본 스타일이고,
+	// 꾸미고 싶으면 UUI_Death를 부모로 한 WBP를 만들어 이 폰의 블루프린트에서 지정하면 됨
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Death")
+	TSubclassOf<class UUI_Death> DeathWidgetClass;
+
+	// 사망 후 리스폰하는 레벨. 게임을 처음 시작할 때와 같은 위치(태그 없는 PlayerStart)에서 되살아난다
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Death")
+	FName RespawnLevelName = TEXT("Lv_Village");
+
+	// 사망 위젯을 만들 수 없을 때(DeathWidgetClass 미지정 등)만 쓰이는 자동 리스폰까지의 시간(초).
+	// 위젯이 뜨는 평소에는 [계속] 버튼을 눌러야 리스폰한다
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Death")
+	float RespawnDelay = 4.f;
+
+	// 사망 시 재생할 데스 애니메이션. 애님BP(AP_PyGrey)에 Death 상태가 없어도 재생되도록, 죽는 순간 메시를
+	// 이 시퀀스의 단일 노드 재생으로 전환한다. 기본값은 생성자에서 Greystone 데스 시퀀스로 채워지며 BP에서 교체 가능
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Death")
+	TObjectPtr<class UAnimSequence> DeathAnimation;
+
+	UPROPERTY()
+	class UUI_Death* DeathWidget = nullptr;
+
 	// 보스 처치 연출을 감상할 시간(초) 후 엔딩 화면을 띄운다
 	UPROPERTY(EditAnywhere, Category = "UI")
 	float EndingDelay = 3.f;
@@ -262,6 +284,18 @@ public:
 	// 인벤토리/상점 등 UI가 열려 있는 동안 공격·스킬 입력만 막는다 (이동은 계속 허용)
 	void SetGameplayInputLocked(bool bLocked) { bGameplayInputLocked = bLocked; }
 
+	// OpenLevel(하드 레벨 전환)은 폰과 컴포넌트를 전부 파괴하므로, 인벤토리/경험치/체력/공격력/무기 강화 단계를 게임 인스턴스
+	// 서브시스템에 맡겨 새 폰이 BeginPlay에서 복원하게 한다. 포탈 이동과 사망 리스폰이 함께 쓴다
+	// (퀘스트는 UQuestComponent가 상태가 바뀔 때마다 UQuestStateSubsystem에 직접 저장하므로 여기서 다루지 않는다)
+	void SaveStateForLevelTransition(class ULevelTransitionSubsystem& TransitionSubsystem) const;
+
+	// 사망 후 폰이 살아있어야 상태를 저장하고 리스폰할 수 있으므로, 데스 노티파이가 폰을 Destroy하지 않게 한다
+	virtual bool ShouldDestroyOnDeathNotify() const override { return false; }
+
+	UFUNCTION(BlueprintPure, Category = "Death")
+	bool IsDead() const { return bIsDead; }
+
+
 	// 특정 포션 아이템을 사용(회복 + 소모). 인벤토리 슬롯 클릭 등 UI에서도 호출할 수 있도록 public
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	void UsePotionItem(FName ItemID);
@@ -308,6 +342,13 @@ private:
 	void HandleBossDefeated(FName MonsterID);
 	void PlayEpilogue();
 	void ShowEnding();
+
+	// 체력이 0이 되면 한 번만 호출: 입력/이동을 막고 사망 문구+[계속] 버튼을 띄운다. 버튼을 누르면 RespawnAtVillage 실행
+	void HandleDeath(AController* EventInstigator, AActor* DamageCauser);
+	void RespawnAtVillage();
+
+	bool bIsDead = false;
+	FTimerHandle RespawnTimerHandle;
 
 	FDelegateHandle BossDefeatedHandle;
 	FTimerHandle EndingTimerHandle;

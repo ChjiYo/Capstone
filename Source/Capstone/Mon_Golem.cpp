@@ -9,6 +9,7 @@ AMon_Golem::AMon_Golem()
 	m_tInfo.iMaxHp = 200;
 	m_tInfo.iHp = 200;
 	m_tInfo.iAttack = 20;
+	DisplayName = FText::FromString(TEXT("골렘"));
 
 	fTraceRange = 800.f;
 	fAttackDist = 250.f;

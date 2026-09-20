@@ -41,6 +41,10 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	virtual void Destroy();
+
+	// 데스 애니메이션의 Death 노티파이가 캐릭터를 Destroy할지 여부. 몬스터는 기본대로 파괴되지만,
+	// 플레이어처럼 사망 후에도 폰이 살아있어야(상태를 저장하고 리스폰해야) 하는 캐릭터는 false로 재정의한다
+	virtual bool ShouldDestroyOnDeathNotify() const { return true; }
 protected:
 	float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser);
 

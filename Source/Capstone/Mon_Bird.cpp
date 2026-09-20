@@ -9,6 +9,7 @@ AMon_Bird::AMon_Bird()
 	m_tInfo.iMaxHp = 60;
 	m_tInfo.iHp = 60;
 	m_tInfo.iAttack = 12;
+	DisplayName = FText::FromString(TEXT("새"));
 
 	fTraceRange = 1000.f;
 	fAttackDist = 200.f;

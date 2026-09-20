@@ -9,6 +9,7 @@ AMon_Goblin::AMon_Goblin()
 	m_tInfo.iMaxHp = 60;
 	m_tInfo.iHp = 60;
 	m_tInfo.iAttack = 12;
+	DisplayName = FText::FromString(TEXT("고블린"));
 
 	fAttackDist = 200.f;
 	

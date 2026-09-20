@@ -1,4 +1,4 @@
-#include "Mon_Larvae.h"
+﻿#include "Mon_Larvae.h"
 #include "Mon_LarvaeAnim.h"
 #include "Engine/DamageEvents.h"
 #include "DrawDebugHelpers.h"
@@ -10,6 +10,7 @@ AMon_Larvae::AMon_Larvae()
 	m_tInfo.iMaxHp = 50;
 	m_tInfo.iHp = 50;
 	m_tInfo.iAttack = 10;
+	DisplayName = FText::FromString(TEXT("애벌레"));
 
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> MeshAsset(TEXT("SkeletalMesh'/Game/Megaspikan/MegaspikanLarvae/Meshes/SK_MegaspikanLarvae.SK_MegaspikanLarvae'"));
 

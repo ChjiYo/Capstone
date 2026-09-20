@@ -26,6 +26,11 @@ protected:
 	// LaunchCharacter로 돌진 중인 동안 true. Tick에서 근접 사거리 도달/타겟 상실 여부를 체크해 돌진을 멈추는 데 쓰인다
 	bool bIsDashing = false;
 
+	// 이번 스윙에서 이미 피해를 준 액터. 좌/우 무기 박스와 대상의 캡슐/메시 등 여러 콜리전 컴포넌트가
+	// 겹치면 한 스윙에 오버랩 이벤트가 여러 번 오기 때문에, 대상당 한 번만 맞도록 걸러내는 데 쓴다.
+	// 무기 콜리전을 켤 때(콤보 섹션 시작마다)마다 초기화된다
+	TSet<TWeakObjectPtr<AActor>> HitActorsThisSwing;
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
