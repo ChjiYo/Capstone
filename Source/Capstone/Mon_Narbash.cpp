@@ -101,6 +101,10 @@ AMon_Narbash::AMon_Narbash()
 	// 보스는 플레이어의 타격에 밀려나지 않는다
 	KnockbackStrength = 0.f;
 
+	// 밀려나지는 않지만 맞는 느낌은 나야 하므로 메시 반동만 작게 준다. 덩치가 커서 락온 마커도 키운다
+	HitRecoilScale = 0.35f;
+	LockOnMarkerScale = 1.8f;
+
 	InitSkillConfigs();
 	LoadBossAssets();
 }

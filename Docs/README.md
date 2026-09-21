@@ -54,6 +54,8 @@
 | [10_story_script.md](10_story_script.md) | 대본 전문 41줄 + DataTable 임포트용 CSV, 퀘스트/시스템 문구 교체분 |
 | [11_dialogue_system.md](11_dialogue_system.md) | 대사 DataTable, 재생기 컴포넌트, 대사창/챕터 카드 위젯, 트리거 액터, 기존 흐름 삽입 |
 | [12_story_ui.md](12_story_ui.md) | `WBP_Dialogue` / `WBP_ChapterTitle` / `WBP_Ending` 제작 명세 (에디터 작업) |
+| [13_boss_ai_overhaul.md](13_boss_ai_overhaul.md) | 나르바쉬 보스 스킬 6종 + 강인도(Poise), 코드로 조립한 전투 비헤이비어 트리 |
+| [14_hit_feel_lockon.md](14_hit_feel_lockon.md) | 락온(대상 고정 카메라/마커), 일반 공격 넉백·메시 반동·카메라 펀치·처치 연출, 공격 어시스트 |
 
 ## 현재 코드 기준점 (이미 구현된 것)
 

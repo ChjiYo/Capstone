@@ -31,6 +31,45 @@
 #include "CombatPatternSubsystem.h"
 #include "GameFramework/PlayerController.h"
 #include "LevelTransitionSubsystem.h"
+#include "LockOnComponent.h"
+#include "Misc/App.h"
+
+namespace
+{
+	// LaunchCharacter로 초속 V0을 주면 지상 마찰(k)과 고정 감속(B)에 깎여 d(V0) = V0/k - (B/k^2) * ln(1 + k*V0/B) 만큼 미끄러지고 멈춘다.
+	// 캐릭터 무브먼트의 실제 마찰/감속 값으로 이 식을 이분 탐색해서, 원하는 거리만큼 정확히 파고드는 발사 속도를 구한다
+	float ComputeLaunchSpeedForTravel(const UCharacterMovementComponent& Movement, float Travel)
+	{
+		const float Friction = (Movement.bUseSeparateBrakingFriction ? Movement.BrakingFriction : Movement.GroundFriction) * Movement.BrakingFrictionFactor;
+		const float Deceleration = Movement.BrakingDecelerationWalking;
+
+		auto TravelDistance = [Friction, Deceleration](float Speed)
+		{
+			if (Friction < UE_KINDA_SMALL_NUMBER)
+				return Deceleration < UE_KINDA_SMALL_NUMBER ? Speed : Speed * Speed / (2.f * Deceleration);
+
+			if (Deceleration < UE_KINDA_SMALL_NUMBER)
+				return Speed / Friction;
+
+			return Speed / Friction - (Deceleration / (Friction * Friction)) * FMath::Loge(1.f + Friction * Speed / Deceleration);
+		};
+
+		float Low = 0.f;
+		float High = 8000.f;
+
+		for (int32 Iteration = 0; Iteration < 24; ++Iteration)
+		{
+			const float Mid = (Low + High) * 0.5f;
+
+			if (TravelDistance(Mid) < Travel)
+				Low = Mid;
+			else
+				High = Mid;
+		}
+
+		return High;
+	}
+}
 
 APy_Grey::FOnPlayerDodge APy_Grey::OnPlayerDodge;
 
@@ -70,6 +109,7 @@ APy_Grey::APy_Grey()
 	QuestComponent = CreateDefaultSubobject<UQuestComponent>(TEXT("QuestComponent"));
 	ExperienceComponent = CreateDefaultSubobject<UExperienceComponent>(TEXT("ExperienceComponent"));
 	StoryComponent = CreateDefaultSubobject<UStoryComponent>(TEXT("StoryComponent"));
+	LockOnComponent = CreateDefaultSubobject<ULockOnComponent>(TEXT("LockOnComponent"));
 
 	DeathWidgetClass = UUI_Death::StaticClass();
 
@@ -109,6 +149,13 @@ void APy_Grey::BeginPlay()
 
 
 	SuppressMontageDashEffects();
+
+	// 카메라 펀치가 되돌아갈 기준값. 블루프린트에서 조정한 FOV/위치를 그대로 존중한다
+	if (pCamera)
+	{
+		BaseCameraFOV = pCamera->FieldOfView;
+		BaseCameraRelativeLocation = pCamera->GetRelativeLocation();
+	}
 
 	GetCapsuleComponent()->SetCollisionProfileName(TEXT("Player"));
 	WeaponBox->SetCollisionProfileName(TEXT("PlayerAttack"));
@@ -270,6 +317,10 @@ void APy_Grey::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 	RestoreMontageDashEffects();
 
+	// 히트스톱 도중 폰이 사라져도 전역 시간이 느려진 채로 남지 않게 한다
+	HitStopRealEnd = 0.0;
+	UpdateTimeDilation();
+
 	if (UWorld* World = GetWorld())
 	{
 		World->GetTimerManager().ClearTimer(AttackBuffTimerHandle);
@@ -296,6 +347,10 @@ void APy_Grey::Tick(float DeltaTime)
 	if (bPowerSlashSwinging)
 		UpdatePowerSlashHit();
 
+	UpdateTimeDilation();
+
+	// 히트스톱으로 게임 시간이 거의 멈춰도 카메라 펀치는 굳지 않고 실시간으로 흘러야 한다
+	UpdateCameraPunch(FApp::GetDeltaTime());
 }
 
 void  APy_Grey::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
@@ -320,6 +375,43 @@ void  APy_Grey::SetupPlayerInputComponent(class UInputComponent* PlayerInputComp
 	PlayerInputComponent->BindAction(TEXT("UsePotion"), EInputEvent::IE_Pressed, this, &APy_Grey::UsePotion);
 
 	PlayerInputComponent->BindAction(TEXT("RollOrDash"), EInputEvent::IE_Pressed, this, &APy_Grey::RollOrDash);
+
+	PlayerInputComponent->BindAction(TEXT("LockOn"), EInputEvent::IE_Pressed, this, &APy_Grey::LockOnKey);
+	PlayerInputComponent->BindAction(TEXT("LockOnSwitchNext"), EInputEvent::IE_Pressed, this, &APy_Grey::LockOnSwitchNext);
+	PlayerInputComponent->BindAction(TEXT("LockOnSwitchPrev"), EInputEvent::IE_Pressed, this, &APy_Grey::LockOnSwitchPrev);
+}
+
+void APy_Grey::SetGameplayInputLocked(bool bLocked)
+{
+	bGameplayInputLocked = bLocked;
+
+	// UI/대사/사망 중에 카메라가 대상을 붙잡고 있으면 안 되므로 락온을 푼다
+	if (bLocked && LockOnComponent)
+		LockOnComponent->ReleaseLock();
+}
+
+void APy_Grey::LockOnKey()
+{
+	if (bIsDead || bGameplayInputLocked || !LockOnComponent)
+		return;
+
+	LockOnComponent->ToggleLockOn();
+}
+
+void APy_Grey::LockOnSwitchNext()
+{
+	if (bIsDead || bGameplayInputLocked || !LockOnComponent)
+		return;
+
+	LockOnComponent->SwitchTarget(1);
+}
+
+void APy_Grey::LockOnSwitchPrev()
+{
+	if (bIsDead || bGameplayInputLocked || !LockOnComponent)
+		return;
+
+	LockOnComponent->SwitchTarget(-1);
 }
 
 void APy_Grey::SetExplosiveBuffState(bool bIsActive)
@@ -422,11 +514,18 @@ void APy_Grey::MoveSide(float _fScale)
 
 void APy_Grey::RotationZ(float _fScale)
 {
+	// 락온 중에는 카메라가 대상에 고정되므로 좌우 마우스 입력은 대상 전환(플릭) 판정에만 쓴다
+	if (LockOnComponent && LockOnComponent->ConsumeLookInput(_fScale))
+		return;
+
 	AddControllerYawInput(_fScale);
 }
 
 void APy_Grey::RotationX(float _fScale)
 {
+	if (LockOnComponent && LockOnComponent->IsLockedOn())
+		return;
+
 	AddControllerPitchInput(_fScale);
 }
 
@@ -1122,21 +1221,144 @@ float APy_Grey::GetSkillCooldown(int32 SlotIndex) const
 
 void APy_Grey::PlayHitStop(float DurationScale)
 {
+	// 종료 시각은 실시간(월드 시간이 아닌 시계) 기준이라 배속의 영향을 받지 않는다. 연타로 겹치면 더 늦은 쪽을 유지
+	HitStopRealEnd = FMath::Max(HitStopRealEnd, FPlatformTime::Seconds() + HitStopDuration * DurationScale);
+
+	// 충돌한 바로 이 프레임부터 멈추도록 다음 Tick을 기다리지 않고 즉시 적용한다
+	UpdateTimeDilation();
+}
+
+void APy_Grey::UpdateTimeDilation()
+{
 	UWorld* World = GetWorld();
 	if (!World)
 		return;
 
-	UGameplayStatics::SetGlobalTimeDilation(World, HitStopTimeDilation);
+	const bool bHitStopActive = FPlatformTime::Seconds() < HitStopRealEnd;
+	const float Desired = bHitStopActive ? HitStopTimeDilation : 1.f;
 
-	// dilation이 적용된 뒤라 SetTimer의 실시간 길이가 짧아지므로, 노출된 실시간(초) 값에 dilation을 곱해 보정
-	World->GetTimerManager().SetTimer(HitStopTimerHandle, this, &APy_Grey::EndHitStop, HitStopDuration * DurationScale * HitStopTimeDilation, false);
+	if (FMath::IsNearlyEqual(Desired, AppliedTimeDilation))
+		return;
+
+	if (bHitStopActive)
+	{
+		// 시작 시점의 배속(보스 슬로모션 중일 수도 있음)을 기억해 두었다가 끝나면 그 값으로 돌려준다
+		if (AppliedTimeDilation >= 1.f)
+			DilationToRestore = UGameplayStatics::GetGlobalTimeDilation(World);
+
+		UGameplayStatics::SetGlobalTimeDilation(World, Desired);
+		AppliedTimeDilation = Desired;
+		return;
+	}
+
+	// 다른 시스템(보스 사망 슬로모션 등)이 히트스톱 도중 배속을 바꿨다면 그쪽 값을 존중하고 건드리지 않는다
+	if (FMath::IsNearlyEqual(UGameplayStatics::GetGlobalTimeDilation(World), AppliedTimeDilation))
+		UGameplayStatics::SetGlobalTimeDilation(World, DilationToRestore);
+
+	AppliedTimeDilation = 1.f;
 }
 
-void APy_Grey::EndHitStop()
+void APy_Grey::ApplyHitImpact(AMonster* Monster, const FVector& HitDirection, float FeelScale, bool bFinisher, bool bKnockback)
 {
-	UWorld* World = GetWorld();
-	if (World)
-		UGameplayStatics::SetGlobalTimeDilation(World, 1.f);
+	if (!IsValid(Monster))
+		return;
+
+	const bool bKilled = Monster->GetCurrentHp() <= 0;
+
+	// 메시 반동은 결정타에도 넣는다 (죽는 순간에도 맞는 느낌이 나야 한다). 피격 몽타주가 없는 보스도 이걸로 맞는 느낌이 난다
+	Monster->ApplyHitRecoil(HitDirection, HitRecoilDistance * FeelScale * (bFinisher ? FinisherRecoilScale : 1.f));
+
+	// 죽은 몬스터는 데스 모션이 재생되고 캡슐 콜리전도 꺼져 있어 밀면 바닥을 뚫을 수 있으므로 밀지 않는다. 보스는 밀리지 않는다
+	if (bKnockback && !bKilled && !Monster->bIsBoss)
+	{
+		const float KnockbackScale = bFinisher ? FinisherKnockbackScale : NormalKnockbackScale;
+		Monster->LaunchCharacter(HitDirection * Monster->KnockbackStrength * KnockbackScale, true, false);
+	}
+
+	AddCameraPunch(HitDirection, FeelScale * (bFinisher ? 1.5f : 1.f));
+
+	if (bKilled)
+	{
+		// 보스는 자체 사망 슬로모션이 있으므로 히트스톱까지 얹어 겹치지 않게 한다
+		if (!Monster->bIsBoss)
+			PlayHitStop(KillHitStopScale);
+
+		PlayCameraShake(StrongCameraShakeClass, KillCameraShakeScale);
+		PlayHitRumble(HitTakenRumbleIntensity, HitStopDuration * 3.f);
+	}
+}
+
+void APy_Grey::AddCameraPunch(const FVector& WorldDirection, float Scale)
+{
+	if (!pCamera)
+		return;
+
+	CameraPunchFOVCurrent = FMath::Min(CameraPunchFOVCurrent + CameraPunchFOV * Scale, CameraPunchFOV * 2.f);
+
+	// 카메라가 맞은 방향으로 파고들도록 월드 방향을 카메라 로컬로 바꿔 쌓는다
+	const FVector LocalDirection = pCamera->GetComponentTransform().InverseTransformVectorNoScale(WorldDirection.GetSafeNormal());
+	CameraPunchOffsetCurrent = (CameraPunchOffsetCurrent + LocalDirection * CameraPunchKick * Scale).GetClampedToMaxSize(CameraPunchKick * 2.f);
+}
+
+void APy_Grey::UpdateCameraPunch(float RealDelta)
+{
+	if (!pCamera)
+		return;
+
+	if (CameraPunchFOVCurrent < 0.01f && CameraPunchOffsetCurrent.IsNearlyZero(0.05f))
+	{
+		// 다 돌아왔으면 기준값으로 정확히 되돌려 두고, 이후로는 카메라를 건드리지 않는다
+		if (bCameraPunchApplied)
+		{
+			CameraPunchFOVCurrent = 0.f;
+			CameraPunchOffsetCurrent = FVector::ZeroVector;
+			pCamera->SetFieldOfView(BaseCameraFOV);
+			pCamera->SetRelativeLocation(BaseCameraRelativeLocation);
+			bCameraPunchApplied = false;
+		}
+
+		return;
+	}
+
+	// 맞은 프레임에는 가장 크게 튄 상태를 그대로 보여주고, 그 뒤부터 지수적으로 감쇠시킨다
+	pCamera->SetFieldOfView(BaseCameraFOV - CameraPunchFOVCurrent);
+	pCamera->SetRelativeLocation(BaseCameraRelativeLocation + CameraPunchOffsetCurrent);
+	bCameraPunchApplied = true;
+
+	const float Alpha = FMath::Clamp(RealDelta * CameraPunchReturnSpeed, 0.f, 1.f);
+	CameraPunchFOVCurrent = FMath::Lerp(CameraPunchFOVCurrent, 0.f, Alpha);
+	CameraPunchOffsetCurrent = FMath::Lerp(CameraPunchOffsetCurrent, FVector::ZeroVector, Alpha);
+}
+
+void APy_Grey::ApplyAttackAssist()
+{
+	UCharacterMovementComponent* Movement = GetCharacterMovement();
+
+	if (bIsDead || !LockOnComponent || !Movement || Movement->IsFalling())
+		return;
+
+	AMonster* Target = LockOnComponent->FindAssistTarget(AttackAssistRange, AttackAssistHalfAngle);
+
+	if (!IsValid(Target))
+		return;
+
+	FVector ToTarget = Target->GetActorLocation() - GetActorLocation();
+	ToTarget.Z = 0.f;
+
+	const float Distance = ToTarget.Size();
+
+	if (Distance < 1.f)
+		return;
+
+	// 캡슐 표면 사이의 거리로 재야 덩치 큰 보스 앞에서도 알맞은 위치에서 멈춘다
+	const float Gap = Distance - GetCapsuleComponent()->GetScaledCapsuleRadius() - Target->GetCapsuleComponent()->GetScaledCapsuleRadius();
+	const float Travel = FMath::Min(Gap - AttackAssistStopGap, AttackAssistMaxTravel);
+
+	// 이미 충분히 가까우면 파고들지 않는다 (콤보 후반부나 붙어 싸울 때 밀고 들어가 겹치는 일을 막는다)
+	if (Travel < 10.f)
+		return;
+
+	LaunchCharacter(ToTarget / Distance * ComputeLaunchSpeedForTravel(*Movement, Travel), true, false);
 }
 
 void APy_Grey::PlayCameraShake(TSubclassOf<UCameraShakeBase> ShakeClass, float Scale)
@@ -1211,6 +1433,14 @@ void APy_Grey::WepaonBeginOverlap(UPrimitiveComponent* OverlappedComponent, AAct
 		PlayHitStop(ComboScale);
 		PlayCameraShake(WeakCameraShakeClass, ComboScale);
 		PlayHitRumble(HitLandedRumbleIntensity * ComboScale, HitStopDuration * 2.f);
+
+		// 몬스터가 뒤로 밀리고 메시가 튕기며 카메라가 파고드는 임팩트. 마지막 콤보 타는 훨씬 크게 들어간다
+		if (AMonster* HitMonster = Cast<AMonster>(OtherActor))
+		{
+			const FVector HitDirection = (HitMonster->GetActorLocation() - GetActorLocation()).GetSafeNormal2D();
+
+			ApplyHitImpact(HitMonster, HitDirection, ComboScale, CurrentCombo >= FinisherComboIndex, true);
+		}
 
 		// 폭발 버프 중이 아니어도 매 타격마다 항상 나가는 기본 임팩트 이펙트(스파크+타격음)
 		SpawnAttachedHitEffect(NormalHitEffectClass, OtherActor, vImpactPoint, vImpactNormal);
@@ -1444,6 +1674,9 @@ void APy_Grey::UpdatePowerSlashHit()
 				{
 					SpawnAttachedHitEffect(HitEffectClass, Monster, ImpactPoint, ImpactNormal);
 				}
+
+				// 스킬 C는 마무리 타급 임팩트(반동/카메라 펀치/처치 연출). 넉백은 아래에서 전용 배율로 따로 처리한다
+				ApplyHitImpact(Monster, HitDir, 1.f, true, false);
 
 				// 살아남았다면 검이 휘둘러진 방향으로 크게 밀어낸다. 보스는 밀리지 않는다
 				if (Monster->GetCurrentHp() > 0 && !Monster->bIsBoss)

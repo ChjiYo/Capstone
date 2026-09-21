@@ -108,7 +108,13 @@ void UPy_GreyAnim::InherAttackStartNotify()
 	APy_Grey* pOwner = Cast<APy_Grey>(TryGetPawnOwner());
 
 	if (IsValid(pOwner))
+	{
 		pOwner->EnableWeaponCollision(true);
+
+		// 스윙이 시작되는 순간 대상 쪽으로 파고든다. 이 노티파이는 스킬 몽타주에서도 울릴 수 있으므로 일반 공격 중일 때만
+		if (Montage_IsPlaying(m_pMTGNormalAttack))
+			pOwner->ApplyAttackAssist();
+	}
 }
 
 void UPy_GreyAnim::InherNextAttackEndNotify()

@@ -167,6 +167,10 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	class UStoryComponent* StoryComponent;
 
+	// 락온(대상 고정 카메라) + 공격 어시스트 대상 탐색
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	class ULockOnComponent* LockOnComponent;
+
 	// 보스 유언 대사 (DL_BOSS_DEAD_01). 전투 연출 위에 겹쳐 나와야 하므로 입력을 막지 않는다
 	UPROPERTY(EditAnywhere, Category = "Story")
 	TArray<FName> BossDeathDialogueLines;
@@ -277,6 +281,63 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel")
 	float HitTakenRumbleIntensity = 0.6f;
 
+	// ===== 타격 임팩트: 몬스터의 반응(넉백/메시 반동) + 카메라 펀치 + 처치 연출 =====
+	// 이 번호(1부터)에 도달한 콤보 타를 마무리 타로 친다. 마무리 타와 스킬 C는 넉백/반동/카메라 펀치가 크게 들어간다
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel|Impact")
+	int32 FinisherComboIndex = 4;
+
+	// 일반 타격이 몬스터의 KnockbackStrength에 곱해져 밀어내는 배율. 마무리 타는 FinisherKnockbackScale (보스는 밀리지 않음)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel|Impact")
+	float NormalKnockbackScale = 1.2f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel|Impact")
+	float FinisherKnockbackScale = 4.f;
+
+	// 맞은 몬스터의 메시가 밀려나는 거리(cm). 콤보 배율이 곱해지고, 마무리 타는 FinisherRecoilScale배
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel|Impact")
+	float HitRecoilDistance = 12.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel|Impact")
+	float FinisherRecoilScale = 2.f;
+
+	// 명중 순간 카메라가 확 줌인(FOV 감소, 도)되고 타격 방향으로 밀려 들어가는 거리(cm). 이후 빠르게 제자리로 돌아온다
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel|Impact")
+	float CameraPunchFOV = 3.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel|Impact")
+	float CameraPunchKick = 8.f;
+
+	// 카메라 펀치가 원래대로 돌아오는 속도 (1/초, 지수 감쇠). 실시간 기준이라 히트스톱 중에도 그대로 흐른다
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel|Impact")
+	float CameraPunchReturnSpeed = 14.f;
+
+	// 몬스터를 처치한 타의 히트스톱 길이 배율(HitStopDuration 기준)과 카메라 셰이크 배율. 보스는 자체 사망 슬로모션이 있어 히트스톱을 더하지 않는다
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel|Impact")
+	float KillHitStopScale = 3.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel|Impact")
+	float KillCameraShakeScale = 1.5f;
+
+	// ===== 공격 어시스트: 일반 공격 스윙이 시작될 때 대상 쪽으로 파고든다 =====
+	// 대상은 락온 대상, 없으면 전방 AttackAssistHalfAngle 원뿔 안에서 AttackAssistRange(cm) 이내의 가장 가까운 몬스터
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel|AttackAssist")
+	float AttackAssistRange = 450.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel|AttackAssist")
+	float AttackAssistHalfAngle = 35.f;
+
+	// 나와 대상의 캡슐 표면 사이가 이 거리(cm)가 될 때까지만 다가간다. 이미 이 안쪽이면 파고들지 않는다
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel|AttackAssist")
+	float AttackAssistStopGap = 70.f;
+
+	// 한 스윙에 파고드는 최대 거리(cm)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel|AttackAssist")
+	float AttackAssistMaxTravel = 220.f;
+
+	// 일반 공격 스윙이 시작되는 순간 UPy_GreyAnim이 호출한다 (스킬 몽타주에서는 호출되지 않음)
+	void ApplyAttackAssist();
+
+
 	class UPy_GreyAnim* pGreyAnim;
 protected:
 	virtual void BeginPlay() override;
@@ -300,8 +361,8 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Skill|Shield")
 	float GetCurrentShield() const { return CurrentShield; }
 
-	// 인벤토리/상점 등 UI가 열려 있는 동안 공격·스킬 입력만 막는다 (이동은 계속 허용)
-	void SetGameplayInputLocked(bool bLocked) { bGameplayInputLocked = bLocked; }
+	// 인벤토리/상점 등 UI가 열려 있는 동안 공격·스킬 입력만 막는다 (이동은 계속 허용). 잠기는 순간 락온도 풀린다
+	void SetGameplayInputLocked(bool bLocked);
 
 	// OpenLevel(하드 레벨 전환)은 폰과 컴포넌트를 전부 파괴하므로, 인벤토리/경험치/체력/공격력/무기 강화 단계를 게임 인스턴스
 	// 서브시스템에 맡겨 새 폰이 BeginPlay에서 복원하게 한다. 포탈 이동과 사망 리스폰이 함께 쓴다
@@ -491,12 +552,15 @@ private:
 	void ToggleInventory();
 	void UsePotion();
 
+	void LockOnKey();
+	void LockOnSwitchNext();
+	void LockOnSwitchPrev();
+
 	void RollOrDash();
 
 private:
 	bool bInvincible = false;
 	FTimerHandle InvincibilityTimerHandle;
-	FTimerHandle HitStopTimerHandle;
 	FTimerHandle AirDashBrakingTimerHandle;
 	float DefaultBrakingDecelerationFalling = 0.f;
 	float DefaultFallingLateralFriction = 0.f;
@@ -510,10 +574,34 @@ private:
 
 	void EndInvincibility();
 	void RestoreAirBraking();
+
+	// 히트스톱: 게임 전체를 DurationScale * HitStopDuration(실시간 초) 동안 HitStopTimeDilation 배속으로 늦춘다.
+	// 타이머 대신 Tick이 실시간 종료 시각을 보고 배속을 되돌리므로, 연타로 여러 번 불려도 가장 늦은 종료 시각만 유지된다
 	void PlayHitStop(float DurationScale = 1.f);
-	void EndHitStop();
+	void UpdateTimeDilation();
 	void PlayCameraShake(TSubclassOf<class UCameraShakeBase> ShakeClass, float Scale = 1.f);
 	void PlayHitRumble(float Intensity, float Duration);
+
+	double HitStopRealEnd = 0.0;
+
+	// 마지막으로 내가 적용한 전역 배속. 다른 시스템(보스 사망 슬로모션 등)이 배속을 바꿔 뒀다면 내가 덮어써 끊지 않는다
+	float AppliedTimeDilation = 1.f;
+
+	// 히트스톱이 시작될 때의 전역 배속. 끝나면 1이 아니라 이 값으로 돌려줘서 이미 진행 중이던 슬로모션을 끊지 않는다
+	float DilationToRestore = 1.f;
+
+	// 몬스터를 맞힌 직후의 반응. bKnockback=false면 넉백은 호출자가 따로 처리한다(스킬 C)
+	void ApplyHitImpact(class AMonster* Monster, const FVector& HitDirection, float FeelScale, bool bFinisher, bool bKnockback);
+
+	// 명중 방향으로 카메라를 밀고 FOV를 좁혔다가 되돌린다 (UpdateCameraPunch가 실시간으로 감쇠)
+	void AddCameraPunch(const FVector& WorldDirection, float Scale);
+	void UpdateCameraPunch(float RealDelta);
+
+	float BaseCameraFOV = 90.f;
+	FVector BaseCameraRelativeLocation = FVector::ZeroVector;
+	float CameraPunchFOVCurrent = 0.f;
+	FVector CameraPunchOffsetCurrent = FVector::ZeroVector;
+	bool bCameraPunchApplied = false;
 
 public:
 	void EnableWeaponCollision(bool bEnable);

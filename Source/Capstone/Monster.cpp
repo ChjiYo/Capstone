@@ -88,6 +88,10 @@ void AMonster::BeginPlay()
 	if (IsValid(HpBarWidget))
 		HpBarWidget->SetHp(m_tInfo.iHp / static_cast<float>(m_tInfo.iMaxHp));
 
+	// 생성자/블루프린트가 정해 둔 메시 위치를 반동 연출의 기준점으로 기억해 둔다
+	if (GetMesh())
+		MeshBaseRelativeLocation = GetMesh()->GetRelativeLocation();
+
 	if (USkeletalMeshComponent* MonsterMesh = GetMesh())
 	{
 		HitFlashMaterials.Reset();
@@ -151,8 +155,61 @@ void AMonster::Tick(float DeltaTime)
 	}
 
 	UpdateHitFlash(DeltaTime);
+	UpdateHitRecoil(DeltaTime);
 	UpdateDeathSequence(DeltaTime);
 	UpdateHpBarVisibility();
+}
+
+FVector AMonster::GetLockOnPoint() const
+{
+	if (LockOnSocketName != NAME_None && GetMesh() && GetMesh()->DoesSocketExist(LockOnSocketName))
+		return GetMesh()->GetSocketLocation(LockOnSocketName);
+
+	return GetActorLocation() + FVector(0.f, 0.f, LockOnHeightOffset);
+}
+
+void AMonster::ApplyHitRecoil(const FVector& HitDirection, float Distance)
+{
+	if (!GetMesh() || Distance <= 0.f)
+		return;
+
+	const FVector Direction = HitDirection.GetSafeNormal2D();
+
+	if (Direction.IsNearlyZero())
+		return;
+
+	// 메시는 캡슐(루트)의 자식이라 상대 위치 기준으로 옮겨야 하므로 월드 방향을 액터 로컬로 바꿔 쌓는다.
+	// 죽는 순간의 결정타에도 반동이 들어가도록 사망(디졸브) 여부는 검사하지 않는다
+	const FVector LocalDirection = GetActorTransform().InverseTransformVectorNoScale(Direction);
+
+	HitRecoilOffset = (HitRecoilOffset + LocalDirection * Distance * HitRecoilScale).GetClampedToMaxSize(MaxHitRecoil);
+}
+
+void AMonster::UpdateHitRecoil(float DeltaTime)
+{
+	USkeletalMeshComponent* MonsterMesh = GetMesh();
+
+	if (!MonsterMesh)
+		return;
+
+	if (HitRecoilOffset.IsNearlyZero(0.05f))
+	{
+		// 다 돌아왔으면 기준 위치로 정확히 되돌려 두고, 이후로는 메시를 건드리지 않는다
+		if (bRecoilApplied)
+		{
+			HitRecoilOffset = FVector::ZeroVector;
+			MonsterMesh->SetRelativeLocation(MeshBaseRelativeLocation);
+			bRecoilApplied = false;
+		}
+
+		return;
+	}
+
+	// 맞은 프레임에는 밀린 자리를 그대로 보여주고(최대 변위), 그 뒤부터 감쇠시킨다
+	MonsterMesh->SetRelativeLocation(MeshBaseRelativeLocation + HitRecoilOffset);
+	bRecoilApplied = true;
+
+	HitRecoilOffset = FMath::VInterpTo(HitRecoilOffset, FVector::ZeroVector, DeltaTime, HitRecoilReturnSpeed);
 }
 
 void AMonster::UpdateHpBarVisibility()
@@ -163,7 +220,8 @@ void AMonster::UpdateHpBarVisibility()
 	// UBTService_Detect가 fTraceRange 안에서 플레이어를 찾으면 SetTarget으로 채워두므로,
 	// 이 값의 유무로 탐지 여부를 그대로 판단한다
 	AMonsterAIController* pAIController = Cast<AMonsterAIController>(GetController());
-	const bool bDetected = pAIController && pAIController->GetTarget() != nullptr;
+	// 락온된 몬스터는 아직 플레이어를 감지하지 못했더라도 HP를 확인할 수 있어야 한다
+	const bool bDetected = bLockedOn || (pAIController && pAIController->GetTarget() != nullptr);
 
 	if (HpBarComponent->IsVisible() != bDetected)
 		HpBarComponent->SetVisibility(bDetected);

@@ -79,6 +79,37 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MonsterAttack")
 	float KnockbackStrength = 300.f;
 
+	// ===== 타격 반동 =====
+	// 플레이어에게 맞는 순간 메시가 맞은 방향으로 밀렸다가 제자리로 튕겨 돌아오는 연출 (콜리전/AI에는 영향 없음).
+	// 피격 몽타주가 없는 슈퍼아머 몬스터(보스)도 맞는 느낌이 나도록 메시 오프셋만으로 표현한다
+	// 몬스터별 반동 세기 배율. 보스처럼 무거운 몬스터는 BP나 생성자에서 낮춘다
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel|Recoil")
+	float HitRecoilScale = 1.f;
+
+	// 반동 오프셋이 제자리로 돌아오는 속도. 클수록 빨리 튕겨 돌아온다 (1/초, 지수 감쇠)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel|Recoil")
+	float HitRecoilReturnSpeed = 14.f;
+
+	// 연타로 반동이 겹쳐도 메시가 이 거리(cm) 이상 밀려나지 않는다
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel|Recoil")
+	float MaxHitRecoil = 40.f;
+
+	// ===== 락온 =====
+	// false면 락온 대상으로 잡히지 않는다 (무적 연출용 몬스터 등)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "LockOn")
+	bool bCanBeLockedOn = true;
+
+	// 락온 카메라가 바라보고 마커가 뜨는 지점. 소켓이 지정돼 있고 실제로 존재하면 그 소켓을, 아니면 액터 위치 + 높이 보정을 쓴다
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "LockOn")
+	FName LockOnSocketName = NAME_None;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "LockOn")
+	float LockOnHeightOffset = 0.f;
+
+	// 락온 마커 크기 배율. 덩치 큰 몬스터는 키운다
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "LockOn")
+	float LockOnMarkerScale = 1.f;
+
 	// 피격 시 잠깐 번쩍이는 머티리얼 플래시 효과. 몬스터 머티리얼에 이 이름의 스칼라 파라미터가 있어야 실제로 보임
 	// (없으면 조용히 무시됨 - 에디터에서 머티리얼에 파라미터를 추가해줘야 함)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "HitFeel")
@@ -157,7 +188,28 @@ private:
 	float DebugDissolveLogAccum = 0.f;
 
 
+	// 메시 반동 (ApplyHitRecoil이 목표를 쌓고 Tick이 감쇠시키며 메시 상대 위치에 반영)
+	FVector MeshBaseRelativeLocation = FVector::ZeroVector;
+	FVector HitRecoilOffset = FVector::ZeroVector;
+	bool bRecoilApplied = false;
+
+	void UpdateHitRecoil(float DeltaTime);
+
+	bool bLockedOn = false;
+
+
 public:
+	// 락온 카메라/마커가 겨냥하는 월드 좌표
+	FVector GetLockOnPoint() const;
+
+	// ULockOnComponent가 대상이 될 때/풀릴 때 호출. 락온된 동안은 탐지 여부와 무관하게 HP바를 보여준다
+	void SetLockedOn(bool bLocked) { bLockedOn = bLocked; }
+
+	bool IsLockedOn() const { return bLockedOn; }
+
+	// 맞은 방향(월드, 수평 성분만 사용)으로 Distance(cm)만큼 메시를 밀어낸다. 이후 Tick에서 서서히 제자리로 돌아온다
+	void ApplyHitRecoil(const FVector& HitDirection, float Distance);
+
 	template<typename T>
 	void AddAttackEndDelegate(T* pObj, void(T::* pFunc)())
 	{
