@@ -3,6 +3,8 @@
 #include "EffectDestroy.h"
 #include "ItemBase.h"
 #include "InventoryComponent.h"
+#include "EquipmentComponent.h"
+#include "UI_Equipment.h"
 #include "QuestComponent.h"
 #include "ExperienceComponent.h"
 #include "UI_HpBar.h"
@@ -80,9 +82,10 @@ APy_Grey::APy_Grey()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	m_tInfo.iMaxHp = 200;
-	m_tInfo.iHp = 200;
-	m_tInfo.iAttack = 10;
+	// 기본 검(+5 공격력)과 기본 방패(+40 체력)를 끼고 시작하면 예전과 같은 공격력 10 / 체력 200이 된다 (UEquipmentComponent::EquipDefaults)
+	m_tInfo.iMaxHp = 160;
+	m_tInfo.iHp = 160;
+	m_tInfo.iAttack = 5;
 
 	pArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("Arm"));
 	pCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
@@ -107,12 +110,14 @@ APy_Grey::APy_Grey()
 	WeaponBox->SetupAttachment(GetMesh(), TEXT("FX_Sword_Mid"));
 
 	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>(TEXT("InventoryComponent"));
+	EquipmentComponent = CreateDefaultSubobject<UEquipmentComponent>(TEXT("EquipmentComponent"));
 	QuestComponent = CreateDefaultSubobject<UQuestComponent>(TEXT("QuestComponent"));
 	ExperienceComponent = CreateDefaultSubobject<UExperienceComponent>(TEXT("ExperienceComponent"));
 	StoryComponent = CreateDefaultSubobject<UStoryComponent>(TEXT("StoryComponent"));
 	LockOnComponent = CreateDefaultSubobject<ULockOnComponent>(TEXT("LockOnComponent"));
 
 	DeathWidgetClass = UUI_Death::StaticClass();
+	EquipmentWidgetClass = UUI_Equipment::StaticClass();
 
 	static ConstructorHelpers::FObjectFinder<UAnimSequence> DeathAnimAsset(TEXT("/Game/ParagonGreystone/Characters/Heroes/Greystone/Animations/Death.Death"));
 
@@ -186,6 +191,8 @@ void APy_Grey::BeginPlay()
 	WeaponBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	WeaponBox->SetBoxExtent({ 7.5f, 2.5f, 60.f});
 
+	bool bRestoredEquipment = false;
+
 	// 포탈을 통해 방금 다른 레벨에서 넘어온 경우, 파괴되기 전 폰이 맡겨둔 체력을 복원한다
 	// (인벤토리/경험치와 동일한 패턴 — 안 하면 OpenLevel로 폰이 새로 생성될 때마다 생성자의 풀피로 되돌아감)
 	if (UGameInstance* GI = GetGameInstance())
@@ -208,7 +215,26 @@ void APy_Grey::BeginPlay()
 				m_tInfo.iAttack = SavedAttack;
 				WeaponLevel = SavedWeaponLevel;
 			}
+
+			// 장착 중이던 검/방패는 모습만 복원한다 (그 보너스는 위에서 복원한 공격력/체력에 이미 들어 있다)
+			TArray<FName> SavedEquipment;
+			if (EquipmentComponent && TransitionSubsystem->ConsumePendingEquipment(SavedEquipment))
+			{
+				EquipmentComponent->RestoreEquipped(SavedEquipment);
+				bRestoredEquipment = true;
+			}
 		}
+	}
+
+	// 레벨을 거치지 않고 새로 시작한 경우: 기본 검과 방패를 끼고 그 보너스를 더한다
+	if (EquipmentComponent && !bRestoredEquipment)
+	{
+		EquipmentComponent->EquipDefaults();
+	}
+
+	if (EquipmentComponent)
+	{
+		EquipmentComponent->OnEquipmentChanged.AddDynamic(this, &APy_Grey::HandleEquipmentChanged);
 	}
 
 	if (IsValid(PlayerHpBarClass))
@@ -427,6 +453,7 @@ void  APy_Grey::SetupPlayerInputComponent(class UInputComponent* PlayerInputComp
 
 	PlayerInputComponent->BindAction(TEXT("Interact"), EInputEvent::IE_Pressed, this, &APy_Grey::OnInteractKeyPressed);
 	PlayerInputComponent->BindAction(TEXT("Inventory"), EInputEvent::IE_Pressed, this, &APy_Grey::ToggleInventory);
+	PlayerInputComponent->BindAction(TEXT("Equipment"), EInputEvent::IE_Pressed, this, &APy_Grey::ToggleEquipment);
 	PlayerInputComponent->BindAction(TEXT("UsePotion"), EInputEvent::IE_Pressed, this, &APy_Grey::UsePotion);
 
 	PlayerInputComponent->BindAction(TEXT("RollOrDash"), EInputEvent::IE_Pressed, this, &APy_Grey::RollOrDash);
@@ -443,6 +470,32 @@ void APy_Grey::SetGameplayInputLocked(bool bLocked)
 	// UI/대사/사망 중에 카메라가 대상을 붙잡고 있으면 안 되므로 락온을 푼다
 	if (bLocked && LockOnComponent)
 		LockOnComponent->ReleaseLock();
+}
+
+void APy_Grey::RefreshPanelInputMode()
+{
+	const bool bAnyPanelOpen = (IsValid(InventoryWidget) && InventoryWidget->IsInViewport())
+		|| (IsValid(EquipmentWidget) && EquipmentWidget->IsInViewport());
+
+	SetGameplayInputLocked(bAnyPanelOpen);
+
+	APlayerController* PC = Cast<APlayerController>(GetController());
+
+	if (!PC)
+		return;
+
+	if (bAnyPanelOpen)
+	{
+		PC->bShowMouseCursor = true;
+		PC->SetInputMode(FInputModeGameAndUI());
+	}
+	else
+	{
+		PC->bShowMouseCursor = false;
+		PC->SetInputMode(FInputModeGameOnly());
+		// UI가 떠 있는 동안 마우스 클릭(NormalAttack 키) 등이 눌린 채로 걸려 있을 수 있어 초기화
+		PC->FlushPressedKeys();
+	}
 }
 
 void APy_Grey::LockOnKey()
@@ -721,38 +774,66 @@ void APy_Grey::ToggleInventory()
 	if (!InventoryWidget)
 		return;
 
-	APlayerController* PC = Cast<APlayerController>(GetController());
-
 	if (InventoryWidget->IsInViewport())
 	{
 		InventoryWidget->RemoveFromParent();
-		SetGameplayInputLocked(false);
 		CapstoneSFX::Play2D(this, ESFX::UI_Close);
-
-		if (PC)
-		{
-			PC->bShowMouseCursor = false;
-			PC->SetInputMode(FInputModeGameOnly());
-			// UI가 떠 있는 동안 마우스 클릭(NormalAttack 키) 등이 눌린 채로 걸려 있을 수 있어 초기화
-			PC->FlushPressedKeys();
-		}
 	}
 	else
 	{
 		InventoryWidget->AddToViewport();
 		CapstoneSFX::Play2D(this, ESFX::UI_Open);
-		SetGameplayInputLocked(true);
 
 		if (InventoryComponent)
 		{
 			InventoryWidget->RefreshInventoryUI(InventoryComponent);
 		}
+	}
 
-		if (PC)
-		{
-			PC->bShowMouseCursor = true;
-			PC->SetInputMode(FInputModeGameAndUI());
-		}
+	RefreshPanelInputMode();
+}
+
+void APy_Grey::ToggleEquipment()
+{
+	if (bIsDead || !EquipmentComponent || !IsValid(EquipmentWidgetClass))
+		return;
+
+	APlayerController* PC = Cast<APlayerController>(GetController());
+
+	if (!PC)
+		return;
+
+	if (!IsValid(EquipmentWidget))
+	{
+		EquipmentWidget = CreateWidget<UUI_Equipment>(PC, EquipmentWidgetClass);
+
+		if (!IsValid(EquipmentWidget))
+			return;
+
+		EquipmentWidget->InitEquipment(this);
+		EquipmentWidget->OnCloseRequested.AddUObject(this, &APy_Grey::ToggleEquipment);
+	}
+
+	if (EquipmentWidget->IsInViewport())
+	{
+		EquipmentWidget->RemoveFromParent();
+		CapstoneSFX::Play2D(this, ESFX::UI_Close);
+	}
+	else
+	{
+		EquipmentWidget->AddToViewport();
+		EquipmentWidget->PlaceInViewport();
+		CapstoneSFX::Play2D(this, ESFX::UI_Open);
+	}
+
+	RefreshPanelInputMode();
+}
+
+void APy_Grey::HandleEquipmentChanged()
+{
+	if (IsValid(PlayerHpBar))
+	{
+		PlayerHpBar->SetHpValue(m_tInfo.iHp, m_tInfo.iMaxHp);
 	}
 }
 
@@ -1112,6 +1193,12 @@ void APy_Grey::HandleDeath(AController* EventInstigator, AActor* DamageCauser)
 	if (IsValid(InventoryWidget) && InventoryWidget->IsInViewport())
 		ToggleInventory();
 
+	if (IsValid(EquipmentWidget) && EquipmentWidget->IsInViewport())
+	{
+		EquipmentWidget->RemoveFromParent();
+		RefreshPanelInputMode();
+	}
+
 	if (StoryComponent && StoryComponent->IsPlaying())
 		StoryComponent->StopDialogue();
 
@@ -1219,6 +1306,12 @@ void APy_Grey::SaveStateForLevelTransition(ULevelTransitionSubsystem& Transition
 
 	// 레벨업/무기 강화로 오른 공격력과 강화 단계 (스킬 A 버프는 타격 시점에 배율만 곱하므로 m_tInfo.iAttack에는 들어 있지 않다)
 	TransitionSubsystem.SetPendingCombatStats(GetAttackPower(), WeaponLevel);
+
+	// 끼고 있는 검/방패 (보너스는 위 공격력/체력에 이미 포함돼 있으므로 새 폰은 모습만 복원한다)
+	if (EquipmentComponent)
+	{
+		TransitionSubsystem.SetPendingEquipment(EquipmentComponent->GetEquippedItems());
+	}
 }
 
 int32 APy_Grey::GetNextEnhanceGoldCost() const

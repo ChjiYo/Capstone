@@ -55,8 +55,12 @@ public:
 	// iMaxHp 상한까지 iHp를 회복시킨다 (포션 등에서 사용)
 	void Heal(int32 Amount);
 
-	// 공격력을 증가시킨다 (레벨업, 무기 강화 등에서 사용)
+	// 공격력을 증가시킨다 (레벨업, 무기 강화 등에서 사용). 장비 해제처럼 음수도 받는다
 	void AddAttackPower(int32 Amount);
+
+	// 최대 체력을 Amount만큼 바꾼다 (장비 착용/해제용, 음수 가능). 다친 상태에서 착용해도 공짜로 회복되지는 않도록,
+	// 늘릴 때는 원래 풀피였을 때만 현재 체력도 함께 채우고, 줄일 때는 현재 체력이 새 최대치를 넘지 않게 자른다
+	void AddMaxHp(int32 Amount);
 
 	UFUNCTION(BlueprintPure, Category = "Stat")
 	int32 GetAttackPower() const { return m_tInfo.iAttack; }

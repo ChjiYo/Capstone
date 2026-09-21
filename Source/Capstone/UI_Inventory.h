@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "GameInfo.h"
 #include "Blueprint/UserWidget.h"
@@ -22,6 +22,9 @@ protected:
     virtual void NativeConstruct() override;
     virtual void NativeDestruct() override;
     virtual FReply NativeOnMouseButtonDown(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
+
+    // 장비창의 칸을 끌어다 이 창 위에 놓으면 그 장비를 벗어 인벤토리로 돌려보낸다
+    virtual bool NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation) override;
 
     // InventoryComponent::OnInventoryChanged 구독 콜백 — 포션 사용 등으로 인벤토리가 바뀔 때마다 자동 새로고침
     UFUNCTION()

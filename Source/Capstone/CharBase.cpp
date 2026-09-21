@@ -54,6 +54,21 @@ void ACharBase::AddAttackPower(int32 Amount)
 	m_tInfo.iAttack += Amount;
 }
 
+void ACharBase::AddMaxHp(int32 Amount)
+{
+	if (Amount == 0)
+		return;
+
+	const bool bWasFull = m_tInfo.iHp >= m_tInfo.iMaxHp;
+
+	m_tInfo.iMaxHp = FMath::Max(1, m_tInfo.iMaxHp + Amount);
+
+	if (Amount > 0 && bWasFull)
+		m_tInfo.iHp = m_tInfo.iMaxHp;
+	else
+		m_tInfo.iHp = FMath::Min(m_tInfo.iHp, m_tInfo.iMaxHp);
+}
+
 float ACharBase::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
 

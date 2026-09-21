@@ -78,6 +78,13 @@ ACharacter (엔진)
 - `UInventoryComponent::Items`는 아이템 ID들의 단순한 `TArray<FName>`입니다 (`FQuestReward::RewardItemID`와 동일한 식별자 공간을 공유).
 - `UUI_Inventory`/`UUI_InventorySlot`이 인벤토리 위젯을 렌더링하고, `APy_Grey::ToggleInventory`가 이를 열고 닫습니다.
 
+### 장비 (검/방패, 'U' 장비창)
+
+- `UEquipmentComponent`(`APy_Grey`가 보유)가 무기/방패 칸(`EEquipSlot`)의 착탈, 공격력·최대 체력 보너스(`ACharBase::AddAttackPower/AddMaxHp`로 `m_tInfo`에 더하고 뺌), 손에 보이는 모델을 맡습니다. 장착하면 인벤토리에서 빠지고 해제하면 인벤토리로 돌아갑니다.
+- 플레이어 메시(Greystone)의 검/방패는 스킨에 구워져 있어서, 기본 검/방패는 본(`sword_*`, `shield_*`)을 `HideBoneByName`으로 숨기고 보이는 것으로 착탈을 표현합니다. 다른 무기(고블린 소드)는 `UStaticMeshComponent`를 `sword_bottom` 본에 붙입니다.
+- 장비 정보의 원본은 `FItemData`의 장비 필드(`EquipSlot` 등)이고, `DT_Item`(바이너리)에 값이 없는 행은 `EquipmentData.cpp`의 코드 정의(`EquipDefs`)를 ItemID로 찾아 씁니다. 기본 스탯이 공격력 5/체력 160이고 기본 검(+5)/방패(+40)를 끼고 시작해 합계가 10/200입니다.
+- 장비창 `UUI_Equipment`/`UUI_EquipSlot`은 WBP 없이 C++로만 조립합니다 (`UI_QuestStyle.h` 팔레트 재사용). 인벤토리 슬롯 클릭/드래그로 장착, 장비 칸 클릭/인벤토리로 드래그로 해제. 장착 상태는 `ULevelTransitionSubsystem`을 통해 레벨 이동/리스폰 뒤에도 복원됩니다 (보너스는 이미 저장된 스탯에 포함돼 있으므로 다시 더하지 않음). 자세한 내용은 `Docs/16_equipment.md`.
+
 ### 사운드
 
 - `CapstoneSFX.h/.cpp`가 효과음 재생을 전부 맡습니다. `ESFX` 열거형 + `Table()`(에셋 경로/볼륨/피치/거리 감쇠/최소 간격)이 한 곳에 있고, 게임플레이 코드는 `CapstoneSFX::Play2D/PlayAt(this, ESFX::...)` 한 줄만 부릅니다. `UCapstoneLevelAudio`가 맵 이름별 환경음/음악을 깝니다.

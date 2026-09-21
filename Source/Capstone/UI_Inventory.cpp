@@ -1,6 +1,8 @@
-#include "UI_Inventory.h"
+﻿#include "UI_Inventory.h"
 #include "InventoryComponent.h"
 #include "UI_InventorySlot.h"
+#include "UI_ItemDrag.h"
+#include "EquipmentComponent.h"
 #include "Py_Grey.h"
 #include "Components/Button.h"
 #include "Components/WrapBox.h"
@@ -104,6 +106,22 @@ FReply UUI_Inventory::NativeOnMouseButtonDown(const FGeometry& InGeometry, const
 	return Super::NativeOnMouseButtonDown(InGeometry, InMouseEvent);
 }
 
+bool UUI_Inventory::NativeOnDrop(const FGeometry& InGeometry, const FDragDropEvent& InDragDropEvent, UDragDropOperation* InOperation)
+{
+	const UItemDragDropOperation* Operation = Cast<UItemDragDropOperation>(InOperation);
+
+	if (!Operation || Operation->FromEquipSlot == EEquipSlot::None)
+		return Super::NativeOnDrop(InGeometry, InDragDropEvent, InOperation);
+
+	if (APy_Grey* Player = Cast<APy_Grey>(GetOwningPlayerPawn()))
+	{
+		if (Player->EquipmentComponent)
+			Player->EquipmentComponent->Unequip(Operation->FromEquipSlot);
+	}
+
+	return true;
+}
+
 void UUI_Inventory::OnCloseButtonClicked()
 {
 	RemoveFromParent();
@@ -111,14 +129,16 @@ void UUI_Inventory::OnCloseButtonClicked()
 	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	if (PC)
 	{
+		// 장비창이 함께 열려 있으면 입력 잠금/마우스 커서를 유지해야 하므로 플레이어가 두 창의 상태를 보고 정리한다
+		if (APy_Grey* Player = Cast<APy_Grey>(PC->GetPawn()))
+		{
+			Player->RefreshPanelInputMode();
+			return;
+		}
+
 		PC->bShowMouseCursor = false;
 		PC->SetInputMode(FInputModeGameOnly());
 		// UI가 떠 있는 동안 마우스 클릭(NormalAttack 키) 등이 눌린 채로 걸려 있을 수 있어 초기화
 		PC->FlushPressedKeys();
-
-		if (APy_Grey* Player = Cast<APy_Grey>(PC->GetPawn()))
-		{
-			Player->SetGameplayInputLocked(false);
-		}
 	}
 }

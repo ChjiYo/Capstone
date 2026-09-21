@@ -47,6 +47,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<class UUI_Inventory> InventoryWidgetClass;
 
+	// 'U' 키로 여는 장비창. 기본값은 위젯 블루프린트 없이 C++로 조립하는 UUI_Equipment이고, 꾸미고 싶으면 UUI_Equipment를 부모로 한 WBP를 지정하면 된다
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "UI")
+	TSubclassOf<class UUI_Equipment> EquipmentWidgetClass;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<class UUI_QuestTracker> QuestTrackerWidgetClass;
 
@@ -126,6 +130,9 @@ protected:
 	UUI_Inventory* InventoryWidget = nullptr;
 
 	UPROPERTY()
+	class UUI_Equipment* EquipmentWidget = nullptr;
+
+	UPROPERTY()
 	class UUI_QuestTracker* QuestTrackerWidget = nullptr;
 
 	UPROPERTY()
@@ -169,6 +176,10 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	class UQuestComponent* QuestComponent;
+
+	// 끼고 있는 검/방패와 그 보너스, 손에 보이는 모델
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	class UEquipmentComponent* EquipmentComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	class UExperienceComponent* ExperienceComponent;
@@ -378,6 +389,10 @@ public:
 	// 인벤토리/상점 등 UI가 열려 있는 동안 공격·스킬 입력만 막는다 (이동은 계속 허용). 잠기는 순간 락온도 풀린다
 	void SetGameplayInputLocked(bool bLocked);
 
+	// 인벤토리창/장비창은 함께 열어 둘 수 있으므로, 둘 중 하나라도 열려 있으면 입력 잠금+마우스 커서를 켜고 둘 다 닫히면 게임 입력으로 되돌린다.
+	// 창이 열리고 닫힐 때마다 이 함수로 상태를 맞춘다
+	void RefreshPanelInputMode();
+
 	// OpenLevel(하드 레벨 전환)은 폰과 컴포넌트를 전부 파괴하므로, 인벤토리/경험치/체력/공격력/무기 강화 단계를 게임 인스턴스
 	// 서브시스템에 맡겨 새 폰이 BeginPlay에서 복원하게 한다. 포탈 이동과 사망 리스폰이 함께 쓴다
 	// (퀘스트는 UQuestComponent가 상태가 바뀔 때마다 UQuestStateSubsystem에 직접 저장하므로 여기서 다루지 않는다)
@@ -564,7 +579,12 @@ private:
 	void SkillSlotC();
 	void OnInteractKeyPressed();
 	void ToggleInventory();
+	void ToggleEquipment();
 	void UsePotion();
+
+	// 장비를 끼거나 벗어 최대 체력이 바뀌면 HUD 체력바를 다시 그린다
+	UFUNCTION()
+	void HandleEquipmentChanged();
 
 	void LockOnKey();
 	void LockOnSwitchNext();

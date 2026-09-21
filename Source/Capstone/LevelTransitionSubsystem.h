@@ -112,8 +112,30 @@ public:
 		return true;
 	}
 
+	// 포탈/리스폰으로 OpenLevel 하기 직전, 장착 중인 아이템 ID(칸 순서: 무기, 방패)를 보관해둔다.
+	// 장비 보너스는 이미 SetPendingCombatStats의 공격력/체력에 포함돼 있으므로, 새 폰은 보너스를 다시 더하지 않고 모습만 복원한다
+	void SetPendingEquipment(const TArray<FName>& InEquipped)
+	{
+		PendingEquipped = InEquipped;
+		bHasPendingEquipment = true;
+	}
+
+	// 한 번 읽으면 비워짐 — 넘겨받은 값이 없는 최초 시작 시에는 false를 반환해 기본 장비로 시작
+	bool ConsumePendingEquipment(TArray<FName>& OutEquipped)
+	{
+		if (!bHasPendingEquipment)
+			return false;
+
+		OutEquipped = PendingEquipped;
+		bHasPendingEquipment = false;
+		return true;
+	}
+
 private:
 	FName PendingPlayerStartTag = NAME_None;
+
+	TArray<FName> PendingEquipped;
+	bool bHasPendingEquipment = false;
 
 	TArray<FInventorySlot> PendingInventoryItems;
 	int32 PendingInventoryGold = 0;

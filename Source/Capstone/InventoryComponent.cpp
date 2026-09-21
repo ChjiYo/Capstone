@@ -2,6 +2,7 @@
 #include "Monster.h"
 #include "LevelTransitionSubsystem.h"
 #include "CapstoneSFX.h"
+#include "EquipmentData.h"
 
 UInventoryComponent::UInventoryComponent()
 {
@@ -38,12 +39,60 @@ void UInventoryComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
     Super::EndPlay(EndPlayReason);
 }
 
-const FItemData* UInventoryComponent::GetItemData(FName ItemID) const
+const FItemData* UInventoryComponent::FindTableRow(FName ItemID) const
 {
     if (!ItemDataTable)
         return nullptr;
 
-    return ItemDataTable->FindRow<FItemData>(ItemID, TEXT("UInventoryComponent::GetItemData"));
+    return ItemDataTable->FindRow<FItemData>(ItemID, TEXT("UInventoryComponent::FindTableRow"));
+}
+
+const FItemData* UInventoryComponent::GetItemData(FName ItemID) const
+{
+    if (const FItemData* Row = FindTableRow(ItemID))
+        return Row;
+
+    if (const FItemData* Cached = SyntheticItems.Find(ItemID))
+        return Cached;
+
+    // 표에 없더라도 코드에 정의된 장비(기본 검/방패 등)는 인벤토리에서 이름과 아이콘이 나오도록 행을 만들어 준다
+    if (const FEquipInfo* Def = EquipDefs::FindDefinition(ItemID))
+    {
+        FItemData Data;
+        Data.DisplayName = Def->Name;
+        Data.ItemType = EItemType::Weapon;
+        Data.MaxStack = 1;
+        Data.EquipSlot = Def->Slot;
+        Data.AttackBonus = Def->AttackBonus;
+        Data.MaxHpBonus = Def->MaxHpBonus;
+
+        return &SyntheticItems.Add(ItemID, Data);
+    }
+
+    return nullptr;
+}
+
+bool UInventoryComponent::CanAddItem(FName ItemID, int32 Count) const
+{
+    if (ItemID.IsNone() || Count <= 0)
+        return false;
+
+    int32 MaxStack = 99;
+    if (const FItemData* Data = GetItemData(ItemID))
+        MaxStack = FMath::Max(1, Data->MaxStack);
+
+    int32 Remaining = Count;
+    for (const FInventorySlot& Slot : Items)
+    {
+        if (Slot.ItemID == ItemID)
+            Remaining -= FMath::Max(0, MaxStack - Slot.Count);
+    }
+
+    if (Remaining <= 0)
+        return true;
+
+    const int32 NeededSlots = FMath::DivideAndRoundUp(Remaining, MaxStack);
+    return Items.Num() + NeededSlots <= MaxSlots;
 }
 
 void UInventoryComponent::AddItem(FName ItemID, int32 Count)
@@ -54,30 +103,37 @@ void UInventoryComponent::AddItem(FName ItemID, int32 Count)
     int32 MaxStack = 99;
     if (const FItemData* Data = GetItemData(ItemID))
     {
-        MaxStack = Data->MaxStack;
+        MaxStack = FMath::Max(1, Data->MaxStack);
     }
+
+    // 기존 스택의 남은 자리부터 채우고, 넘치는 만큼은 새 스택으로 만든다 (장비처럼 MaxStack이 1인 아이템을 여러 개 들 수 있게)
+    int32 Remaining = Count;
 
     for (FInventorySlot& Slot : Items)
     {
-        if (Slot.ItemID == ItemID)
-        {
-            Slot.Count = FMath::Min(Slot.Count + Count, MaxStack);
+        if (Remaining <= 0)
+            break;
 
-            OnInventoryChanged.Broadcast();
+        if (Slot.ItemID != ItemID || Slot.Count >= MaxStack)
+            continue;
 
-            LOG(TEXT("Item Added : %s, Current Count : %d"), *ItemID.ToString(), Slot.Count);
-            return;
-        }
+        const int32 Added = FMath::Min(MaxStack - Slot.Count, Remaining);
+        Slot.Count += Added;
+        Remaining -= Added;
     }
 
-    FInventorySlot NewSlot;
-    NewSlot.ItemID = ItemID;
-    NewSlot.Count = FMath::Min(Count, MaxStack);
-    Items.Add(NewSlot);
+    while (Remaining > 0)
+    {
+        FInventorySlot NewSlot;
+        NewSlot.ItemID = ItemID;
+        NewSlot.Count = FMath::Min(Remaining, MaxStack);
+        Items.Add(NewSlot);
+        Remaining -= NewSlot.Count;
+    }
 
     OnInventoryChanged.Broadcast();
 
-    LOG(TEXT("Item Added : %s, Current Count : %d"), *ItemID.ToString(), NewSlot.Count);
+    LOG(TEXT("Item Added : %s, Current Count : %d"), *ItemID.ToString(), GetItemCount(ItemID));
 }
 
 bool UInventoryComponent::RemoveItem(FName ItemID, int32 Count)
@@ -85,35 +141,40 @@ bool UInventoryComponent::RemoveItem(FName ItemID, int32 Count)
     if (ItemID.IsNone() || Count <= 0)
         return false;
 
-    for (int32 i = 0; i < Items.Num(); ++i)
+    if (GetItemCount(ItemID) < Count)
+        return false;
+
+    // 여러 스택에 나뉘어 있을 수 있으므로 뒤쪽 스택부터 비워 나간다
+    int32 Remaining = Count;
+
+    for (int32 i = Items.Num() - 1; i >= 0 && Remaining > 0; --i)
     {
         if (Items[i].ItemID != ItemID)
             continue;
 
-        if (Items[i].Count < Count)
-            return false;
-
-        Items[i].Count -= Count;
+        const int32 Taken = FMath::Min(Items[i].Count, Remaining);
+        Items[i].Count -= Taken;
+        Remaining -= Taken;
 
         if (Items[i].Count <= 0)
             Items.RemoveAt(i);
-
-        OnInventoryChanged.Broadcast();
-        return true;
     }
 
-    return false;
+    OnInventoryChanged.Broadcast();
+    return true;
 }
 
 int32 UInventoryComponent::GetItemCount(FName ItemID) const
 {
+    int32 Total = 0;
+
     for (const FInventorySlot& Slot : Items)
     {
         if (Slot.ItemID == ItemID)
-            return Slot.Count;
+            Total += Slot.Count;
     }
 
-    return 0;
+    return Total;
 }
 
 void UInventoryComponent::AddGold(int32 Amount)
