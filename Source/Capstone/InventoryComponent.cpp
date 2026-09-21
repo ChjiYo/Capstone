@@ -1,6 +1,7 @@
 ﻿#include "InventoryComponent.h"
 #include "Monster.h"
 #include "LevelTransitionSubsystem.h"
+#include "CapstoneSFX.h"
 
 UInventoryComponent::UInventoryComponent()
 {
@@ -142,4 +143,15 @@ bool UInventoryComponent::TrySpendGold(int32 Amount)
 void UInventoryComponent::HandleMonsterKilled(FName MonsterID, int32 ExpReward, int32 GoldReward)
 {
     AddGold(GoldReward);
+
+    // 처치 타격음/사망음이 지나간 뒤에 동전 소리가 들리도록 살짝 늦춘다
+    UWorld* World = GetWorld();
+    if (GoldReward > 0 && World)
+    {
+        FTimerHandle CoinTimer;
+        World->GetTimerManager().SetTimer(CoinTimer, FTimerDelegate::CreateWeakLambda(this, [this]()
+        {
+            CapstoneSFX::Play2D(this, ESFX::UI_Coin, 0.7f);
+        }), 0.45f, false);
+    }
 }

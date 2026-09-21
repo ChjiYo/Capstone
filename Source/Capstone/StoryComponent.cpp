@@ -3,6 +3,7 @@
 #include "UI_Dialogue.h"
 #include "UI_ChapterTitle.h"
 #include "StoryStateSubsystem.h"
+#include "CapstoneSFX.h"
 #include "Py_Grey.h"
 #include "Engine/DataTable.h"
 #include "GameFramework/PlayerController.h"
@@ -37,6 +38,8 @@ bool UStoryComponent::PlayDialogue(const TArray<FName>& LineIDs, bool bLockInput
 	}
 
 	DialogueWidget->AddToViewport(10);
+	CapstoneSFX::Play2D(this, ESFX::UI_DialogueOpen);
+
 	if (bInputLocked)
 	{
 		SetDialogueInputMode(true);
@@ -103,6 +106,7 @@ void UStoryComponent::AdvanceLine()
 	++CurrentLineIndex;
 	if (PendingLines.IsValidIndex(CurrentLineIndex))
 	{
+		CapstoneSFX::Play2D(this, ESFX::UI_DialogueNext);
 		ShowCurrentLine();
 		return;
 	}
@@ -203,6 +207,7 @@ void UStoryComponent::ShowChapterTitle(const FText& ChapterLabel, const FText& C
 
 	ChapterTitleWidget->SetChapter(ChapterLabel, ChapterTitle);
 	ChapterTitleWidget->AddToViewport(20);
+	CapstoneSFX::Play2D(this, ESFX::UI_ChapterTitle);
 
 	GetWorld()->GetTimerManager().SetTimer(ChapterTitleTimerHandle, this,
 		&UStoryComponent::RemoveChapterTitle, ChapterTitleDuration, false);

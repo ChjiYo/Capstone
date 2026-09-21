@@ -1,6 +1,7 @@
 ﻿#include "BossTelegraph.h"
 #include "Materials/MaterialInstanceDynamic.h"
 #include "Components/StaticMeshComponent.h"
+#include "CapstoneSFX.h"
 
 ABossTelegraph::ABossTelegraph()
 {
@@ -78,6 +79,10 @@ void ABossTelegraph::Setup(EBossTelegraphShape InShape, const FLinearColor& Colo
 	FillMID = FillMesh->CreateAndSetMaterialInstanceDynamic(0);
 
 	ApplyProgress(0.f);
+
+	// 예고 표시가 차오르는 시간에 경고음의 길이를 맞춘다(짧게 차오르면 빠르게, 길면 느리게). Ring 은 충격파 확산이라 경고음이 없다
+	if (Shape != EBossTelegraphShape::Ring)
+		CapstoneSFX::PlayAt(this, ESFX::Boss_Telegraph, GetActorLocation(), 1.f, FMath::Clamp(1.2f / FillDuration, 0.7f, 1.6f));
 }
 
 ABossTelegraph* ABossTelegraph::SpawnCircle(UWorld* World, const FVector& Center, float Radius, float FillDuration, const FLinearColor& Color)

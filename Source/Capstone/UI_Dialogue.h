@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "GameInfo.h"
 #include "Blueprint/UserWidget.h"
@@ -52,4 +52,9 @@ private:
 	FString FullLine;
 	float RevealedChars = 0.f;
 	bool bRevealing = false;
+
+	// 타자기 블립 상태: 마지막으로 소리를 낸 글자 수 / 화자별 블립 종류 / 나레이션 여부
+	int32 LastBlipChars = 0;
+	int32 BlipVariant = 0;
+	bool bBlipNarration = false;
 };

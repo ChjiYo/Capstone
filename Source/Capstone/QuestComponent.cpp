@@ -10,6 +10,7 @@
 #include "NPC_Enhance.h"
 #include "EngineUtils.h"
 #include "Kismet/GameplayStatics.h"
+#include "CapstoneSFX.h"
 
 UQuestComponent::UQuestComponent()
 {
@@ -98,6 +99,10 @@ void UQuestComponent::TryAdvanceObjective(EQuestObjectiveType Type, FName InTarg
 	{
 		ActiveQuest.bIsCompleted = true;
 		GrantReward();
+	}
+	else
+	{
+		CapstoneSFX::Play2D(this, ESFX::UI_QuestUpdate); // 완료 때는 완료음이 대신 울린다
 	}
 
 	SyncToStateSubsystem();
@@ -219,6 +224,11 @@ void UQuestComponent::GrantReward()
 	if (QuestCompleteSound)
 	{
 		UGameplayStatics::PlaySound2D(this, QuestCompleteSound);
+	}
+	else
+	{
+		// BP에 완료음이 지정돼 있지 않으면 기본 완료음(Quest_Complete)
+		CapstoneSFX::Play2D(this, ESFX::UI_QuestComplete);
 	}
 
 	UInventoryComponent* Inventory = Owner->FindComponentByClass<UInventoryComponent>();

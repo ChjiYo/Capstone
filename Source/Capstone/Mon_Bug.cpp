@@ -11,6 +11,10 @@ AMon_Bug::AMon_Bug()
 	m_tInfo.iAttack = 12;
 	DisplayName = FText::FromString(TEXT("벌레"));
 
+	SFXProfile.Attack = ESFX::Mon_Bug_Attack;
+	SFXProfile.VoicePitch = 1.55f;
+	SFXProfile.StepStride = 90.f;
+
 	fTraceRange = 1000.f;
 	fAttackDist = 200.f;
 

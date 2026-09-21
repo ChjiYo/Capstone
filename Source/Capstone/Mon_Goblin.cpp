@@ -11,6 +11,12 @@ AMon_Goblin::AMon_Goblin()
 	m_tInfo.iAttack = 12;
 	DisplayName = FText::FromString(TEXT("고블린"));
 
+	// 피격음은 Anim_Goblin_body_idle_defense_hit 애니메이션의 노티파이에 이미 연결돼 있어서 비워둔다
+	SFXProfile.Attack = ESFX::Mon_Goblin_Attack;
+	SFXProfile.Hit = ESFX::None;
+	SFXProfile.VoicePitch = 1.1f;
+	SFXProfile.StepStride = 150.f;
+
 	fAttackDist = 200.f;
 	
 	GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -70.f));

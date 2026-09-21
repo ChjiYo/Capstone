@@ -56,6 +56,7 @@
 | [12_story_ui.md](12_story_ui.md) | `WBP_Dialogue` / `WBP_ChapterTitle` / `WBP_Ending` 제작 명세 (에디터 작업) |
 | [13_boss_ai_overhaul.md](13_boss_ai_overhaul.md) | 나르바쉬 보스 스킬 6종 + 강인도(Poise), 코드로 조립한 전투 비헤이비어 트리 |
 | [14_hit_feel_lockon.md](14_hit_feel_lockon.md) | 락온(대상 고정 카메라/마커), 일반 공격 넉백·메시 반동·카메라 펀치·처치 연출, 공격 어시스트 |
+| [15_sound_system.md](15_sound_system.md) | 효과음/환경음 시스템: 합성 사운드 78종 (어두운 중세 톤) + 기존 에셋 재사용, `CapstoneSFX` 재생기, 게임플레이 연결 지점, 재생성/튜닝 방법 |
 
 ## 현재 코드 기준점 (이미 구현된 것)
 

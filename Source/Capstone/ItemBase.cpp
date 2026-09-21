@@ -5,6 +5,7 @@
 #include "InventoryComponent.h"
 #include "Py_Grey.h"
 #include "DrawDebugHelpers.h"
+#include "CapstoneSFX.h"
 
 AItemBase::AItemBase()
 {
@@ -74,6 +75,7 @@ void AItemBase::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* Othe
     if (Player)
     {
         Player->SetInteractableItem(this);
+        CapstoneSFX::Play2D(this, ESFX::Interact_Prompt);
     }
     
 }
@@ -100,6 +102,8 @@ void AItemBase::PickupItem(ACharacter* Picker)
             if (PlayerCharacter && PlayerCharacter->InventoryComponent)
             {
                 PlayerCharacter->InventoryComponent->AddItem(ItemID);
+
+                CapstoneSFX::Play2D(this, ESFX::UI_ItemPickup);
 
                 Destroy();
             }

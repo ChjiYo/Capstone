@@ -6,6 +6,7 @@
 #include "ExperienceComponent.h"
 #include "LevelTransitionSubsystem.h"
 #include "Kismet/GameplayStatics.h"
+#include "CapstoneSFX.h"
 
 APortalPoint::APortalPoint()
 {
@@ -53,6 +54,7 @@ void APortalPoint::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* O
 		if (!QC || !QC->HasActiveQuest() || QC->GetActiveQuest().QuestID != RequiredQuestID)
 		{
 			PrintViewport(2.f, FColor::Red, TEXT("아직은 아니다. 하란에게 먼저 얘기하자."));
+			CapstoneSFX::Play2D(this, ESFX::UI_Deny);
 			return;
 		}
 	}
@@ -68,6 +70,9 @@ void APortalPoint::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* O
 		// 게임 인스턴스 서브시스템에 잠깐 맡겨뒀다가 새 레벨의 새 폰이 BeginPlay에서 복원해간다
 		Player->SaveStateForLevelTransition(*TransitionSubsystem);
 	}
+
+	// OpenLevel 이 월드를 정리해도 끊기지 않게 레벨 전환을 넘어 재생한다
+	CapstoneSFX::PlayPersistent2D(this, ESFX::Portal_Enter);
 
 	UGameplayStatics::OpenLevel(
 		GetWorld(),

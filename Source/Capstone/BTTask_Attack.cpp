@@ -69,6 +69,8 @@ EBTNodeResult::Type UBTTask_Attack::StartAttackMontage(UBehaviorTreeComponent& O
 
 		if (PlayTime > 0.0f)
 		{
+			pMonster->PlayAttackSFX();
+
 			MyOwnerComp = &OwnerComp;
 
 			FOnMontageEnded MontageEndedDelegate;

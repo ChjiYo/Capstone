@@ -11,6 +11,15 @@ AMon_Golem::AMon_Golem()
 	m_tInfo.iAttack = 20;
 	DisplayName = FText::FromString(TEXT("골렘"));
 
+	// 공격/피격음은 골렘 애니메이션(Buff_Red)의 노티파이에 이미 연결돼 있어서 비워둔다
+	SFXProfile.Alert = ESFX::Mon_Alert_Big;
+	SFXProfile.Attack = ESFX::None;
+	SFXProfile.Hit = ESFX::None;
+	SFXProfile.Death = ESFX::Mon_Death_Big;
+	SFXProfile.Step = ESFX::Mon_Step_Heavy;
+	SFXProfile.StepStride = 240.f;
+	SFXProfile.bArmored = true;
+
 	fTraceRange = 800.f;
 	fAttackDist = 250.f;
 

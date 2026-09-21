@@ -2,6 +2,7 @@
 #include "UI_Enhance.h"
 #include "Py_Grey.h"
 #include "StoryComponent.h"
+#include "CapstoneSFX.h"
 
 ANPC_Enhance::ANPC_Enhance()
 {
@@ -54,6 +55,7 @@ void ANPC_Enhance::OpenEnhanceWidget()
         EnhanceWidget->InitEnhance(Player);
         EnhanceWidget->OnEnhanceClosed.AddDynamic(this, &ANPC_Enhance::CloseEnhance);
         EnhanceWidget->AddToViewport();
+        CapstoneSFX::Play2D(this, ESFX::UI_Open);
 
         Player->SetGameplayInputLocked(true);
 
@@ -72,6 +74,7 @@ void ANPC_Enhance::CloseEnhance()
     {
         EnhanceWidget->RemoveFromParent();
         EnhanceWidget = nullptr;
+        CapstoneSFX::Play2D(this, ESFX::UI_Close);
     }
 
     APy_Grey* Player = Cast<APy_Grey>(CurrentInteractor);

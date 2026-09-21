@@ -5,6 +5,7 @@
 #include "StoryComponent.h"
 #include "StoryStateSubsystem.h"
 #include "Kismet/GameplayStatics.h"
+#include "CapstoneSFX.h"
 
 ANPC_Quest::ANPC_Quest()
 {
@@ -108,6 +109,7 @@ void ANPC_Quest::OpenQuestWidget()
             QuestWidget->OnQuestAccepted.AddDynamic(this, &ANPC_Quest::HandleQuestAccepted);
             QuestWidget->OnQuestDeclined.AddDynamic(this, &ANPC_Quest::HandleQuestDeclined);
             QuestWidget->AddToViewport();
+            CapstoneSFX::Play2D(this, ESFX::UI_Open);
 
             APlayerController* PC = Cast<APlayerController>(Cast<APawn>(CurrentInteractor)->GetController());
             if (PC)
@@ -173,6 +175,8 @@ void ANPC_Quest::SyncChainIndexToActiveQuest(const FQuestData& Active)
 
 void ANPC_Quest::HandleQuestAccepted()
 {
+    CapstoneSFX::Play2D(this, ESFX::UI_QuestAccept);
+
     GrantCurrentQuestFor(CurrentInteractor);
 
     RestoreInputMode();
@@ -182,6 +186,8 @@ void ANPC_Quest::HandleQuestAccepted()
 
 void ANPC_Quest::HandleQuestDeclined()
 {
+    CapstoneSFX::Play2D(this, ESFX::UI_Close);
+
     RestoreInputMode();
     QuestWidget = nullptr;
     CurrentInteractor = nullptr;

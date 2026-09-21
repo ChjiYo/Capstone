@@ -3,6 +3,7 @@
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
 #include "Components/Button.h"
+#include "CapstoneSFX.h"
 
 void UUI_ShopSlot::InitSlot(FName InItemID, const FItemData* ItemData, int32 OwnedCount, EShopSlotMode InMode, UInventoryComponent* InInventoryComp)
 {
@@ -59,6 +60,11 @@ void UUI_ShopSlot::OnActionButtonClicked()
         if (InventoryComp->TrySpendGold(CurrentPrice))
         {
             InventoryComp->AddItem(CurrentItemID, 1);
+            CapstoneSFX::Play2D(this, ESFX::UI_Coin);
+        }
+        else
+        {
+            CapstoneSFX::Play2D(this, ESFX::UI_Deny); // 골드 부족
         }
     }
     else
@@ -66,6 +72,7 @@ void UUI_ShopSlot::OnActionButtonClicked()
         if (InventoryComp->RemoveItem(CurrentItemID, 1))
         {
             InventoryComp->AddGold(CurrentPrice);
+            CapstoneSFX::Play2D(this, ESFX::UI_Sell);
         }
     }
 }

@@ -1,6 +1,7 @@
-#include "Effect_Projectile.h"
+﻿#include "Effect_Projectile.h"
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
+#include "CapstoneSFX.h"
 
 AEffect_Projectile::AEffect_Projectile()
 {
@@ -28,6 +29,13 @@ void AEffect_Projectile::BeginPlay()
     CollisionSphere->OnComponentBeginOverlap.AddDynamic(this, &AEffect_Projectile::OnOverlapBegin);
     ProjectileMovement->Activate();
 
+    // BP에서 발사 사운드(SoundTemplate)를 이미 지정했다면 그쪽을 존중한다
+    if (!SoundTemplate)
+    {
+        CapstoneSFX::PlayAt(this, ESFX::Magic_Cast, GetActorLocation());
+        CapstoneSFX::PlayAt(this, ESFX::Magic_Projectile, GetActorLocation());
+    }
+
     AActor* Player =  UGameplayStatics::GetPlayerCharacter(GetWorld(), 0);
 
     if (Player)
@@ -44,6 +52,8 @@ void AEffect_Projectile::BeginPlay()
 void AEffect_Projectile::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
     UGameplayStatics::ApplyDamage(OtherActor, 50.f, GetInstigatorController(), this, UDamageType::StaticClass());
+
+    CapstoneSFX::PlayAt(this, ESFX::Magic_Impact, GetActorLocation());
 
     if (IsValid(HitNiagaraTemplate))
     {

@@ -153,6 +153,16 @@ private:
 	bool bIsExplosiveBuffActive = false;
 	bool bGameplayInputLocked = false;
 
+	// 착지 소리 크기를 정하기 위해 공중에 있는 동안 마지막 낙하 속도를 기억해 둔다 (Landed 시점엔 이미 0에 가깝다)
+	float LastFallSpeedZ = 0.f;
+
+	// 체력이 낮을 때 심장 박동 소리를 내는 실시간 타이머
+	float HeartbeatTimer = 0.f;
+	void UpdateLowHealthHeartbeat();
+
+	// 스킬 쿨다운이 끝나는 순간 "준비됨" 소리를 내는 타이머 (A/B/C 슬롯별)
+	FTimerHandle SkillReadyTimers[3];
+
 public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	class UInventoryComponent* InventoryComponent;
@@ -346,6 +356,10 @@ protected:
 public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	// 점프/착지 효과음 (ACharacter 훅)
+	virtual void OnJumped_Implementation() override;
+	virtual void Landed(const FHitResult& Hit) override;
 	void SetInteractableItem(class AItemBase* Item) { CurrItem = Item; }
 	void SetInteractableNPC(class ANPC_Base* NPC) { CurrNPC = NPC; }
 

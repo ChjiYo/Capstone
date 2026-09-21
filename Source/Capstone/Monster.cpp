@@ -92,6 +92,8 @@ void AMonster::BeginPlay()
 	if (GetMesh())
 		MeshBaseRelativeLocation = GetMesh()->GetRelativeLocation();
 
+	LastFootstepLocation = GetActorLocation();
+
 	if (USkeletalMeshComponent* MonsterMesh = GetMesh())
 	{
 		HitFlashMaterials.Reset();
@@ -158,6 +160,59 @@ void AMonster::Tick(float DeltaTime)
 	UpdateHitRecoil(DeltaTime);
 	UpdateDeathSequence(DeltaTime);
 	UpdateHpBarVisibility();
+	UpdateFootsteps();
+}
+
+void AMonster::PlayAlertSFX()
+{
+	// 감지가 풀렸다 다시 잡힐 때마다 울면 시끄러우니 몇 초에 한 번만 운다
+	const double Now = FPlatformTime::Seconds();
+
+	if (SFXProfile.Alert == ESFX::None || Now - LastAlertTime < 4.0)
+		return;
+
+	LastAlertTime = Now;
+	CapstoneSFX::PlayAt(this, SFXProfile.Alert, GetActorLocation(), 1.f, SFXProfile.VoicePitch);
+}
+
+void AMonster::PlayAttackSFX()
+{
+	if (SFXProfile.Attack == ESFX::None)
+		return;
+
+	CapstoneSFX::PlayAt(this, SFXProfile.Attack, GetActorLocation(), 1.f, SFXProfile.VoicePitch);
+}
+
+void AMonster::UpdateFootsteps()
+{
+	if (SFXProfile.Step == ESFX::None || bDissolving)
+		return;
+
+	UCharacterMovementComponent* Movement = GetCharacterMovement();
+	const FVector Location = GetActorLocation();
+
+	// 공중(넉백으로 날아감)이거나 서 있을 때는 걸음 거리를 쌓지 않는다
+	if (!Movement || !Movement->IsMovingOnGround() || Movement->Velocity.SizeSquared2D() < FMath::Square(40.f))
+	{
+		LastFootstepLocation = Location;
+		return;
+	}
+
+	FootstepDistance += FVector::Dist2D(Location, LastFootstepLocation);
+	LastFootstepLocation = Location;
+
+	if (FootstepDistance < SFXProfile.StepStride)
+		return;
+
+	FootstepDistance = 0.f;
+
+	// 플레이어가 멀리 있으면 들리지도 않으니 오디오 소스를 만들지 않는다
+	const APawn* Player = UGameplayStatics::GetPlayerPawn(this, 0);
+	if (!Player || FVector::DistSquared(Player->GetActorLocation(), Location) > FMath::Square(3500.f))
+		return;
+
+	const float HalfHeight = GetCapsuleComponent() ? GetCapsuleComponent()->GetScaledCapsuleHalfHeight() : 0.f;
+	CapstoneSFX::PlayAt(this, SFXProfile.Step, Location - FVector(0.f, 0.f, HalfHeight), 1.f, 1.f);
 }
 
 FVector AMonster::GetLockOnPoint() const
@@ -338,6 +393,8 @@ float AMonster::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, 
 
                     GetWorld()->SpawnActor<AItemBase>(ItemToDrop, SpawnLocation, SpawnRotation);
 
+                    CapstoneSFX::PlayAt(this, ESFX::UI_ItemDrop, SpawnLocation);
+
                     UE_LOG(LogTemp, Warning, TEXT("고블린이 아이템을 드랍했습니다!"));
                 }
             }
@@ -347,6 +404,11 @@ float AMonster::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, 
         // 실제로 Destroy한다(UpdateDeathSequence)
         bDissolving = true;
         DissolveTimeElapsed = 0.f;
+
+        CapstoneSFX::PlayAt(this, SFXProfile.Death, GetActorLocation(), 1.f, SFXProfile.VoicePitch);
+
+        if (SFXProfile.bDissolveSound)
+            CapstoneSFX::PlayAt(this, ESFX::Mon_Dissolve, GetActorLocation());
 
         // [TEMP DEBUG]
         LOG(TEXT("사망 & 디졸브 동시 시작 (%s) / 대상 다이나믹 머티리얼 개수=%d / DissolveDuration=%.2f"),
@@ -358,6 +420,8 @@ float AMonster::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, 
         // Super::TakeDamage가 방금 설정한 데스 애니메이션 상태를 Hit 몽타주가 덮어써버려서
         // 죽는 모션이 재생될 기회 자체가 없었다
         Hit();
+
+        CapstoneSFX::PlayAt(this, SFXProfile.Hit, GetActorLocation(), 1.f, SFXProfile.VoicePitch);
     }
 
    

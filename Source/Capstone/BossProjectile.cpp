@@ -8,6 +8,7 @@
 #include "Engine/DamageEvents.h"
 #include "Kismet/GameplayStatics.h"
 #include "Py_Grey.h"
+#include "CapstoneSFX.h"
 
 ABossProjectile::ABossProjectile()
 {
@@ -55,6 +56,8 @@ void ABossProjectile::Launch(const FVector& Direction, float Speed, float Damage
 	RemainingDistance = MaxTravelDistance;
 
 	SetActorRotation(Velocity.Rotation());
+
+	CapstoneSFX::PlayAt(this, ESFX::Boss_Throw, GetActorLocation());
 
 	CollisionSphere->OnComponentBeginOverlap.AddUniqueDynamic(this, &ABossProjectile::OnOverlapBegin);
 }
@@ -131,6 +134,8 @@ void ABossProjectile::Explode(const FVector& Location, bool bHitCharacter)
 		if (AMon_Narbash* Boss = Cast<AMon_Narbash>(GetInstigator()))
 			Boss->NotifyProjectileResult(false);
 	}
+
+	CapstoneSFX::PlayAt(this, ESFX::Boss_ImpactSmall, Location, bHitCharacter ? 1.f : 0.85f);
 
 	UParticleSystem* Effect = bHitCharacter ? HitCharacterFX : HitWorldFX;
 	if (Effect)

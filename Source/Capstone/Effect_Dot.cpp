@@ -1,4 +1,5 @@
 ﻿#include "Effect_Dot.h"
+#include "CapstoneSFX.h"
 
 AEffect_Dot::AEffect_Dot()
 {
@@ -74,6 +75,9 @@ void AEffect_Dot::ApplyDamageOverTime()
 	{
 		OverlappingActors.Remove(DeadActor);
 	}
+
+	if (OverlappingActors.Num() > 0)
+		CapstoneSFX::PlayAt(this, ESFX::Dot_Tick, GetActorLocation());
 }
 
 

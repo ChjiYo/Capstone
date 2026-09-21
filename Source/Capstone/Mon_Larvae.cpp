@@ -12,6 +12,11 @@ AMon_Larvae::AMon_Larvae()
 	m_tInfo.iAttack = 10;
 	DisplayName = FText::FromString(TEXT("애벌레"));
 
+	SFXProfile.Attack = ESFX::Mon_Larvae_Attack;
+	SFXProfile.Hit = ESFX::Mon_Larvae_Hit;
+	SFXProfile.VoicePitch = 1.3f;
+	SFXProfile.StepStride = 100.f;
+
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> MeshAsset(TEXT("SkeletalMesh'/Game/Megaspikan/MegaspikanLarvae/Meshes/SK_MegaspikanLarvae.SK_MegaspikanLarvae'"));
 
 	if (MeshAsset.Succeeded())

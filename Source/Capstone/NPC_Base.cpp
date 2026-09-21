@@ -2,6 +2,7 @@
 #include "Py_Grey.h"
 #include "Components/WidgetComponent.h"
 #include "UI_NPC_Nameplate.h"
+#include "CapstoneSFX.h"
 
 ANPC_Base::ANPC_Base()
 {
@@ -45,6 +46,9 @@ void ANPC_Base::Tick(float DeltaTime)
 void ANPC_Base::Interact_Implementation(AActor* Interactor)
 {
     LOG(TEXT("%s: Hello."), *NPCName);
+
+    // 상점/강화/퀘스트 NPC의 창이 열리는 순간마다 (자식 클래스가 Super를 호출한다)
+    CapstoneSFX::Play2D(this, ESFX::Interact_Talk);
 }
 
 void ANPC_Base::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* OtherActor,
@@ -56,6 +60,9 @@ void ANPC_Base::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActor* Othe
     if (Player)
     {
         Player->SetInteractableNPC(this);
+
+        // 상호작용 가능 범위에 들어왔다는 작은 신호음
+        CapstoneSFX::Play2D(this, ESFX::Interact_Prompt);
     }
 }
 

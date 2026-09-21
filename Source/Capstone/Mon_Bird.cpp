@@ -11,6 +11,13 @@ AMon_Bird::AMon_Bird()
 	m_tInfo.iAttack = 12;
 	DisplayName = FText::FromString(TEXT("새"));
 
+	// 공격/피격음은 새 애니메이션(Buff_Black)의 노티파이에 이미 연결돼 있어서 비워둔다
+	SFXProfile.Alert = ESFX::Mon_Alert_Bird;
+	SFXProfile.Attack = ESFX::None;
+	SFXProfile.Hit = ESFX::None;
+	SFXProfile.Death = ESFX::Mon_Death_Bird;
+	SFXProfile.Step = ESFX::None;
+
 	fTraceRange = 1000.f;
 	fAttackDist = 200.f;
 

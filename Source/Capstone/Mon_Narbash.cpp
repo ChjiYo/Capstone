@@ -22,6 +22,7 @@
 #include "BossTelegraph.h"
 #include "BossProjectile.h"
 #include "BossCameraShake.h"
+#include "CapstoneSFX.h"
 #include "BTTask_BossSkill.h"
 #include "BTTask_BossApproach.h"
 #include "BTDecorator_BossSkillReady.h"
@@ -68,6 +69,16 @@ AMon_Narbash::AMon_Narbash()
 	m_tInfo.iHp = 1000;
 	m_tInfo.iAttack = 20;
 	DisplayName = FText::FromString(TEXT("나르바쉬"));
+
+	// 울음/피격/공격 음성은 이 클래스가 스킬 타임라인에서 직접 재생하고(PlaySFX), 사망음은 OnBossDeath 가 책임진다
+	SFXProfile.Alert = ESFX::None;
+	SFXProfile.Attack = ESFX::None;
+	SFXProfile.Hit = ESFX::None;
+	SFXProfile.Death = ESFX::None;
+	SFXProfile.Step = ESFX::Boss_Step;
+	SFXProfile.StepStride = 280.f;
+	SFXProfile.bArmored = true;
+	SFXProfile.bDissolveSound = false;
 
 	static ConstructorHelpers::FObjectFinder<USkeletalMesh> MeshAsset(TEXT("SkeletalMesh'/Game/ParagonNarbash/Characters/Heroes/Narbash/Meshes/Narbash.Narbash'"));
 
@@ -487,6 +498,8 @@ void AMon_Narbash::OnBossDeath()
 	SpawnFXAt(FX_BigKnockup, GetGroundLocation(Loc), FRotator::ZeroRotator, 1.6f);
 	SpawnFXAt(FX_UltEnd, GetGroundLocation(Loc), FRotator::ZeroRotator, 1.4f);
 	PlaySFX(SFX_Pain, Loc, 1.4f);
+	CapstoneSFX::PlayAt(this, ESFX::Boss_Death, Loc);
+	CapstoneSFX::PlayAt(this, ESFX::Boss_DeathVoice, Loc);
 	ShakePlayerCamera(UBossShake_Roar::StaticClass(), 1.2f);
 
 	UGameplayStatics::SetGlobalTimeDilation(this, 0.25f);
@@ -1118,6 +1131,9 @@ void AMon_Narbash::StartRoar(bool bPhaseTransition)
 	SpawnFXAttached(FX_EnergyBuildup, TEXT("Chest"), bPhaseTransition ? 1.6f : 1.2f);
 	PlaySFX(SFX_Roar, GetActorLocation(), 1.4f);
 
+	if (bPhaseTransition)
+		CapstoneSFX::PlayAt(this, ESFX::Boss_Phase, GetActorLocation());
+
 	At(BurstTime, [this, bPhaseTransition]()
 	{
 		bTracking = false;
@@ -1734,6 +1750,10 @@ void AMon_Narbash::PlaySFX(USoundBase* Sound, const FVector& Location, float Vol
 {
 	if (!Sound)
 		return;
+
+	// 바닥/플레이어에 꽂히는 임팩트 소리에는 묵직한 저음 붐을 한 겹 더 깐다
+	if (Sound == SFX_Impact)
+		CapstoneSFX::PlayAt(this, ESFX::Boss_Boom, Location, FMath::Clamp(Volume * 0.8f, 0.3f, 1.2f));
 
 	// 파라곤 보이스 큐는 영어 자막이 함께 출력되므로, 자막을 끈 오디오 컴포넌트로 직접 재생한다
 	UAudioComponent* Comp = NewObject<UAudioComponent>(this);

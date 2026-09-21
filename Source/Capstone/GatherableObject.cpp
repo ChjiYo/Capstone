@@ -5,6 +5,7 @@
 #include "InventoryComponent.h"
 #include "Py_Grey.h"
 #include "TimerManager.h"
+#include "CapstoneSFX.h"
 
 FOnItemGathered AGatherableObject::OnItemGathered;
 
@@ -31,6 +32,9 @@ void AGatherableObject::PickupItem(ACharacter* Picker)
 
     LOG(TEXT("Gathered %s x%d"), *ItemID.ToString(), GatherCount);
 
+    CapstoneSFX::PlayAt(this, ESFX::Interact_Gather, GetActorLocation());
+    CapstoneSFX::Play2D(this, ESFX::UI_ItemPickup, 0.6f);
+
     // 파괴 대신 비활성화: 메시/VFX 숨김 + 콜리전 해제, RespawnTime 뒤에 원복
     SetActorHiddenInGame(true);
 
@@ -53,6 +57,8 @@ void AGatherableObject::PickupItem(ACharacter* Picker)
 void AGatherableObject::Respawn()
 {
     SetActorHiddenInGame(false);
+
+    CapstoneSFX::PlayAt(this, ESFX::Interact_Respawn, GetActorLocation());
 
     if (CollisionComponent)
         CollisionComponent->SetCollisionEnabled(ECollisionEnabled::QueryOnly);

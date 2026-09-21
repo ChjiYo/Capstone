@@ -2,6 +2,7 @@
 #include "UI_Shop.h"
 #include "Py_Grey.h"
 #include "InventoryComponent.h"
+#include "CapstoneSFX.h"
 
 ANPC_Shop::ANPC_Shop()
 {
@@ -30,6 +31,7 @@ void ANPC_Shop::Interact_Implementation(AActor* Interactor)
         ShopWidget->InitShop(ShopItemIDs, Player->InventoryComponent);
         ShopWidget->OnShopClosed.AddDynamic(this, &ANPC_Shop::CloseShop);
         ShopWidget->AddToViewport();
+        CapstoneSFX::Play2D(this, ESFX::UI_Open);
 
         Player->SetGameplayInputLocked(true);
 
@@ -48,6 +50,7 @@ void ANPC_Shop::CloseShop()
     {
         ShopWidget->RemoveFromParent();
         ShopWidget = nullptr;
+        CapstoneSFX::Play2D(this, ESFX::UI_Close);
     }
 
     APy_Grey* Player = Cast<APy_Grey>(CurrentInteractor);

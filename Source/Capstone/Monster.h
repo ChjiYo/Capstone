@@ -2,6 +2,7 @@
 
 #include "SpawnPoint.h"
 #include "CharBase.h"
+#include "CapstoneSFX.h"
 #include "Monster.generated.h"
 
 DECLARE_MULTICAST_DELEGATE(FOnAttackEndDelegate)
@@ -9,6 +10,49 @@ DECLARE_MULTICAST_DELEGATE(FOnAttackEndDelegate)
 DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnMonsterKilled, FName /*MonsterID*/, int32 /*ExpReward*/, int32 /*GoldReward*/)
 // bIsBoss인 몬스터가 죽을 때만 추가로 방송 (8단계 엔딩 트리거). APy_Grey가 구독해 지연 후 엔딩 화면을 띄운다
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnBossDefeated, FName /*MonsterID*/)
+
+// 몬스터 종류별 효과음 구성. 몬스터 클래스 생성자가 기본값을 채우고, 블루프린트에서 바꿀 수 있다.
+// 기존 애니메이션 노티파이에 이미 소리가 연결된 동작(새/골렘 공격·피격, 고블린 피격)은 None으로 둬서 겹쳐 울리지 않게 한다
+USTRUCT(BlueprintType)
+struct FMonsterSFXProfile
+{
+	GENERATED_BODY()
+
+	// 플레이어를 처음 발견했을 때
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SFX")
+	ESFX Alert = ESFX::Mon_Alert_Small;
+
+	// 공격 몽타주가 시작될 때
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SFX")
+	ESFX Attack = ESFX::None;
+
+	// 죽지 않고 맞았을 때
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SFX")
+	ESFX Hit = ESFX::Mon_Hit_Generic;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SFX")
+	ESFX Death = ESFX::Mon_Death_Small;
+
+	// 걸을 때 발소리 (None이면 없음)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SFX")
+	ESFX Step = ESFX::Mon_Step_Light;
+
+	// 발소리 간격(이동 거리, cm)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SFX")
+	float StepStride = 160.f;
+
+	// 울음/피격/사망 음성의 피치 배율. 작은 몬스터는 높게, 큰 몬스터는 낮게
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SFX")
+	float VoicePitch = 1.f;
+
+	// 갑옷/바위처럼 단단한 몸이면 플레이어의 검 타격음이 금속성(Hard)으로 난다
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SFX")
+	bool bArmored = false;
+
+	// 죽을 때 디졸브(사라지는) 효과음을 깔지 여부. 보스는 끈다
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SFX")
+	bool bDissolveSound = true;
+};
 
 UCLASS()
 class CAPSTONE_API AMonster : public ACharBase
@@ -257,6 +301,26 @@ public:
 
 protected:
 	float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
+
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SFX")
+	FMonsterSFXProfile SFXProfile;
+
+	// AI가 플레이어를 처음 발견했을 때 (UMonsterAIController::SetTarget). 짧은 시간 안의 재발견은 무시한다
+	void PlayAlertSFX();
+
+	// 공격 몽타주가 시작될 때 (UBTTask_Attack)
+	void PlayAttackSFX();
+
+	// 플레이어의 검이 이 몬스터를 때렸을 때 들려줄 타격음 (갑옷이면 금속성)
+	ESFX GetPlayerHitSFX() const { return SFXProfile.bArmored ? ESFX::Player_HitHard : ESFX::Player_HitFlesh; }
+
+private:
+	void UpdateFootsteps();
+
+	FVector LastFootstepLocation = FVector::ZeroVector;
+	float FootstepDistance = 0.f;
+	double LastAlertTime = -1000.0;
 
 public:
 	void AttackEnd();

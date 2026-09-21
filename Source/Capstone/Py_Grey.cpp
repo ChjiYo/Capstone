@@ -33,6 +33,7 @@
 #include "LevelTransitionSubsystem.h"
 #include "LockOnComponent.h"
 #include "Misc/App.h"
+#include "CapstoneSFX.h"
 
 namespace
 {
@@ -327,6 +328,9 @@ void APy_Grey::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		World->GetTimerManager().ClearTimer(ShieldTimerHandle);
 		World->GetTimerManager().ClearTimer(RespawnTimerHandle);
 
+		for (FTimerHandle& ReadyTimer : SkillReadyTimers)
+			World->GetTimerManager().ClearTimer(ReadyTimer);
+
 		EndPowerSlash();
 	}
 
@@ -351,6 +355,57 @@ void APy_Grey::Tick(float DeltaTime)
 
 	// 히트스톱으로 게임 시간이 거의 멈춰도 카메라 펀치는 굳지 않고 실시간으로 흘러야 한다
 	UpdateCameraPunch(FApp::GetDeltaTime());
+
+	if (GetCharacterMovement() && GetCharacterMovement()->IsFalling())
+		LastFallSpeedZ = GetVelocity().Z;
+
+	UpdateLowHealthHeartbeat();
+}
+
+void APy_Grey::UpdateLowHealthHeartbeat()
+{
+	const float Ratio = GetHpRatio();
+
+	if (bIsDead || Ratio <= 0.f || Ratio > 0.3f)
+	{
+		HeartbeatTimer = 0.f;
+		return;
+	}
+
+	// 히트스톱/슬로모션에 영향받지 않는 실시간 타이머
+	HeartbeatTimer -= FApp::GetDeltaTime();
+
+	if (HeartbeatTimer > 0.f)
+		return;
+
+	// 체력이 낮을수록 빠르고 크게 뛴다 (30% -> 1.3초 간격, 5% -> 0.75초 간격)
+	HeartbeatTimer = FMath::GetMappedRangeValueClamped(FVector2D(0.3f, 0.05f), FVector2D(1.3f, 0.75f), Ratio);
+	CapstoneSFX::Play2D(this, ESFX::Player_Heartbeat, FMath::GetMappedRangeValueClamped(FVector2D(0.3f, 0.05f), FVector2D(0.5f, 1.f), Ratio));
+}
+
+void APy_Grey::OnJumped_Implementation()
+{
+	Super::OnJumped_Implementation();
+
+	CapstoneSFX::Play2D(this, ESFX::Player_Jump);
+
+	if (FMath::FRand() < 0.4f)
+		CapstoneSFX::Play2D(this, ESFX::Player_VoiceJump);
+}
+
+void APy_Grey::Landed(const FHitResult& Hit)
+{
+	Super::Landed(Hit);
+
+	// 계단/작은 턱 정도의 낙하는 소리를 내지 않는다
+	if (LastFallSpeedZ < -450.f)
+	{
+		const float Volume = FMath::Clamp(-LastFallSpeedZ / 1200.f, 0.5f, 1.3f);
+		const float HalfHeight = GetCapsuleComponent() ? GetCapsuleComponent()->GetScaledCapsuleHalfHeight() : 0.f;
+		CapstoneSFX::PlayAt(this, ESFX::Player_Land, GetActorLocation() - FVector(0.f, 0.f, HalfHeight), Volume);
+	}
+
+	LastFallSpeedZ = 0.f;
 }
 
 void  APy_Grey::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
@@ -451,6 +506,8 @@ void APy_Grey::ActivateShield(int32 Amount, float Duration, AEffectDestroy* Shie
 	}
 
 	RefreshShieldUI();
+
+	CapstoneSFX::Play2D(this, ESFX::Player_ShieldUp);
 
 	LOG(TEXT("스킬 B 보호막 시작 : %d, %.1f초"), Amount, Duration);
 }
@@ -557,6 +614,9 @@ void APy_Grey::SkillSlotA()
 	if (!TryUseSkill(0))
 		return;
 
+	CapstoneSFX::Play2D(this, ESFX::Player_SkillA);
+	CapstoneSFX::Play2D(this, ESFX::Player_VoiceSkill);
+
 	ActivateAttackBuff();
 
 	if (IsValid(pGreyAnim))
@@ -603,6 +663,8 @@ void APy_Grey::SkillSlotB()
 	if (!TryUseSkill(1))
 		return;
 
+	CapstoneSFX::Play2D(this, ESFX::Player_VoiceSkill);
+
 	if (IsValid(pGreyAnim))
 	{
 		pGreyAnim->SkillSlotB();
@@ -616,6 +678,9 @@ void APy_Grey::SkillSlotC()
 
 	if (!TryUseSkill(2))
 		return;
+
+	CapstoneSFX::Play2D(this, ESFX::Player_SkillC);
+	CapstoneSFX::Play2D(this, ESFX::Player_VoiceSkillHeavy);
 
 	BeginPowerSlash();
 
@@ -662,6 +727,7 @@ void APy_Grey::ToggleInventory()
 	{
 		InventoryWidget->RemoveFromParent();
 		SetGameplayInputLocked(false);
+		CapstoneSFX::Play2D(this, ESFX::UI_Close);
 
 		if (PC)
 		{
@@ -674,6 +740,7 @@ void APy_Grey::ToggleInventory()
 	else
 	{
 		InventoryWidget->AddToViewport();
+		CapstoneSFX::Play2D(this, ESFX::UI_Open);
 		SetGameplayInputLocked(true);
 
 		if (InventoryComponent)
@@ -721,6 +788,7 @@ void APy_Grey::UsePotionItem(FName ItemID)
 	if (Data->ItemType != EItemType::Potion)
 	{
 		LOG(TEXT("UsePotionItem(%s) 실패 : ItemType이 Potion이 아님 (현재 값 %d)"), *ItemID.ToString(), (int32)Data->ItemType);
+		CapstoneSFX::Play2D(this, ESFX::UI_Deny); // 사용할 수 없는 아이템
 		return;
 	}
 
@@ -739,6 +807,7 @@ void APy_Grey::UsePotionItem(FName ItemID)
 	}
 
 	Heal(Data->HealAmount);
+	CapstoneSFX::Play2D(this, ESFX::UI_Potion);
 
 	LOG(TEXT("UsePotionItem(%s) 사용 : HealAmount=%d, HP %d -> %d / %d"), *ItemID.ToString(), Data->HealAmount, HpBeforeHeal, m_tInfo.iHp, m_tInfo.iMaxHp);
 
@@ -940,6 +1009,8 @@ void APy_Grey::HandleLevelUp(int32 NewLevel)
 	m_tInfo.iHp += HpIncreasePerLevel;
 	m_tInfo.iAttack += AttackIncreasePerLevel;
 
+	CapstoneSFX::Play2D(this, ESFX::UI_LevelUp);
+
 	if (IsValid(PlayerHpBar))
 	{
 		PlayerHpBar->SetHpValue(m_tInfo.iHp, m_tInfo.iMaxHp);
@@ -982,6 +1053,7 @@ void APy_Grey::ShowEnding()
 
 	EndingWidget->InitEnding(StartLevelName, FinalLevel, FinalGold);
 	EndingWidget->AddToViewport();
+	CapstoneSFX::Play2D(this, ESFX::UI_Ending);
 
 	SetGameplayInputLocked(true);
 
@@ -1027,6 +1099,9 @@ void APy_Grey::HandleDeath(AController* EventInstigator, AActor* DamageCauser)
 
 	bIsDead = true;
 	m_tInfo.iHp = 0; // 초과 피해로 음수가 남지 않게 (HP 비율을 읽는 적응형 AI 등을 위해)
+
+	CapstoneSFX::Play2D(this, ESFX::Player_VoiceDeath);
+	CapstoneSFX::Play2D(this, ESFX::UI_Death);
 
 	const AMonster* Killer = FindKillerMonster(EventInstigator, DamageCauser);
 	const FText KillerName = Killer ? Killer->GetDisplayName() : FText::GetEmpty();
@@ -1174,9 +1249,19 @@ bool APy_Grey::TryUseSkill(int32 SlotIndex)
 		return false;
 
 	if (GetSkillCooldownRemaining(SlotIndex) > 0.f)
+	{
+		CapstoneSFX::Play2D(this, ESFX::UI_Deny, 0.6f); // 쿨다운 중
 		return false;
+	}
 
 	SkillSlots[SlotIndex].LastUsedTime = GetWorld()->GetTimeSeconds();
+
+	// 쿨다운이 끝나는 순간 작은 "준비됨" 소리
+	GetWorldTimerManager().SetTimer(SkillReadyTimers[SlotIndex], FTimerDelegate::CreateWeakLambda(this, [this]()
+	{
+		if (!bIsDead)
+			CapstoneSFX::Play2D(this, ESFX::UI_SkillReady);
+	}), FMath::Max(SkillSlots[SlotIndex].Cooldown, 0.1f), false);
 
 	return true;
 }
@@ -1193,6 +1278,8 @@ bool APy_Grey::TryEnhanceWeapon()
 
 	AddAttackPower(AttackPerEnhance);
 	++WeaponLevel;
+
+	CapstoneSFX::Play2D(this, ESFX::UI_Enhance);
 
 	OnWeaponEnhanced.Broadcast(WeaponLevel);
 
@@ -1439,7 +1526,11 @@ void APy_Grey::WepaonBeginOverlap(UPrimitiveComponent* OverlappedComponent, AAct
 		{
 			const FVector HitDirection = (HitMonster->GetActorLocation() - GetActorLocation()).GetSafeNormal2D();
 
-			ApplyHitImpact(HitMonster, HitDirection, ComboScale, CurrentCombo >= FinisherComboIndex, true);
+			// 검이 몸을 때리는 소리 (갑옷/바위는 금속성). 마무리 타는 더 크게
+			const bool bFinisherHit = CurrentCombo >= FinisherComboIndex;
+			CapstoneSFX::PlayAt(this, HitMonster->GetPlayerHitSFX(), vImpactPoint.IsZero() ? HitMonster->GetActorLocation() : vImpactPoint, bFinisherHit ? 1.25f : 1.f);
+
+			ApplyHitImpact(HitMonster, HitDirection, ComboScale, bFinisherHit, true);
 		}
 
 		// 폭발 버프 중이 아니어도 매 타격마다 항상 나가는 기본 임팩트 이펙트(스파크+타격음)
@@ -1675,6 +1766,9 @@ void APy_Grey::UpdatePowerSlashHit()
 					SpawnAttachedHitEffect(HitEffectClass, Monster, ImpactPoint, ImpactNormal);
 				}
 
+				CapstoneSFX::PlayAt(this, ESFX::Player_SkillC_Impact, ImpactPoint);
+				CapstoneSFX::PlayAt(this, Monster->GetPlayerHitSFX(), ImpactPoint, 1.25f);
+
 				// 스킬 C는 마무리 타급 임팩트(반동/카메라 펀치/처치 연출). 넉백은 아래에서 전용 배율로 따로 처리한다
 				ApplyHitImpact(Monster, HitDir, 1.f, true, false);
 
@@ -1713,9 +1807,15 @@ float APy_Grey::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, 
 		DamageAmount -= Absorbed;
 
 		if (CurrentShield <= 0.f)
+		{
 			EndShield();
+			CapstoneSFX::Play2D(this, ESFX::Player_ShieldBreak);
+		}
 		else
+		{
 			RefreshShieldUI();
+			CapstoneSFX::Play2D(this, ESFX::Player_ShieldHit);
+		}
 
 		// 보호막이 전부 막아낸 타격은 체력이 깎이지 않으므로 피격 연출(히트스톱/카메라 셰이크/진동)도 생략
 		if (DamageAmount <= 0.f)
@@ -1725,6 +1825,12 @@ float APy_Grey::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, 
 	float fDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 	if (IsValid(PlayerHpBar))
 		PlayerHpBar->SetHpValue(m_tInfo.iHp, m_tInfo.iMaxHp);
+
+	// 몸에 맞는 소리 + (살아 있으면) 신음. 최대 체력의 15% 이상을 한 번에 맞으면 큰 신음
+	CapstoneSFX::Play2D(this, ESFX::Player_Hurt);
+
+	if (m_tInfo.iHp > 0)
+		CapstoneSFX::Play2D(this, fDamage >= m_tInfo.iMaxHp * 0.15f ? ESFX::Player_VoicePainHeavy : ESFX::Player_VoicePain);
 
 	PlayHitStop();
 	PlayCameraShake(StrongCameraShakeClass);

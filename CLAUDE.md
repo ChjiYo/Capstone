@@ -78,6 +78,12 @@ ACharacter (엔진)
 - `UInventoryComponent::Items`는 아이템 ID들의 단순한 `TArray<FName>`입니다 (`FQuestReward::RewardItemID`와 동일한 식별자 공간을 공유).
 - `UUI_Inventory`/`UUI_InventorySlot`이 인벤토리 위젯을 렌더링하고, `APy_Grey::ToggleInventory`가 이를 열고 닫습니다.
 
+### 사운드
+
+- `CapstoneSFX.h/.cpp`가 효과음 재생을 전부 맡습니다. `ESFX` 열거형 + `Table()`(에셋 경로/볼륨/피치/거리 감쇠/최소 간격)이 한 곳에 있고, 게임플레이 코드는 `CapstoneSFX::Play2D/PlayAt(this, ESFX::...)` 한 줄만 부릅니다. `UCapstoneLevelAudio`가 맵 이름별 환경음/음악을 깝니다.
+- `Content/UE_Asset/Sounds/Gen/`의 에셋은 `Tools/SFX/make_sfx.py`가 합성한 WAV(`SoundSource/`)를 `Tools/SFX/import_sfx.ps1`(커맨드릿, 에디터 닫고 실행)로 임포트한 것입니다. 소리를 바꾸려면 `.uasset`이 아니라 레시피를 고치고 다시 생성하세요.
+- 새/골렘/고블린 피격 등 일부 소리는 애니메이션 노티파이(BP 쪽)에 이미 연결돼 있어 C++에서 다시 내지 않습니다 (`FMonsterSFXProfile`의 해당 항목이 `None`). 자세한 내용은 `Docs/15_sound_system.md`.
+
 ### 포탈 / 레벨 전환
 
 `APortalPoint`가 플레이어와 겹치면 `TargetLevelName`을 로드합니다 — 이 프로젝트에서 유일한 레벨 간 전환 수단입니다.

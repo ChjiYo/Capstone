@@ -57,7 +57,16 @@ void AMonsterAIController::OnUnPossess()
 
 void AMonsterAIController::SetTarget(UObject* pTarget)
 {
+	// UBTService_Detect 가 매 틱 호출하므로 "타겟 없음 -> 있음"으로 바뀌는 순간에만 경계음을 낸다
+	const bool bHadTarget = Blackboard->GetValueAsObject(TEXT("Target")) != nullptr;
+
 	Blackboard->SetValueAsObject(TEXT("Target"), pTarget);
+
+	if (!bHadTarget && pTarget)
+	{
+		if (AMonster* Monster = Cast<AMonster>(GetPawn()))
+			Monster->PlayAlertSFX();
+	}
 }
 
 ACharacter* AMonsterAIController::GetTarget() const

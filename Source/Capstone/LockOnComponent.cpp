@@ -264,6 +264,11 @@ void ULockOnComponent::SetLockedTarget(AMonster* NewTarget)
 	if (IsValid(NewTarget) && !IsValid(MarkerWidget))
 		MarkerWidget = UUI_LockOnMarker::Create(GetOwnerController(), MarkerWidgetClass);
 
+	if (IsValid(NewTarget))
+		CapstoneSFX::Play2D(this, IsValid(Old) ? ESFX::UI_LockSwitch : ESFX::UI_LockOn);
+	else if (IsValid(Old))
+		CapstoneSFX::Play2D(this, ESFX::UI_LockRelease);
+
 	if (IsValid(MarkerWidget))
 		MarkerWidget->SetLockTarget(NewTarget);
 
