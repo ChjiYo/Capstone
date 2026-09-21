@@ -1,5 +1,6 @@
 ﻿#include "UI_InventorySlot.h"
 #include "UI_QuestStyle.h"
+#include "UI_PanelParts.h"
 #include "Py_Grey.h"
 #include "EquipmentComponent.h"
 #include "UI_ItemDrag.h"
@@ -13,45 +14,10 @@
 
 namespace
 {
-	// 아이템 종류별 테두리 색: 장비/무기는 금색, 물약은 붉은색, 재료는 푸른색, 전리품은 보라색
-	FLinearColor AccentFor(const FItemData* Data, bool bEquipment)
-	{
-		using namespace QuestUI;
-
-		if (bEquipment)
-			return Gold;
-
-		if (!Data)
-			return Muted;
-
-		switch (Data->ItemType)
-		{
-		case EItemType::Potion:		return SRGB(0xD8, 0x64, 0x5C);
-		case EItemType::Material:	return SRGB(0x6F, 0xA8, 0xD8);
-		case EItemType::Loot:		return SRGB(0xAE, 0x88, 0xDC);
-		default:					return Gold;
-		}
-	}
-
-	FText TypeLabelFor(const FItemData* Data)
-	{
-		if (!Data)
-			return FText::GetEmpty();
-
-		switch (Data->ItemType)
-		{
-		case EItemType::Potion:		return FText::FromString(TEXT("소모품"));
-		case EItemType::Material:	return FText::FromString(TEXT("재료"));
-		case EItemType::Loot:		return FText::FromString(TEXT("전리품"));
-		default:					return FText::FromString(TEXT("무기"));
-		}
-	}
-
-	// A쪽을 (1-T) 만큼, B쪽을 T 만큼 섞는다. 알파는 1로 둔다
-	FLinearColor Mix(const FLinearColor& A, const FLinearColor& B, float T)
-	{
-		return FLinearColor(FMath::Lerp(A.R, B.R, T), FMath::Lerp(A.G, B.G, T), FMath::Lerp(A.B, B.B, T), 1.f);
-	}
+	// 종류별 테두리 색/종류 글자는 상점·강화 창과 같은 것을 쓴다 (UI_PanelParts.h)
+	using PanelUI::ItemAccent;
+	using PanelUI::ItemTypeLabel;
+	using PanelUI::Blend;
 }
 
 void UUI_InventorySlot::NativeOnInitialized()
@@ -128,8 +94,8 @@ void UUI_InventorySlot::UpdateFrame()
 
 	if (HasItem())
 	{
-		Fill = Mix(SRGB(0x24, 0x1C, 0x12), Info.Accent, bHovered ? 0.22f : 0.12f);
-		Outline = bHovered ? Mix(Info.Accent, FLinearColor::White, 0.4f) : Info.Accent;
+		Fill = Blend(SRGB(0x24, 0x1C, 0x12), Info.Accent, bHovered ? 0.22f : 0.12f);
+		Outline = bHovered ? Blend(Info.Accent, FLinearColor::White, 0.4f) : Info.Accent;
 		Width = 2.f;
 	}
 	else if (bHovered)
@@ -172,7 +138,7 @@ FInventorySlotInfo UUI_InventorySlot::BuildInfo(const FItemData* ItemData) const
 
 	if (Player && Player->EquipmentComponent && Player->EquipmentComponent->GetEquipInfo(CurrentItemID, Equip))
 	{
-		Result.Accent = AccentFor(ItemData, true);
+		Result.Accent = ItemAccent(ItemData, true);
 		Result.Name = Equip.Name;
 		Result.Type = FText::FromString(FString::Printf(TEXT("장비  ·  %s"), *EquipDefs::GetSlotLabel(Equip.Slot).ToString()));
 
@@ -198,9 +164,9 @@ FInventorySlotInfo UUI_InventorySlot::BuildInfo(const FItemData* ItemData) const
 		return Result;
 	}
 
-	Result.Accent = AccentFor(ItemData, false);
+	Result.Accent = ItemAccent(ItemData, false);
 	Result.Name = ItemData && !ItemData->DisplayName.IsEmpty() ? ItemData->DisplayName : FText::FromName(CurrentItemID);
-	Result.Type = TypeLabelFor(ItemData);
+	Result.Type = ItemTypeLabel(ItemData);
 
 	TArray<FString> Lines;
 

@@ -49,6 +49,9 @@ public:
     // Count개를 더 넣을 자리가 있는가 (기존 스택의 남은 자리 + 빈 칸)
     bool CanAddItem(FName ItemID, int32 Count = 1) const;
 
+    // 지금 이 아이템을 최대 몇 개까지 더 넣을 수 있는가 (기존 스택의 남은 자리 + 빈 칸 x 스택 한도). 상점이 한 번에 살 수 있는 수를 정할 때 쓴다
+    int32 GetAddableCount(FName ItemID) const;
+
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Inventory")
     TArray<FInventorySlot> Items;
 

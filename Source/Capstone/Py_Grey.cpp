@@ -472,9 +472,16 @@ void APy_Grey::SetGameplayInputLocked(bool bLocked)
 		LockOnComponent->ReleaseLock();
 }
 
+void APy_Grey::SetNPCPanelOpen(bool bOpen)
+{
+	bNPCPanelOpen = bOpen;
+	RefreshPanelInputMode();
+}
+
 void APy_Grey::RefreshPanelInputMode()
 {
-	const bool bAnyPanelOpen = (IsValid(InventoryWidget) && InventoryWidget->IsInViewport())
+	const bool bAnyPanelOpen = bNPCPanelOpen
+		|| (IsValid(InventoryWidget) && InventoryWidget->IsInViewport())
 		|| (IsValid(EquipmentWidget) && EquipmentWidget->IsInViewport());
 
 	SetGameplayInputLocked(bAnyPanelOpen);

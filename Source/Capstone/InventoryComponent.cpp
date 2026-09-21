@@ -72,27 +72,32 @@ const FItemData* UInventoryComponent::GetItemData(FName ItemID) const
     return nullptr;
 }
 
-bool UInventoryComponent::CanAddItem(FName ItemID, int32 Count) const
+int32 UInventoryComponent::GetAddableCount(FName ItemID) const
 {
-    if (ItemID.IsNone() || Count <= 0)
-        return false;
+    if (ItemID.IsNone())
+        return 0;
 
     int32 MaxStack = 99;
     if (const FItemData* Data = GetItemData(ItemID))
         MaxStack = FMath::Max(1, Data->MaxStack);
 
-    int32 Remaining = Count;
+    int64 Room = static_cast<int64>(FMath::Max(0, MaxSlots - Items.Num())) * MaxStack;
+
     for (const FInventorySlot& Slot : Items)
     {
         if (Slot.ItemID == ItemID)
-            Remaining -= FMath::Max(0, MaxStack - Slot.Count);
+            Room += FMath::Max(0, MaxStack - Slot.Count);
     }
 
-    if (Remaining <= 0)
-        return true;
+    return static_cast<int32>(FMath::Min<int64>(Room, MAX_int32));
+}
 
-    const int32 NeededSlots = FMath::DivideAndRoundUp(Remaining, MaxStack);
-    return Items.Num() + NeededSlots <= MaxSlots;
+bool UInventoryComponent::CanAddItem(FName ItemID, int32 Count) const
+{
+    if (ItemID.IsNone() || Count <= 0)
+        return false;
+
+    return GetAddableCount(ItemID) >= Count;
 }
 
 void UInventoryComponent::AddItem(FName ItemID, int32 Count)

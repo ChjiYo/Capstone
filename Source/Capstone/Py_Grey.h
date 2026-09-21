@@ -160,6 +160,9 @@ private:
 	bool bIsExplosiveBuffActive = false;
 	bool bGameplayInputLocked = false;
 
+	// 상점/강화 창이 떠 있는가 (SetNPCPanelOpen)
+	bool bNPCPanelOpen = false;
+
 	// 착지 소리 크기를 정하기 위해 공중에 있는 동안 마지막 낙하 속도를 기억해 둔다 (Landed 시점엔 이미 0에 가깝다)
 	float LastFallSpeedZ = 0.f;
 
@@ -392,6 +395,10 @@ public:
 	// 인벤토리창/장비창은 함께 열어 둘 수 있으므로, 둘 중 하나라도 열려 있으면 입력 잠금+마우스 커서를 켜고 둘 다 닫히면 게임 입력으로 되돌린다.
 	// 창이 열리고 닫힐 때마다 이 함수로 상태를 맞춘다
 	void RefreshPanelInputMode();
+
+	// 상점/강화 창처럼 NPC가 여는 창이 떠 있는 동안 true. 그 창이 열린 채 인벤토리/장비창을 여닫아도 입력 잠금과 마우스 커서가 풀리지 않는다.
+	// 켜고 끌 때 RefreshPanelInputMode까지 함께 처리한다
+	void SetNPCPanelOpen(bool bOpen);
 
 	// OpenLevel(하드 레벨 전환)은 폰과 컴포넌트를 전부 파괴하므로, 인벤토리/경험치/체력/공격력/무기 강화 단계를 게임 인스턴스
 	// 서브시스템에 맡겨 새 폰이 BeginPlay에서 복원하게 한다. 포탈 이동과 사망 리스폰이 함께 쓴다

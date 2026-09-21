@@ -85,6 +85,13 @@ ACharacter (엔진)
 - 장비 정보의 원본은 `FItemData`의 장비 필드(`EquipSlot` 등)이고, `DT_Item`(바이너리)에 값이 없는 행은 `EquipmentData.cpp`의 코드 정의(`EquipDefs`)를 ItemID로 찾아 씁니다. 기본 스탯이 공격력 5/체력 160이고 기본 검(+5)/방패(+40)를 끼고 시작해 합계가 10/200입니다.
 - 장비창 `UUI_Equipment`/`UUI_EquipSlot`은 WBP 없이 C++로만 조립합니다 (`UI_QuestStyle.h` 팔레트 재사용). 인벤토리 슬롯 클릭/드래그로 장착, 장비 칸 클릭/인벤토리로 드래그로 해제. 장착 상태는 `ULevelTransitionSubsystem`을 통해 레벨 이동/리스폰 뒤에도 복원됩니다 (보너스는 이미 저장된 스탯에 포함돼 있으므로 다시 더하지 않음). 자세한 내용은 `Docs/16_equipment.md`.
 
+### 상점 / 강화 창
+
+- `UUI_Shop`/`UUI_ShopSlot`(상점)과 `UUI_Enhance`(강화)도 `bUseCodeBuiltLayout`(기본 true)이면 WBP 트리를 버리고 `NativeOnInitialized`에서 코드로 조립합니다 (인벤토리/장비창과 같은 골드 이중 테두리 판). 공용 부품(창 틀+제목줄, 소지금 배지, 탭/버튼 스타일, 아이콘 칸 `FIconBox`, 아이템 종류별 색/요약)은 `UI_PanelParts.h`의 `PanelUI::`에 있고, 색/브러시는 `UI_QuestStyle.h`를 그대로 씁니다.
+- 상점은 `[구매][판매]` 탭 + 수량 칩(×1/×10/최대) + 한 줄 목록이고, **줄을 클릭하면 선택한 수량만큼 바로 거래**합니다 (거래 로직은 줄이 아니라 `UUI_Shop::HandleTradeRequested`). 인벤토리 자리는 `UInventoryComponent::GetAddableCount`로 먼저 확인합니다. 인벤토리 변경 방송은 다음 틱에 한 번만 목록을 다시 그립니다 (줄의 클릭 콜백 안에서 그 줄을 지우지 않으려고).
+- 강화 창은 지금 무기·`+N → +N+1`·공격력 변화·재료/골드 충족 여부(부족하면 붉게)를 보여주고, 버튼 글자가 못 하는 이유를 알려줍니다. `Enter` 강화.
+- 두 창 모두 `Esc`/`X`/NPC 앞에서 `E` 한 번 더로 닫습니다. NPC가 창을 열고 닫을 때는 `APy_Grey::SetNPCPanelOpen(bool)`을 부릅니다 — 입력 잠금/마우스 커서를 `RefreshPanelInputMode`가 인벤토리·장비창과 함께 판정하므로, 상점을 연 채 `I`/`U`를 여닫아도 커서가 풀리지 않습니다. 자세한 내용은 `Docs/17_shop_enhance_ui.md`.
+
 ### 사운드
 
 - `CapstoneSFX.h/.cpp`가 효과음 재생을 전부 맡습니다. `ESFX` 열거형 + `Table()`(에셋 경로/볼륨/피치/거리 감쇠/최소 간격)이 한 곳에 있고, 게임플레이 코드는 `CapstoneSFX::Play2D/PlayAt(this, ESFX::...)` 한 줄만 부릅니다. `UCapstoneLevelAudio`가 맵 이름별 환경음/음악을 깝니다.
