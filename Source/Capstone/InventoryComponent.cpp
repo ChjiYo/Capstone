@@ -3,6 +3,7 @@
 #include "LevelTransitionSubsystem.h"
 #include "CapstoneSFX.h"
 #include "EquipmentData.h"
+#include "LootData.h"
 
 UInventoryComponent::UInventoryComponent()
 {
@@ -65,6 +66,19 @@ const FItemData* UInventoryComponent::GetItemData(FName ItemID) const
         Data.EquipSlot = Def->Slot;
         Data.AttackBonus = Def->AttackBonus;
         Data.MaxHpBonus = Def->MaxHpBonus;
+
+        return &SyntheticItems.Add(ItemID, Data);
+    }
+
+    // 몬스터 전리품(골렘의 핵 등)도 표에 행이 없으면 코드 정의로 이름/설명/판매가를 채워 준다. 상점 판매 탭은 판매가가 있는 아이템만 보여준다
+    if (const FLootInfo* Loot = LootDefs::FindDefinition(ItemID))
+    {
+        FItemData Data;
+        Data.DisplayName = Loot->Name;
+        Data.Description = Loot->Description;
+        Data.ItemType = EItemType::Loot;
+        Data.SellPrice = Loot->SellPrice;
+        Data.MaxStack = Loot->MaxStack;
 
         return &SyntheticItems.Add(ItemID, Data);
     }

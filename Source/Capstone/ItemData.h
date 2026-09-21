@@ -29,6 +29,10 @@ struct FItemData : public FTableRowBase
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
     FText DisplayName;
 
+    // 인벤토리 설명 칸에 이름 아래로 나오는 한두 줄 설명. 비워두면 안 나온다
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
+    FText Description;
+
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item")
     EItemType ItemType = EItemType::Material;
 

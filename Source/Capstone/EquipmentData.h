@@ -33,6 +33,9 @@ namespace EquipDefs
 	extern const FName GreystoneSword;
 	extern const FName GreystoneShield;
 
+	// 고블린이 쓰던 검. 고블린 토벌 퀘스트 보상 (DT_Item에 행이 이미 있다)
+	extern const FName GoblinSword;
+
 	// 코드에 정의된 장비. DataTable에 행이 없어도 인벤토리에 넣고 장착할 수 있다
 	const FEquipInfo* FindDefinition(FName ItemID);
 
@@ -44,6 +47,7 @@ namespace EquipDefs
 
 	FText GetSlotLabel(EEquipSlot Slot);
 
-	// 아이콘 텍스처가 없는 장비를 위해 코드로 그려 만든 검/방패 아이콘. 한 번 만들고 재사용한다
+	// DataTable에 아이콘이 없는 아이템을 위해 코드로 그려 만든 아이콘. 장비(검/방패)면 그 아이콘을, 아니면 코드로 정의된 전리품(LootData.h)의 아이콘을 돌려준다.
+	// 아이콘을 찾는 쪽이 이 함수 하나만 부르면 되고, 어느 쪽도 아니면 nullptr. 한 번 만들고 재사용한다
 	UTexture2D* GetGeneratedIcon(FName ItemID);
 }

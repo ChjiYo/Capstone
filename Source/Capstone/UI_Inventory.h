@@ -18,6 +18,10 @@ public:
     // 인벤토리 데이터를 받아 UI를 갱신하는 함수
     void RefreshInventoryUI(class UInventoryComponent* InInventoryComp);
 
+    // 뷰포트에 올린 직후 호출: 화면 오른쪽 가운데쯤에 놓는다 (장비창과 나란히 볼 수 있게).
+    // 뷰포트 슬롯(앵커/정렬)은 RemoveFromParent 때 사라지고 창을 열 때마다 기본값(화면 전체)으로 돌아가므로 열 때마다 불러야 한다
+    void PlaceInViewport();
+
     UFUNCTION()
     void OnCloseButtonClicked();
 

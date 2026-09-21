@@ -758,8 +758,12 @@ void APy_Grey::OnInteractKeyPressed()
 
 	if (CurrItem)
 	{
-		CurrItem->PickupItem(this);
-		CurrItem = nullptr;
+		AItemBase* Item = CurrItem;
+		Item->PickupItem(this);
+
+		// 가방이 가득 차 못 주웠으면 아이템이 그대로 남아 있으므로 자리를 비운 뒤 다시 누를 수 있게 둔다
+		if (!IsValid(Item) || Item->IsActorBeingDestroyed())
+			CurrItem = nullptr;
 	}
 
 	if (CurrNPC)
@@ -789,6 +793,7 @@ void APy_Grey::ToggleInventory()
 	else
 	{
 		InventoryWidget->AddToViewport();
+		InventoryWidget->PlaceInViewport();
 		CapstoneSFX::Play2D(this, ESFX::UI_Open);
 
 		if (InventoryComponent)

@@ -273,7 +273,7 @@ void UUI_Enhance::BuildNativeTree()
     // ---- 강화하기 버튼 ----
     UButton* Button = nullptr;
     UTextBlock* Label = nullptr;
-    USizeBox* ButtonBox = PanelUI::MakeTextButton(WidgetTree, TEXT("EnhanceButton"), TEXT("강  화  하  기"), 20, 0.f, 54.f, Button, Label);
+    USizeBox* ButtonBox = PanelUI::MakeTextButton(WidgetTree, TEXT("NativeEnhanceButton"), TEXT("강  화  하  기"), 20, 0.f, 54.f, Button, Label);
     PanelUI::ApplyPrimaryStyle(Button, Label);
     EnhanceButton = Button;
     EnhanceLabel = Label;

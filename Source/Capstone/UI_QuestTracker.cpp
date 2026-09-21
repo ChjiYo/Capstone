@@ -27,6 +27,9 @@ void UUI_QuestTracker::BuildNativeTree()
 {
 	using namespace QuestUI;
 
+	// 위젯 이름은 WBP_QuestTracker에 이미 있는 이름(TitleText 등)과 겹치면 안 된다. 같은 이름으로 만들면 WBP 쪽 옛 오브젝트 자리를 그대로 덮어쓰는데,
+	// 버려진 옛 트리의 슬롯이 나중에 GC로 파괴될 때 그 슬롯이 아직 가리키는 새 텍스트 블록의 Slate 연결(MyTextBlock)까지 끊어 버린다.
+	// 그러면 SetText가 화면에 반영되지 않아 진행 바만 갱신되고 문구가 "채집 3 / 5"에서 멈추므로, 코드로 만드는 위젯에는 "Native" 접두사를 붙인다
 	// 루트: 화면 전체 Overlay 안에 패널을 좌상단 기준으로 놓는다. 패널 바깥은 클릭이 통과하도록 UpdateQuest가 SelfHitTestInvisible로 둔다
 	UOverlay* Root = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass(), TEXT("Root"));
 
@@ -75,7 +78,7 @@ void UUI_QuestTracker::BuildNativeTree()
 
 	// 2) 제목
 	{
-		UTextBlock* Title = MakeText(WidgetTree, TEXT("TitleText"), 19, GoldBright, true);
+		UTextBlock* Title = MakeText(WidgetTree, TEXT("NativeTitleText"), 19, GoldBright, true);
 		Title->SetAutoWrapText(true);
 
 		if (UVerticalBoxSlot* S = Column->AddChildToVerticalBox(Title))
@@ -94,7 +97,7 @@ void UUI_QuestTracker::BuildNativeTree()
 
 	// 4) 설명
 	{
-		UTextBlock* Description = MakeText(WidgetTree, TEXT("DescriptionText"), 14, Ivory, false);
+		UTextBlock* Description = MakeText(WidgetTree, TEXT("NativeDescriptionText"), 14, Ivory, false);
 		Description->SetAutoWrapText(true);
 		Column->AddChildToVerticalBox(Description);
 
@@ -105,7 +108,7 @@ void UUI_QuestTracker::BuildNativeTree()
 	{
 		UVerticalBox* Area = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("ProgressArea"));
 
-		UTextBlock* Progress = MakeText(WidgetTree, TEXT("ProgressText"), 14, Gold, true);
+		UTextBlock* Progress = MakeText(WidgetTree, TEXT("NativeProgressText"), 14, Gold, true);
 		Area->AddChildToVerticalBox(Progress);
 
 		UProgressBar* Bar = WidgetTree->ConstructWidget<UProgressBar>(UProgressBar::StaticClass(), TEXT("ProgressBar"));

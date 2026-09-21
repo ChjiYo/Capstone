@@ -40,6 +40,10 @@ public:
 	// 활성 퀘스트가 없거나, 목표가 없거나(대화형), 이미 완료됐으면 nullptr
 	AActor* GetQuestTargetActor();
 
+	// 퀘스트를 완료했을 때 실제로 지급되는 보상. 퀘스트 데이터(블루프린트)의 Reward에 코드가 보충하는 값을 얹은 것이라,
+	// 보상을 보여주는 UI도 Quest.Reward를 그대로 읽지 말고 이 값을 써야 실제 지급과 어긋나지 않는다
+	static FQuestReward ResolveReward(const FQuestData& Quest);
+
 protected:
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;

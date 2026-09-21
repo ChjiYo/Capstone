@@ -1,5 +1,6 @@
 ﻿#include "Mon_Bird.h"
 #include "Mon_BirdAnim.h"
+#include "LootData.h"
 #include "Engine/DamageEvents.h"
 
 AMon_Bird::AMon_Bird()
@@ -17,6 +18,8 @@ AMon_Bird::AMon_Bird()
 	SFXProfile.Hit = ESFX::None;
 	SFXProfile.Death = ESFX::Mon_Death_Bird;
 	SFXProfile.Step = ESFX::None;
+
+	DropTable.Emplace(LootDefs::BirdFeather, 0.6f, 1, 2);
 
 	fTraceRange = 1000.f;
 	fAttackDist = 200.f;

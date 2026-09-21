@@ -74,6 +74,7 @@ namespace QuestUI
 		return Box;
 	}
 
+	// Name은 WBP 트리에 이미 있는 위젯 이름과 겹치면 안 된다 (겹치면 나중에 SetText가 화면에 반영되지 않는다. UI_QuestTracker.cpp의 BuildNativeTree 주석 참고)
 	inline UTextBlock* MakeText(UWidgetTree* Tree, const TCHAR* Name, int32 Size, const FLinearColor& Color, bool bBold, bool bShadow = true, int32 LetterSpacing = 0)
 	{
 		UTextBlock* Text = Tree->ConstructWidget<UTextBlock>(UTextBlock::StaticClass(), FName(Name));

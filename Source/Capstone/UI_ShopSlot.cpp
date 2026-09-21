@@ -58,7 +58,7 @@ void UUI_ShopSlot::BuildNativeTree()
     // ---- 이름 / 설명 ----
     UVerticalBox* Texts = WidgetTree->ConstructWidget<UVerticalBox>(UVerticalBox::StaticClass(), TEXT("Texts"));
 
-    NameText = MakeText(WidgetTree, TEXT("NameText"), 16, Ivory, true);
+    NameText = MakeText(WidgetTree, TEXT("NativeNameText"), 16, Ivory, true);
     Texts->AddChildToVerticalBox(NameText);
 
     SubText = MakeText(WidgetTree, TEXT("SubText"), 12, Muted, false);
@@ -85,7 +85,7 @@ void UUI_ShopSlot::BuildNativeTree()
             BadgeSlot->SetHorizontalAlignment(HAlign_Right);
     }
 
-    CountText = MakeText(WidgetTree, TEXT("CountText"), 12, Muted, false);
+    CountText = MakeText(WidgetTree, TEXT("NativeCountText"), 12, Muted, false);
     CountText->SetJustification(ETextJustify::Right);
 
     if (UVerticalBoxSlot* CountSlot = Prices->AddChildToVerticalBox(CountText))

@@ -11,6 +11,34 @@ DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnMonsterKilled, FName /*MonsterID*/, in
 // bIsBoss인 몬스터가 죽을 때만 추가로 방송 (8단계 엔딩 트리거). APy_Grey가 구독해 지연 후 엔딩 화면을 띄운다
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnBossDefeated, FName /*MonsterID*/)
 
+// 코드로 정해 두는 몬스터 전리품 한 종류. 몬스터가 죽을 때마다 Chance 확률로 MinCount~MaxCount개가 떨어진다.
+// 블루프린트 픽업을 DropItemClasses에 꽂는 방식과 달리 ItemID만 정하면 되고, 아이템 정의/아이콘은 LootData.h(또는 DT_Item)에서 온다
+USTRUCT(BlueprintType)
+struct FMonsterDrop
+{
+	GENERATED_BODY()
+
+	FMonsterDrop() {}
+
+	FMonsterDrop(FName InItemID, float InChance, int32 InMinCount = 1, int32 InMaxCount = 1)
+		: ItemID(InItemID), Chance(InChance), MinCount(InMinCount), MaxCount(InMaxCount)
+	{
+	}
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drop")
+	FName ItemID;
+
+	// 0~1. 항목마다 따로 굴린다
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drop", meta = (ClampMin = "0.0", ClampMax = "1.0"))
+	float Chance = 1.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drop", meta = (ClampMin = "1"))
+	int32 MinCount = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drop", meta = (ClampMin = "1"))
+	int32 MaxCount = 1;
+};
+
 // 몬스터 종류별 효과음 구성. 몬스터 클래스 생성자가 기본값을 채우고, 블루프린트에서 바꿀 수 있다.
 // 기존 애니메이션 노티파이에 이미 소리가 연결된 동작(새/골렘 공격·피격, 고블린 피격)은 None으로 둬서 겹쳐 울리지 않게 한다
 USTRUCT(BlueprintType)
@@ -111,6 +139,10 @@ public:
 	// 전리품 드롭 확률 (0~1)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drop Items")
 	float DropChance = 1.f;
+
+	// DropItemClasses(블루프린트 픽업)와 별개로, 죽을 때 항목마다 따로 굴려 떨어뜨리는 전리품 목록. 몬스터 클래스 생성자가 기본값을 채우고 블루프린트에서 바꿀 수 있다
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Drop Items")
+	TArray<FMonsterDrop> DropTable;
 
 	// 처치 시 지급되는 경험치/골드. 몬스터 블루프린트별로 다르게 설정
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Reward")
@@ -221,6 +253,9 @@ private:
 	float DissolveTimeElapsed = 0.f;
 
 	void UpdateDeathSequence(float DeltaTime);
+
+	// 사망 시 DropTable을 굴려 걸린 전리품을 바닥에 놓는다
+	void DropLoot();
 
 	// 탐지 범위(fTraceRange) 안에 플레이어가 들어와 AI가 타겟을 잡았을 때만 HP바를 보이게 한다
 	void UpdateHpBarVisibility();

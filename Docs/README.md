@@ -57,6 +57,8 @@
 | [13_boss_ai_overhaul.md](13_boss_ai_overhaul.md) | 나르바쉬 보스 스킬 6종 + 강인도(Poise), 코드로 조립한 전투 비헤이비어 트리 |
 | [14_hit_feel_lockon.md](14_hit_feel_lockon.md) | 락온(대상 고정 카메라/마커), 일반 공격 넉백·메시 반동·카메라 펀치·처치 연출, 공격 어시스트 |
 | [16_equipment.md](16_equipment.md) | 장비창(`U` 키), 인벤토리↔장비창 착탈(클릭/드래그), 공격력·체력 보너스, 손에 드는 검/방패 모델, 레벨 이동 저장 |
+| [17_shop_enhance_ui.md](17_shop_enhance_ui.md) | 상점/강화 창을 인벤토리·장비창과 같은 골드 이중 테두리 판으로 코드 조립, 클릭 즉시 거래, 입력 모드 정리 |
+| [18_loot_drops.md](18_loot_drops.md) | 골렘/새/애벌레 전리품(코드 정의 아이템 + 코드로 그린 아이콘), 몬스터 `DropTable`, 상점 판매, 고블린 토벌 보상(고블린 소드) |
 | [15_sound_system.md](15_sound_system.md) | 효과음/환경음 시스템: 합성 사운드 78종 (어두운 중세 톤) + 기존 에셋 재사용, `CapstoneSFX` 재생기, 게임플레이 연결 지점, 재생성/튜닝 방법 |
 
 ## 현재 코드 기준점 (이미 구현된 것)

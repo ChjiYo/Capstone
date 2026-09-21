@@ -1,5 +1,6 @@
 ﻿#include "Mon_Larvae.h"
 #include "Mon_LarvaeAnim.h"
+#include "LootData.h"
 #include "Engine/DamageEvents.h"
 #include "DrawDebugHelpers.h"
 
@@ -35,6 +36,8 @@ AMon_Larvae::AMon_Larvae()
 
 	WeaponBox = CreateDefaultSubobject<UBoxComponent>(TEXT("WeaponBox"));
 	WeaponBox->SetupAttachment(GetMesh(), TEXT("Attack_Socket"));
+
+	DropTable.Emplace(LootDefs::LarvaeSlime, 0.6f);
 
 	fTraceRange = 1000.f;
 	fAttackDist = 500.f;

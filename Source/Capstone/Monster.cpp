@@ -346,6 +346,30 @@ void AMonster::UpdateDeathSequence(float DeltaTime)
 	}
 }
 
+void AMonster::DropLoot()
+{
+    bool bDropped = false;
+
+    for (const FMonsterDrop& Drop : DropTable)
+    {
+        if (Drop.ItemID.IsNone() || FMath::FRand() >= Drop.Chance)
+            continue;
+
+        const int32 MinCount = FMath::Max(1, Drop.MinCount);
+        const int32 Count = FMath::RandRange(MinCount, FMath::Max(MinCount, Drop.MaxCount));
+
+        // 여러 종류가 한꺼번에 떨어져도 한 점에 겹치지 않도록 둘레에 흩뿌린다
+        const float Angle = FMath::FRandRange(0.f, 2.f * PI);
+        const FVector Scatter(FMath::Cos(Angle) * 70.f, FMath::Sin(Angle) * 70.f, 0.f);
+
+        if (AItemBase::SpawnLoot(this, Drop.ItemID, Count, Scatter))
+            bDropped = true;
+    }
+
+    if (bDropped)
+        CapstoneSFX::PlayAt(this, ESFX::UI_ItemDrop, GetActorLocation());
+}
+
 float AMonster::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
     // 이미 사망(디졸브 시작)한 몬스터는 추가 데미지를 무시한다. 무기 콜리전 박스가 몬스터의
@@ -398,6 +422,8 @@ float AMonster::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, 
                     UE_LOG(LogTemp, Warning, TEXT("고블린이 아이템을 드랍했습니다!"));
                 }
             }
+
+        DropLoot();
 
         // 여기서 바로 Destroy하지 않는다. Super::TakeDamage(ACharBase)에서 이미 데스 애니메이션 상태로
         // 전환해 두었으니, 데스 모션과 동시에 디졸브를 시작하고 DissolveDuration이 지나면

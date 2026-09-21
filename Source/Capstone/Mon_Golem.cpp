@@ -1,5 +1,6 @@
 ﻿#include "Mon_Golem.h"
 #include "Mon_GolemAnim.h"
+#include "LootData.h"
 #include "Engine/DamageEvents.h"
 
 AMon_Golem::AMon_Golem()
@@ -19,6 +20,9 @@ AMon_Golem::AMon_Golem()
 	SFXProfile.Step = ESFX::Mon_Step_Heavy;
 	SFXProfile.StepStride = 240.f;
 	SFXProfile.bArmored = true;
+
+	// 단단하고 오래 걸려 잡는 만큼 거의 항상 핵을 떨어뜨린다
+	DropTable.Emplace(LootDefs::GolemCore, 0.8f);
 
 	fTraceRange = 800.f;
 	fAttackDist = 250.f;

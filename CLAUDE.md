@@ -92,6 +92,17 @@ ACharacter (엔진)
 - 강화 창은 지금 무기·`+N → +N+1`·공격력 변화·재료/골드 충족 여부(부족하면 붉게)를 보여주고, 버튼 글자가 못 하는 이유를 알려줍니다. `Enter` 강화.
 - 두 창 모두 `Esc`/`X`/NPC 앞에서 `E` 한 번 더로 닫습니다. NPC가 창을 열고 닫을 때는 `APy_Grey::SetNPCPanelOpen(bool)`을 부릅니다 — 입력 잠금/마우스 커서를 `RefreshPanelInputMode`가 인벤토리·장비창과 함께 판정하므로, 상점을 연 채 `I`/`U`를 여닫아도 커서가 풀리지 않습니다. 자세한 내용은 `Docs/17_shop_enhance_ui.md`.
 
+### 코드 조립 위젯(bUseCodeBuiltLayout) 주의사항
+
+- **코드로 만드는 위젯 이름은 WBP 안에 이미 있는 이름과 겹치면 안 됩니다** (`TitleText`, `GoldText`, `CountText` 같은 BindWidget 이름 포함). 같은 이름으로 `ConstructWidget`하면 WBP 쪽 옛 오브젝트 자리를 그대로 덮어쓰는데, 버려진 옛 트리의 슬롯이 나중에 GC로 파괴될 때(`UPanelSlot::ReleaseSlateResources`가 `Content`를 무조건 릴리즈함) 새 텍스트 블록의 Slate 연결(`MyTextBlock`)이 끊어집니다. 그러면 `SetText`가 화면에 반영되지 않습니다 — 퀘스트 트래커의 채집 문구가 `채집 3 / 5`에서 멈추던 버그의 원인이었습니다(진행 바는 갱신되고 UMG 값도 맞는데 화면만 안 바뀜). 그래서 코드 조립 위젯은 `NativeTitleText`처럼 `Native` 접두사를 붙입니다.
+- **뷰포트 슬롯(앵커/정렬)은 `RemoveFromParent` 때 사라집니다** (UE 5.7의 `UGameViewportSubsystem`이 위젯별로 관리). `NativeOnInitialized`에서 `SetAnchorsInViewport`를 한 번만 부르면 첫 오픈만 정상이고 다시 열면 화면 전체로 늘어납니다. 위젯을 재사용하는 창(`InventoryWidget`, `EquipmentWidget`)은 `AddToViewport` 직후 `PlaceInViewport()`를 매번 부릅니다. 상점/강화 창은 열 때마다 `CreateWidget`을 새로 하므로 해당 없음.
+
+### 몬스터 전리품 / 퀘스트 보상 보충
+
+- 골렘/새/애벌레는 `AMonster::DropTable`(`FMonsterDrop`: ItemID/확률/개수)로 전리품을 떨어뜨립니다. 몬스터 생성자가 기본값을 채우고, 기존 `DropItemClasses`(BP 픽업)와 별개로 굴립니다. 떨어진 것은 `AItemBase::SpawnLoot`이 만든 코드 픽업(아이콘 스프라이트가 떠 있음, `E`로 습득, 가방이 가득 차면 못 줍고 남아 있음)입니다.
+- 전리품 3종(`Loot_GolemCore`/`Loot_BirdFeather`/`Loot_LarvaeSlime`)의 이름/설명/판매가/아이콘은 `LootData.h/.cpp`에 코드로 정의돼 있고 `UInventoryComponent::GetItemData`가 `DT_Item`에 행이 없을 때 이것으로 행을 만들어 줍니다 (`DT_Item`에 같은 ID 행이 있으면 그쪽 우선). 아이콘은 `IconPainter`(다각형 안티에일리어싱 렌더러)로 코드로 그립니다. 아이콘 조회는 여전히 `EquipDefs::GetGeneratedIcon` 하나만 부르면 되고, 장비가 아니면 전리품 아이콘을 돌려줍니다.
+- `UQuestComponent::ResolveReward`가 블루프린트 퀘스트 데이터의 보상에 코드 보충분을 얹습니다: 보상 아이템이 비어 있는 처치 퀘스트의 대상이 `Goblin`이면 고블린 소드(`GoblinSword`) 1개 (BP_Hans의 '고블린 토벌'). 보상 지급과 `UUI_Quest`의 보상 줄이 이 함수를 같이 씁니다. 자세한 내용은 `Docs/18_loot_drops.md`.
+
 ### 사운드
 
 - `CapstoneSFX.h/.cpp`가 효과음 재생을 전부 맡습니다. `ESFX` 열거형 + `Table()`(에셋 경로/볼륨/피치/거리 감쇠/최소 간격)이 한 곳에 있고, 게임플레이 코드는 `CapstoneSFX::Play2D/PlayAt(this, ESFX::...)` 한 줄만 부릅니다. `UCapstoneLevelAudio`가 맵 이름별 환경음/음악을 깝니다.

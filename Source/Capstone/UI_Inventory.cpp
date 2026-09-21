@@ -91,10 +91,6 @@ void UUI_Inventory::NativeOnInitialized()
 	if (bUseCodeBuiltLayout && WidgetTree && !IsDesignTime())
 	{
 		BuildNativeTree();
-
-		// 장비창(화면 왼쪽 0.2)과 나란히 볼 수 있게 오른쪽에 놓는다. SetPositionInViewport는 앵커를 (0,0)으로 되돌리므로 쓰지 않는다
-		SetAnchorsInViewport(FAnchors(0.8f, 0.5f));
-		SetAlignmentInViewport(FVector2D(0.5f, 0.5f));
 	}
 
 	// 버튼 연결과 칸 생성은 한 번만 한다 (창을 열 때마다 불리는 NativeConstruct에서 하면 중복으로 연결된다)
@@ -104,6 +100,16 @@ void UUI_Inventory::NativeOnInitialized()
 	}
 
 	CreateSlots();
+}
+
+void UUI_Inventory::PlaceInViewport()
+{
+	if (!bUseCodeBuiltLayout)
+		return;
+
+	// 장비창(화면 왼쪽 0.2)과 나란히 볼 수 있게 오른쪽에 놓는다. SetPositionInViewport는 앵커를 (0,0)으로 되돌리므로 쓰지 않는다
+	SetAnchorsInViewport(FAnchors(0.8f, 0.5f));
+	SetAlignmentInViewport(FVector2D(0.5f, 0.5f));
 }
 
 void UUI_Inventory::CreateSlots()
@@ -183,7 +189,7 @@ void UUI_Inventory::BuildNativeTree()
 		HintSlot->SetPadding(FMargin(0.f, 0.f, 10.f, 0.f));
 	}
 
-	CloseButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), TEXT("CloseButton"));
+	CloseButton = WidgetTree->ConstructWidget<UButton>(UButton::StaticClass(), TEXT("NativeCloseButton"));
 	CloseButton->SetStyle(MakeButtonStyle(InsetFill, PanelInner, InsetFill, GoldDim, Gold));
 
 	UTextBlock* CloseLabel = MakeText(WidgetTree, TEXT("CloseLabel"), 14, Ivory, true);
@@ -212,7 +218,7 @@ void UUI_Inventory::BuildNativeTree()
 	GridBox->SetWidthOverride(GridWidth);
 	GridFrame->SetContent(GridBox);
 
-	InventoryWrapBox = WidgetTree->ConstructWidget<UWrapBox>(UWrapBox::StaticClass(), TEXT("InventoryWrapBox"));
+	InventoryWrapBox = WidgetTree->ConstructWidget<UWrapBox>(UWrapBox::StaticClass(), TEXT("NativeInventoryWrapBox"));
 	GridBox->SetContent(InventoryWrapBox);
 
 	// ---- 아이템 설명 칸: 칸에 마우스를 올리면 이름/종류/효과가 나온다 ----
@@ -268,7 +274,7 @@ void UUI_Inventory::BuildNativeTree()
 		CoinSlot->SetPadding(FMargin(0.f, 0.f, 8.f, 0.f));
 	}
 
-	GoldText = MakeText(WidgetTree, TEXT("GoldText"), 18, GoldBright, true);
+	GoldText = MakeText(WidgetTree, TEXT("NativeGoldText"), 18, GoldBright, true);
 
 	if (UHorizontalBoxSlot* GoldSlot = Footer->AddChildToHorizontalBox(GoldText))
 		GoldSlot->SetVerticalAlignment(VAlign_Center);

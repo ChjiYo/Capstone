@@ -1,6 +1,10 @@
 ﻿
 #include "UI_Quest.h"
 #include "UI_QuestStyle.h"
+#include "QuestComponent.h"
+#include "Py_Grey.h"
+#include "InventoryComponent.h"
+#include "EquipmentComponent.h"
 #include "Components/TextBlock.h"
 #include "Components/Button.h"
 #include "Components/ButtonSlot.h"
@@ -39,16 +43,32 @@ FText UUI_Quest::BuildRewardText(const FQuestData& Data) const
 	// 코드 조립 레이아웃은 "보상" 라벨이 따로 있으므로 접두어를 붙이지 않는다. WBP 레이아웃일 때만 예전처럼 "Reward: "를 붙여 라벨 역할을 대신한다
 	TArray<FText> Parts;
 
-	if (Data.Reward.RewardExp > 0)
-		Parts.Add(FText::Format(NSLOCTEXT("UI_Quest", "RewardExp", "경험치 +{0}"), Data.Reward.RewardExp));
+	// 실제로 지급되는 보상 (코드가 보충한 아이템 포함)
+	const FQuestReward Reward = UQuestComponent::ResolveReward(Data);
 
-	if (Data.Reward.RewardGold > 0)
-		Parts.Add(FText::Format(NSLOCTEXT("UI_Quest", "RewardGold", "골드 +{0}"), Data.Reward.RewardGold));
+	if (Reward.RewardExp > 0)
+		Parts.Add(FText::Format(NSLOCTEXT("UI_Quest", "RewardExp", "경험치 +{0}"), Reward.RewardExp));
 
-	if (!Data.Reward.RewardItemID.IsNone() && Data.Reward.RewardItemCount > 0)
+	if (Reward.RewardGold > 0)
+		Parts.Add(FText::Format(NSLOCTEXT("UI_Quest", "RewardGold", "골드 +{0}"), Reward.RewardGold));
+
+	if (!Reward.RewardItemID.IsNone() && Reward.RewardItemCount > 0)
 	{
-		Parts.Add(FText::Format(NSLOCTEXT("UI_Quest", "RewardItem", "{0} x{1}"),
-			FText::FromName(Data.Reward.RewardItemID), Data.Reward.RewardItemCount));
+		// ID 대신 인벤토리에 보이는 이름으로 (장비면 장비 이름, 아니면 아이템 표의 이름)
+		FText ItemName = FText::FromName(Reward.RewardItemID);
+
+		if (const APy_Grey* Player = Cast<APy_Grey>(GetOwningPlayerPawn()))
+		{
+			FEquipInfo Equip;
+			const FItemData* ItemData = Player->InventoryComponent ? Player->InventoryComponent->GetItemData(Reward.RewardItemID) : nullptr;
+
+			if (Player->EquipmentComponent && Player->EquipmentComponent->GetEquipInfo(Reward.RewardItemID, Equip) && !Equip.Name.IsEmpty())
+				ItemName = Equip.Name;
+			else if (ItemData && !ItemData->DisplayName.IsEmpty())
+				ItemName = ItemData->DisplayName;
+		}
+
+		Parts.Add(FText::Format(NSLOCTEXT("UI_Quest", "RewardItem", "{0} x{1}"), ItemName, Reward.RewardItemCount));
 	}
 
 	if (Parts.Num() == 0)
@@ -151,7 +171,7 @@ void UUI_Quest::BuildNativeTree()
 
 	// 2) 제목
 	{
-		UTextBlock* Title = MakeText(WidgetTree, TEXT("TitleText"), 30, GoldBright, true);
+		UTextBlock* Title = MakeText(WidgetTree, TEXT("NativeTitleText"), 30, GoldBright, true);
 		Title->SetJustification(ETextJustify::Center);
 		Title->SetAutoWrapText(true);
 
@@ -172,7 +192,7 @@ void UUI_Quest::BuildNativeTree()
 
 	// 4) 본문. 한두 줄짜리 설명이 답답해 보이지 않게 최소 높이를 준다
 	{
-		UTextBlock* Description = MakeText(WidgetTree, TEXT("DescriptionText"), 17, Ivory, false);
+		UTextBlock* Description = MakeText(WidgetTree, TEXT("NativeDescriptionText"), 17, Ivory, false);
 		Description->SetAutoWrapText(true);
 		Description->SetJustification(ETextJustify::Center);
 
@@ -204,7 +224,7 @@ void UUI_Quest::BuildNativeTree()
 			S->SetPadding(FMargin(0.f, 0.f, 16.f, 0.f));
 		}
 
-		UTextBlock* Reward = MakeText(WidgetTree, TEXT("RewardText"), 16, Ivory, false);
+		UTextBlock* Reward = MakeText(WidgetTree, TEXT("NativeRewardText"), 16, Ivory, false);
 		Reward->SetAutoWrapText(true);
 		if (UHorizontalBoxSlot* S = Row->AddChildToHorizontalBox(Reward))
 		{

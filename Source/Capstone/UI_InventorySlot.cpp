@@ -49,7 +49,7 @@ void UUI_InventorySlot::BuildNativeTree()
 	UOverlay* Layers = WidgetTree->ConstructWidget<UOverlay>(UOverlay::StaticClass(), TEXT("Layers"));
 	Frame->SetContent(Layers);
 
-	ItemIcon = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("ItemIcon"));
+	ItemIcon = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("NativeItemIcon"));
 	ItemIcon->SetVisibility(ESlateVisibility::Hidden);
 
 	if (UOverlaySlot* IconSlot = Layers->AddChildToOverlay(ItemIcon))
@@ -70,7 +70,7 @@ void UUI_InventorySlot::BuildNativeTree()
 		FallbackSlot->SetVerticalAlignment(VAlign_Center);
 	}
 
-	CountText = MakeText(WidgetTree, TEXT("CountText"), 14, GoldBright, true);
+	CountText = MakeText(WidgetTree, TEXT("NativeCountText"), 14, GoldBright, true);
 	CountText->SetVisibility(ESlateVisibility::Hidden);
 
 	if (UOverlaySlot* CountSlot = Layers->AddChildToOverlay(CountText))
@@ -169,6 +169,9 @@ FInventorySlotInfo UUI_InventorySlot::BuildInfo(const FItemData* ItemData) const
 	Result.Type = ItemTypeLabel(ItemData);
 
 	TArray<FString> Lines;
+
+	if (ItemData && !ItemData->Description.IsEmpty())
+		Lines.Add(ItemData->Description.ToString());
 
 	if (ItemData && ItemData->HealAmount > 0)
 		Lines.Add(FString::Printf(TEXT("체력 %d 회복"), ItemData->HealAmount));

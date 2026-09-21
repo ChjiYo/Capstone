@@ -7,6 +7,7 @@
 #include "QuestStateSubsystem.h"
 #include "SpawnPoint.h"
 #include "ItemBase.h"
+#include "EquipmentData.h"
 #include "NPC_Enhance.h"
 #include "EngineUtils.h"
 #include "Kismet/GameplayStatics.h"
@@ -215,6 +216,21 @@ AActor* UQuestComponent::FindQuestTargetActor(const FQuestData& Quest) const
 	}
 }
 
+FQuestReward UQuestComponent::ResolveReward(const FQuestData& Quest)
+{
+	FQuestReward Reward = Quest.Reward;
+
+	// 고블린을 4마리 잡는 '고블린 토벌'(BP_Hans)은 블루프린트에 보상 아이템이 비어 있어서, 비어 있을 때만 코드가 고블린 소드를 채운다.
+	// 에디터에서 RewardItemID를 직접 채우면 그 값이 우선한다
+	if (Reward.RewardItemID.IsNone() && Quest.ObjectiveType == EQuestObjectiveType::Kill && Quest.TargetID == FName(TEXT("Goblin")))
+	{
+		Reward.RewardItemID = EquipDefs::GoblinSword;
+		Reward.RewardItemCount = 1;
+	}
+
+	return Reward;
+}
+
 void UQuestComponent::GrantReward()
 {
 	AActor* Owner = GetOwner();
@@ -231,23 +247,25 @@ void UQuestComponent::GrantReward()
 		CapstoneSFX::Play2D(this, ESFX::UI_QuestComplete);
 	}
 
+	const FQuestReward Reward = ResolveReward(ActiveQuest);
+
 	UInventoryComponent* Inventory = Owner->FindComponentByClass<UInventoryComponent>();
 
-	if (Inventory && !ActiveQuest.Reward.RewardItemID.IsNone())
+	if (Inventory && !Reward.RewardItemID.IsNone())
 	{
-		Inventory->AddItem(ActiveQuest.Reward.RewardItemID, ActiveQuest.Reward.RewardItemCount);
+		Inventory->AddItem(Reward.RewardItemID, Reward.RewardItemCount);
 	}
 
-	if (Inventory && ActiveQuest.Reward.RewardGold > 0)
+	if (Inventory && Reward.RewardGold > 0)
 	{
-		Inventory->AddGold(ActiveQuest.Reward.RewardGold);
+		Inventory->AddGold(Reward.RewardGold);
 	}
 
-	if (ActiveQuest.Reward.RewardExp > 0)
+	if (Reward.RewardExp > 0)
 	{
 		if (UExperienceComponent* Experience = Owner->FindComponentByClass<UExperienceComponent>())
 		{
-			Experience->AddExp(ActiveQuest.Reward.RewardExp);
+			Experience->AddExp(Reward.RewardExp);
 		}
 	}
 }
