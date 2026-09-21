@@ -10,11 +10,12 @@
 
 namespace
 {
-	constexpr float PanelWidth = 560.f;
+	// 익명 네임스페이스라도 unity 빌드에서 UI_Enhance.cpp와 한 덩어리로 묶이면 이름이 충돌하므로 Shop 접두어를 붙인다
+	constexpr float ShopPanelWidth = 560.f;
 	constexpr int32 VisibleRows = 4;
 	constexpr float RowGap = 6.f;
-	constexpr float ToastSeconds = 3.f;
-	constexpr float ToastFadeSeconds = 0.8f;
+	constexpr float ShopToastSeconds = 3.f;
+	constexpr float ShopToastFadeSeconds = 0.8f;
 }
 
 void UUI_Shop::InitShop(const TArray<FName>& InShopItemIDs, UInventoryComponent* InInventoryComp)
@@ -121,8 +122,8 @@ void UUI_Shop::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 
         if (ToastRemaining <= 0.f)
             ShowHint();
-        else if (ToastRemaining < ToastFadeSeconds)
-            ToastText->SetOpacity(ToastRemaining / ToastFadeSeconds);
+        else if (ToastRemaining < ShopToastFadeSeconds)
+            ToastText->SetOpacity(ToastRemaining / ShopToastFadeSeconds);
     }
 }
 
@@ -141,7 +142,7 @@ void UUI_Shop::BuildNativeTree()
 {
     using namespace QuestUI;
 
-    const PanelUI::FPanelFrame Frame = PanelUI::BuildFrame(WidgetTree, PanelWidth, TEXT("상    점"), TEXT("[Esc] 닫기"));
+    const PanelUI::FPanelFrame Frame = PanelUI::BuildFrame(WidgetTree, ShopPanelWidth, TEXT("상    점"), TEXT("[Esc] 닫기"));
     CloseButton = Frame.CloseButton;
     UVerticalBox* Column = Frame.Column;
 
@@ -472,7 +473,7 @@ void UUI_Shop::ShowToast(const FString& Message, bool bGood)
     ToastText->SetColorAndOpacity(FSlateColor(bGood ? QuestUI::Success : PanelUI::Danger));
     ToastText->SetOpacity(1.f);
 
-    ToastRemaining = ToastSeconds;
+    ToastRemaining = ShopToastSeconds;
 }
 
 void UUI_Shop::ShowHint()
