@@ -76,7 +76,7 @@ ACharacter (엔진)
 
 - `AItemBase`는 월드에 배치되는 픽업 오브젝트입니다(오버랩 스피어 + 메시). `PickupItem`이 `ItemID`를 습득자의 `UInventoryComponent`로 옮깁니다.
 - `UInventoryComponent::Items`는 아이템 ID들의 단순한 `TArray<FName>`입니다 (`FQuestReward::RewardItemID`와 동일한 식별자 공간을 공유).
-- `UUI_Inventory`/`UUI_InventorySlot`이 인벤토리 위젯을 렌더링하고, `APy_Grey::ToggleInventory`가 이를 열고 닫습니다.
+- `UUI_Inventory`/`UUI_InventorySlot`이 인벤토리 위젯을 렌더링하고, `APy_Grey::ToggleInventory`가 이를 열고 닫습니다. 두 위젯 모두 `bUseCodeBuiltLayout`(기본 true)이면 WBP 트리를 버리고 `NativeOnInitialized`에서 코드로 조립합니다 (장비창과 같은 `UI_QuestStyle.h` 팔레트: 골드 이중 테두리, 5x4 칸 격자, 아이템 종류별 테두리 색, 마우스를 올리면 아래 설명 칸에 이름/종류/효과 표시, 소지품 수/소지금). `InventorySlotClass`가 비어 있으면 `UUI_InventorySlot` 자체를 씁니다. WBP의 디자이너 화면에는 예전 레이아웃이 그대로 보입니다.
 
 ### 장비 (검/방패, 'U' 장비창)
 
