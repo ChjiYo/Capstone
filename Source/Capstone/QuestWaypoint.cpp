@@ -2,6 +2,7 @@
 #include "UI_QuestWaypoint.h"
 #include "Py_Grey.h"
 #include "QuestComponent.h"
+#include "PortalPoint.h"
 #include "Components/WidgetComponent.h"
 
 AQuestWaypoint::AQuestWaypoint()
@@ -42,6 +43,8 @@ void AQuestWaypoint::Tick(float DeltaTime)
 	// 거리는 마커 높이가 아니라 목표 액터 원점 기준 (cm -> m)
 	if (UUI_QuestWaypoint* Widget = Cast<UUI_QuestWaypoint>(WidgetComp->GetUserWidgetObject()))
 	{
+		// 목표가 다른 레벨에 있어서 포탈을 가리키는 중이면 "포탈 120m"처럼 무엇을 가리키는지 알려준다
+		Widget->SetPortalGuide(Target->IsA<APortalPoint>());
 		Widget->SetDistanceMeters(FMath::RoundToInt(FVector::Dist(Player->GetActorLocation(), TargetLoc) / 100.f));
 	}
 }

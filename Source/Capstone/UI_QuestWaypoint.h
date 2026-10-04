@@ -15,6 +15,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Quest")
 	void SetDistanceMeters(int32 Meters);
 
+	// 마커가 퀘스트 목표 자체가 아니라 "목표가 있는 레벨로 가는 포탈"을 가리키는 중인지. 켜면 거리 앞에 "포탈 "이 붙는다
+	void SetPortalGuide(bool bInPortalGuide);
+
 protected:
 	// 위젯 블루프린트에 아래 이름과 정확히 같은 이름의 위젯을 만들어야 자동으로 연결됨.
 	// BindWidgetOptional이라 위젯이 없어도 블루프린트 컴파일은 깨지지 않고, 해당 항목만 비어 표시됨
@@ -22,5 +25,8 @@ protected:
 	class UTextBlock* DistanceText;
 
 private:
+	void RefreshText();
+
 	int32 LastMeters = -1;
+	bool bPortalGuide = false;
 };

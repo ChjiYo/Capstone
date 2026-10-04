@@ -9,6 +9,8 @@
 #include "ItemBase.h"
 #include "EquipmentData.h"
 #include "NPC_Enhance.h"
+#include "QuestRoute.h"
+#include "PortalPoint.h"
 #include "EngineUtils.h"
 #include "Kismet/GameplayStatics.h"
 #include "CapstoneSFX.h"
@@ -127,12 +129,25 @@ AActor* UQuestComponent::GetQuestTargetActor()
 		return nullptr;
 	}
 
-	// 퀘스트/목표 종류가 바뀌었거나 캐시해둔 대상이 사라졌을 때만(몬스터 처치 등) 다시 월드를 탐색한다
-	if (!CachedTargetActor.IsValid() || CachedObjectiveType != ActiveQuest.ObjectiveType || CachedTargetID != ActiveQuest.TargetID)
+	// 퀘스트/목표 종류가 바뀌었거나 캐시해둔 대상이 사라졌으면 즉시 다시 탐색한다.
+	// 그 외에도 처치/채집은 "가장 가까운 개체"가 플레이어의 이동에 따라 바뀌므로 일정 간격마다 다시 고른다
+	// (한 번 정한 캐시를 계속 쓰던 예전 방식은, 처음 잡힌 먼 몬스터에 마커가 고정돼 바로 옆 몬스터를 무시하는 문제가 있었다).
+	// 강화는 대상이 고정된 NPC라 재탐색이 필요 없다
+	const double Now = GetWorld() ? GetWorld()->GetTimeSeconds() : 0.0;
+	const bool bTargetChanged = CachedObjectiveType != ActiveQuest.ObjectiveType || CachedTargetID != ActiveQuest.TargetID;
+	const bool bRoamingTarget = ActiveQuest.ObjectiveType != EQuestObjectiveType::Enhance;
+
+	// 대상이 없어서 계속 못 찾는 중(예: 목표 레벨로 가는 길도 없음)이면 매 Tick 월드를 뒤지지 않고 같은 간격으로만 다시 찾는다.
+	// 반대로 잡고 있던 대상이 파괴됐으면(채집물을 주움 등) 간격과 무관하게 바로 다음 대상을 고른다
+	const bool bTargetLost = CachedTargetActor.IsStale();
+	const bool bRefreshDue = Now >= NextTargetRefreshTime;
+
+	if (bTargetChanged || bTargetLost || (bRefreshDue && (bRoamingTarget || !CachedTargetActor.IsValid())))
 	{
 		CachedObjectiveType = ActiveQuest.ObjectiveType;
 		CachedTargetID = ActiveQuest.TargetID;
-		CachedTargetActor = FindQuestTargetActor(ActiveQuest);
+		CachedTargetActor = FindQuestTargetOrRoute(ActiveQuest);
+		NextTargetRefreshTime = Now + TargetRefreshInterval;
 	}
 
 	return CachedTargetActor.Get();
@@ -156,7 +171,8 @@ AActor* UQuestComponent::FindQuestTargetActor(const FQuestData& Quest) const
 		for (TActorIterator<AMonster> It(World); It; ++It)
 		{
 			AMonster* Monster = *It;
-			if (!IsValid(Monster) || Monster->MonsterID != Quest.TargetID)
+			// 이미 쓰러져 사라지는 중인 개체는 더 잡을 수 없으므로 목표에서 뺀다
+			if (!IsValid(Monster) || Monster->MonsterID != Quest.TargetID || Monster->GetCurrentHp() <= 0)
 				continue;
 
 			const float DistSq = FVector::DistSquared(OwnerLoc, Monster->GetActorLocation());
@@ -216,19 +232,32 @@ AActor* UQuestComponent::FindQuestTargetActor(const FQuestData& Quest) const
 	}
 }
 
-FQuestReward UQuestComponent::ResolveReward(const FQuestData& Quest)
+AActor* UQuestComponent::FindQuestTargetOrRoute(const FQuestData& Quest) const
 {
-	FQuestReward Reward = Quest.Reward;
+	if (AActor* Target = FindQuestTargetActor(Quest))
+		return Target;
 
-	// 고블린을 4마리 잡는 '고블린 토벌'(BP_Hans)은 블루프린트에 보상 아이템이 비어 있어서, 비어 있을 때만 코드가 고블린 소드를 채운다.
-	// 에디터에서 RewardItemID를 직접 채우면 그 값이 우선한다
-	if (Reward.RewardItemID.IsNone() && Quest.ObjectiveType == EQuestObjectiveType::Kill && Quest.TargetID == FName(TEXT("Goblin")))
+	// 이 레벨에 목표가 없다: 목표가 있는 레벨로 가는 포탈을 대신 가리킨다 (목표 레벨에 도착하면 위에서 실제 목표가 잡힌다)
+	const AActor* Owner = GetOwner();
+	return QuestRoute::FindRoutePortal(GetWorld(), Owner ? Owner->GetActorLocation() : FVector::ZeroVector, Quest);
+}
+
+TArray<FQuestRewardItem> UQuestComponent::ResolveRewardItems(const FQuestData& Quest)
+{
+	TArray<FQuestRewardItem> Items;
+
+	if (!Quest.Reward.RewardItemID.IsNone() && Quest.Reward.RewardItemCount > 0)
+		Items.Add({ Quest.Reward.RewardItemID, Quest.Reward.RewardItemCount });
+
+	// 고블린을 4마리 잡는 '고블린 토벌'(BP_Hans)은 블루프린트에 다른 보상 아이템(HpPotion)이 이미 들어 있으므로,
+	// 그 값을 덮어쓰지 않고 고블린 소드를 함께 얹는다. 블루프린트가 이미 소드를 주고 있으면 중복해서 주지 않는다
+	if (Quest.ObjectiveType == EQuestObjectiveType::Kill && Quest.TargetID == FName(TEXT("Goblin"))
+		&& !Items.ContainsByPredicate([](const FQuestRewardItem& Item) { return Item.ItemID == EquipDefs::GoblinSword; }))
 	{
-		Reward.RewardItemID = EquipDefs::GoblinSword;
-		Reward.RewardItemCount = 1;
+		Items.Add({ EquipDefs::GoblinSword, 1 });
 	}
 
-	return Reward;
+	return Items;
 }
 
 void UQuestComponent::GrantReward()
@@ -247,13 +276,16 @@ void UQuestComponent::GrantReward()
 		CapstoneSFX::Play2D(this, ESFX::UI_QuestComplete);
 	}
 
-	const FQuestReward Reward = ResolveReward(ActiveQuest);
+	const FQuestReward& Reward = ActiveQuest.Reward;
 
 	UInventoryComponent* Inventory = Owner->FindComponentByClass<UInventoryComponent>();
 
-	if (Inventory && !Reward.RewardItemID.IsNone())
+	if (Inventory)
 	{
-		Inventory->AddItem(Reward.RewardItemID, Reward.RewardItemCount);
+		for (const FQuestRewardItem& Item : ResolveRewardItems(ActiveQuest))
+		{
+			Inventory->AddItem(Item.ItemID, Item.Count);
+		}
 	}
 
 	if (Inventory && Reward.RewardGold > 0)

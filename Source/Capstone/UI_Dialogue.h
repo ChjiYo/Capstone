@@ -19,7 +19,9 @@ public:
 	FSimpleDelegate OnAdvanceRequested;
 
 protected:
-	virtual void NativeConstruct() override;
+	// 버튼 연결은 여기서 한 번만 한다. 이 위젯은 StoryComponent가 재사용하면서 RemoveFromParent/AddToViewport를
+	// 반복하고, 그때마다 NativeConstruct가 다시 불려 AddDynamic이 중복되면 엔진 ensure가 터진다
+	virtual void NativeOnInitialized() override;
 	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
 
 	// 위젯 블루프린트(WBP_Dialogue)에 아래와 정확히 같은 이름으로 위젯을 만들어야 자동으로 연결됨

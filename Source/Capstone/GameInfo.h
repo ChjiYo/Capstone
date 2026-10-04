@@ -75,6 +75,11 @@ struct FQuestData
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest|Objective")
     int32 TargetCount = 0;
 
+    // 목표(몬스터/채집물/NPC)가 있는 레벨 이름 (예: Lv_OpenField). 지금 레벨에 목표가 없을 때 미니맵/웨이포인트가
+    // 그 레벨로 가는 포탈을 가리킨다. 비워두면 QuestRoute.cpp의 표(목표 종류 + TargetID)로 정한다
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Quest|Objective")
+    FName TargetLevelName;
+
     // 진행도. 에디터에서 건드릴 값이 아니라 QuestComponent가 런타임에 갱신
     UPROPERTY(BlueprintReadOnly, Category = "Quest|Objective")
     int32 CurrentCount = 0;

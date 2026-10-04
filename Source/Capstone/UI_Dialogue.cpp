@@ -5,13 +5,13 @@
 #include "Components/Image.h"
 #include "Components/Button.h"
 
-void UUI_Dialogue::NativeConstruct()
+void UUI_Dialogue::NativeOnInitialized()
 {
-	Super::NativeConstruct();
+	Super::NativeOnInitialized();
 
 	if (NextButton)
 	{
-		NextButton->OnClicked.AddDynamic(this, &UUI_Dialogue::OnNextClicked);
+		NextButton->OnClicked.AddUniqueDynamic(this, &UUI_Dialogue::OnNextClicked);
 	}
 }
 

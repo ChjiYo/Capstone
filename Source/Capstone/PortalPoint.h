@@ -58,5 +58,11 @@ protected:
 public:
     bool ShouldShowOnMinimap() const { return bShowOnMinimap; }
 
+    // 이 포탈이 보내주는 레벨 이름 (퀘스트 목표 레벨까지 가는 길 안내에 쓴다)
+    FName GetTargetLevelName() const { return TargetLevelName; }
+
+    // None이 아니면 그 퀘스트를 진행 중일 때만 통과되는 게이트 포탈
+    FName GetRequiredQuestID() const { return RequiredQuestID; }
+
 };
 

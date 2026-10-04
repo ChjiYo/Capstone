@@ -37,7 +37,7 @@ void UUI_Inventory::RefreshInventoryUI(UInventoryComponent* InInventoryComp)
 		}
 
 		InventoryComp = InInventoryComp;
-		InventoryComp->OnInventoryChanged.AddDynamic(this, &UUI_Inventory::HandleInventoryChanged);
+		InventoryComp->OnInventoryChanged.AddUniqueDynamic(this, &UUI_Inventory::HandleInventoryChanged);
 	}
 
 	for (UUI_InventorySlot* pSlot : SlotArray)
@@ -330,6 +330,15 @@ void UUI_Inventory::NativeConstruct()
 	Super::NativeConstruct();
 
 	bOpenUI = true;
+
+	// NativeDestruct(창 닫기)가 구독을 풀기 때문에 다시 열릴 때마다 구독을 복구한다.
+	// RefreshInventoryUI는 같은 컴포넌트면 재구독을 건너뛰므로, 여기서 하지 않으면 두 번째 열기부터 실시간 갱신이 멈춘다
+	if (InventoryComp)
+	{
+		InventoryComp->OnInventoryChanged.AddUniqueDynamic(this, &UUI_Inventory::HandleInventoryChanged);
+		// 창이 닫혀 있는 동안 바뀐 내용(장비 해제로 들어온 아이템 등)을 열 때 바로 반영한다
+		RefreshInventoryUI(InventoryComp);
+	}
 
 	HoveredSlot.Reset();
 	RefreshInfoPanel();

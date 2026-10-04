@@ -36,6 +36,7 @@
 #include "LockOnComponent.h"
 #include "Misc/App.h"
 #include "CapstoneSFX.h"
+#include "Components/SceneCaptureComponent2D.h"
 
 namespace
 {
@@ -108,6 +109,14 @@ APy_Grey::APy_Grey()
 
 	WeaponBox = CreateDefaultSubobject<UBoxComponent>(TEXT("WeaponBox"));
 	WeaponBox->SetupAttachment(GetMesh(), TEXT("FX_Sword_Mid"));
+
+	// 위치는 지도를 구울 때마다 UMinimapBaker가 직접 옮기고,
+	// 방향은 항상 고정(정북 방향 고정 정사영)이라 부모 회전과 무관해야 하므로 절대 위치/회전으로 둔다
+	MinimapCaptureComponent = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("MinimapCaptureComponent"));
+	MinimapCaptureComponent->SetupAttachment(RootComponent);
+	MinimapCaptureComponent->SetAbsolute(true, true, false);
+	MinimapCaptureComponent->bCaptureEveryFrame = false;
+	MinimapCaptureComponent->bCaptureOnMovement = false;
 
 	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>(TEXT("InventoryComponent"));
 	EquipmentComponent = CreateDefaultSubobject<UEquipmentComponent>(TEXT("EquipmentComponent"));

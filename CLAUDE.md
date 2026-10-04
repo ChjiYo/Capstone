@@ -71,6 +71,7 @@ ACharacter (엔진)
 - `UQuestComponent`(`APy_Grey`가 보유)가 `OnMonsterKilled`를 구독해서 현재 활성 퀘스트 하나의 진행도를 추적하고, UI 갱신용으로 `OnQuestTrackerChanged`(블루프린트에서 바인딩 가능)를 방송합니다.
 - `ANPC_Quest`가 퀘스트 정의를 보유하고, 상호작용 시 `UUI_Quest`(수락/거절 다이얼로그)를 표시하며, 수락 시 플레이어 인벤토리를 통해 보상을 지급합니다.
 - UI는 두 가지로 나뉩니다: `UUI_Quest`는 NPC 다이얼로그(수락/거절), `UUI_QuestTracker`는 항상 표시되는 HUD 트래커 위젯(`WBP_QuestTracker`) — 둘 다 `BindWidgetOptional`을 사용해서 짝을 이루는 블루프린트 위젯에 일부 요소가 없어도 컴파일이 깨지지 않습니다.
+- **다른 레벨에 있는 목표 안내**: `UQuestComponent::GetQuestTargetActor`(미니맵 마커/월드 웨이포인트 공용)는 현재 레벨에서 목표를 못 찾으면 `QuestRoute::FindRoutePortal`로 그 목표가 있는 레벨로 가는 `APortalPoint`를 대신 돌려줍니다 (목표 종류+TargetID→레벨 표는 `QuestRoute.cpp`, 퀘스트 데이터의 `TargetLevelName`이 우선). 목표 레벨에 도착하면 실제 목표를 가리키고, 퀘스트 마커가 떠 있는 동안 미니맵의 "돌아가는 길" 포탈 마커는 숨습니다. 자세한 내용은 `Docs/19_quest_route_guide.md`.
 
 ### 인벤토리 & 아이템
 
@@ -97,17 +98,23 @@ ACharacter (엔진)
 - **코드로 만드는 위젯 이름은 WBP 안에 이미 있는 이름과 겹치면 안 됩니다** (`TitleText`, `GoldText`, `CountText` 같은 BindWidget 이름 포함). 같은 이름으로 `ConstructWidget`하면 WBP 쪽 옛 오브젝트 자리를 그대로 덮어쓰는데, 버려진 옛 트리의 슬롯이 나중에 GC로 파괴될 때(`UPanelSlot::ReleaseSlateResources`가 `Content`를 무조건 릴리즈함) 새 텍스트 블록의 Slate 연결(`MyTextBlock`)이 끊어집니다. 그러면 `SetText`가 화면에 반영되지 않습니다 — 퀘스트 트래커의 채집 문구가 `채집 3 / 5`에서 멈추던 버그의 원인이었습니다(진행 바는 갱신되고 UMG 값도 맞는데 화면만 안 바뀜). 그래서 코드 조립 위젯은 `NativeTitleText`처럼 `Native` 접두사를 붙입니다.
 - **뷰포트 슬롯(앵커/정렬)은 `RemoveFromParent` 때 사라집니다** (UE 5.7의 `UGameViewportSubsystem`이 위젯별로 관리). `NativeOnInitialized`에서 `SetAnchorsInViewport`를 한 번만 부르면 첫 오픈만 정상이고 다시 열면 화면 전체로 늘어납니다. 위젯을 재사용하는 창(`InventoryWidget`, `EquipmentWidget`)은 `AddToViewport` 직후 `PlaceInViewport()`를 매번 부릅니다. 상점/강화 창은 열 때마다 `CreateWidget`을 새로 하므로 해당 없음.
 
+- **재사용하는 위젯의 버튼 바인딩은 `NativeConstruct`가 아니라 `NativeOnInitialized`에서 합니다.** `RemoveFromParent` 후 같은 인스턴스를 `AddToViewport`하면 `NativeConstruct`가 다시 불려서 `AddDynamic`이 중복되고, 엔진 ensure가 터지면서 그 처리(크래시 리포트 전송)에 2~3초 동안 게임이 멈춥니다. `UUI_Dialogue`(`UStoryComponent`가 재사용)가 이 때문에 강화 NPC와 처음 대화할 때 멈췄습니다. 정말 `NativeConstruct`에서 해야 하면 `AddUniqueDynamic`을 씁니다.
+
 ### 몬스터 전리품 / 퀘스트 보상 보충
 
 - 골렘/새/애벌레는 `AMonster::DropTable`(`FMonsterDrop`: ItemID/확률/개수)로 전리품을 떨어뜨립니다. 몬스터 생성자가 기본값을 채우고, 기존 `DropItemClasses`(BP 픽업)와 별개로 굴립니다. 떨어진 것은 `AItemBase::SpawnLoot`이 만든 코드 픽업(아이콘 스프라이트가 떠 있음, `E`로 습득, 가방이 가득 차면 못 줍고 남아 있음)입니다.
 - 전리품 3종(`Loot_GolemCore`/`Loot_BirdFeather`/`Loot_LarvaeSlime`)의 이름/설명/판매가/아이콘은 `LootData.h/.cpp`에 코드로 정의돼 있고 `UInventoryComponent::GetItemData`가 `DT_Item`에 행이 없을 때 이것으로 행을 만들어 줍니다 (`DT_Item`에 같은 ID 행이 있으면 그쪽 우선). 아이콘은 `IconPainter`(다각형 안티에일리어싱 렌더러)로 코드로 그립니다. 아이콘 조회는 여전히 `EquipDefs::GetGeneratedIcon` 하나만 부르면 되고, 장비가 아니면 전리품 아이콘을 돌려줍니다.
-- `UQuestComponent::ResolveReward`가 블루프린트 퀘스트 데이터의 보상에 코드 보충분을 얹습니다: 보상 아이템이 비어 있는 처치 퀘스트의 대상이 `Goblin`이면 고블린 소드(`GoblinSword`) 1개 (BP_Hans의 '고블린 토벌'). 보상 지급과 `UUI_Quest`의 보상 줄이 이 함수를 같이 씁니다. 자세한 내용은 `Docs/18_loot_drops.md`.
+- `UQuestComponent::ResolveRewardItems`가 블루프린트 퀘스트 데이터의 보상 아이템에 코드 보충분을 더합니다: 대상이 `Goblin`인 처치 퀘스트면 블루프린트 보상(`HpPotion`)에 더해 고블린 소드(`GoblinSword`) 1개 (BP_Hans의 '고블린 토벌'). 보상 지급과 `UUI_Quest`의 보상 줄이 이 함수를 같이 씁니다. 자세한 내용은 `Docs/18_loot_drops.md`.
 
 ### 사운드
 
 - `CapstoneSFX.h/.cpp`가 효과음 재생을 전부 맡습니다. `ESFX` 열거형 + `Table()`(에셋 경로/볼륨/피치/거리 감쇠/최소 간격)이 한 곳에 있고, 게임플레이 코드는 `CapstoneSFX::Play2D/PlayAt(this, ESFX::...)` 한 줄만 부릅니다. `UCapstoneLevelAudio`가 맵 이름별 환경음/음악을 깝니다.
 - `Content/UE_Asset/Sounds/Gen/`의 에셋은 `Tools/SFX/make_sfx.py`가 합성한 WAV(`SoundSource/`)를 `Tools/SFX/import_sfx.ps1`(커맨드릿, 에디터 닫고 실행)로 임포트한 것입니다. 소리를 바꾸려면 `.uasset`이 아니라 레시피를 고치고 다시 생성하세요.
 - 새/골렘/고블린 피격 등 일부 소리는 애니메이션 노티파이(BP 쪽)에 이미 연결돼 있어 C++에서 다시 내지 않습니다 (`FMonsterSFXProfile`의 해당 항목이 `None`). 자세한 내용은 `Docs/15_sound_system.md`.
+
+### 미니맵 간략 지도
+
+- `UUI_Minimap`의 배경은 `UMinimapBaker`가 구운 **간략 지도 텍스처**입니다 (매 프레임 캡처 아님). 플레이어 주변 160m를 조명 없이 위에서 한 번 찍고(색 + 깊이, 비동기 GPU 읽기), 백그라운드 스레드에서 걸을 수 있는 곳(내비메시, 없으면 높이로 추정)/막힌 곳을 색 면 + 외곽선으로 바꿉니다. 동굴처럼 머리 위가 막힌 곳은 천장을 잘라 다시 찍습니다. 멀리 가면 다시 굽습니다. 확대 정도는 `MinimapWorldRadius`(기본 20m). `APy_Grey::MinimapCaptureComponent`는 굽는 순간에만 쓰입니다. 자세한 내용은 `Docs/20_minimap_map.md`.
 
 ### 포탈 / 레벨 전환
 

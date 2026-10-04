@@ -8,15 +8,15 @@ const FName LootDefs::LarvaeSlime(TEXT("Loot_LarvaeSlime"));
 
 namespace
 {
-	struct FDefEntry
+	struct FLootDefEntry
 	{
 		FName ItemID;
 		FLootInfo Info;
 	};
 
-	FDefEntry MakeEntry(FName ItemID, const TCHAR* Name, const TCHAR* Description, int32 SellPrice)
+	FLootDefEntry MakeLootEntry(FName ItemID, const TCHAR* Name, const TCHAR* Description, int32 SellPrice)
 	{
-		FDefEntry Entry;
+		FLootDefEntry Entry;
 		Entry.ItemID = ItemID;
 		Entry.Info.Name = FText::FromString(Name);
 		Entry.Info.Description = FText::FromString(Description);
@@ -24,16 +24,16 @@ namespace
 		return Entry;
 	}
 
-	const TArray<FDefEntry>& Definitions()
+	const TArray<FLootDefEntry>& LootDefinitions()
 	{
-		static TArray<FDefEntry> Table;
+		static TArray<FLootDefEntry> Table;
 
 		if (Table.Num() > 0)
 			return Table;
 
-		Table.Add(MakeEntry(LootDefs::GolemCore, TEXT("골렘의 핵"), TEXT("골렘의 몸속에서 붉게 타오르던 광석. 아직도 온기가 남아 있다."), 150));
-		Table.Add(MakeEntry(LootDefs::BirdFeather, TEXT("새의 깃털"), TEXT("가볍고 윤기가 흐르는 검푸른 깃털."), 35));
-		Table.Add(MakeEntry(LootDefs::LarvaeSlime, TEXT("애벌레 점액"), TEXT("끈적하게 늘어지는 초록빛 점액. 비린내가 난다."), 25));
+		Table.Add(MakeLootEntry(LootDefs::GolemCore, TEXT("골렘의 핵"), TEXT("골렘의 몸속에서 붉게 타오르던 광석. 아직도 온기가 남아 있다."), 150));
+		Table.Add(MakeLootEntry(LootDefs::BirdFeather, TEXT("새의 깃털"), TEXT("가볍고 윤기가 흐르는 검푸른 깃털."), 35));
+		Table.Add(MakeLootEntry(LootDefs::LarvaeSlime, TEXT("애벌레 점액"), TEXT("끈적하게 늘어지는 초록빛 점액. 비린내가 난다."), 25));
 
 		return Table;
 	}
@@ -41,7 +41,7 @@ namespace
 
 const FLootInfo* LootDefs::FindDefinition(FName ItemID)
 {
-	for (const FDefEntry& Entry : Definitions())
+	for (const FLootDefEntry& Entry : LootDefinitions())
 	{
 		if (Entry.ItemID == ItemID)
 			return &Entry.Info;

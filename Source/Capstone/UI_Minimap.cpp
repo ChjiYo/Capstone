@@ -7,6 +7,9 @@
 #include "Components/CanvasPanelSlot.h"
 #include "Components/OverlaySlot.h"
 #include "Engine/Texture2D.h"
+#include "MinimapBaker.h"
+#include "Components/SizeBox.h"
+#include "Blueprint/WidgetTree.h"
 #include "EngineUtils.h"
 
 UTexture2D* UUI_Minimap::CreateTriangleTexture(int32 Size)
@@ -70,6 +73,72 @@ UTexture2D* UUI_Minimap::CreateTriangleTexture(int32 Size)
 	return Texture;
 }
 
+UTexture2D* UUI_Minimap::CreateCircleMaskTexture(int32 Size, float RingThicknessPx, const FLinearColor& RingColor, const FLinearColor& OutsideColor)
+{
+	UTexture2D* Texture = UTexture2D::CreateTransient(Size, Size, PF_B8G8R8A8);
+	if (!Texture || !Texture->GetPlatformData() || Texture->GetPlatformData()->Mips.Num() == 0)
+		return nullptr;
+
+	Texture->SRGB = true;
+	Texture->Filter = TextureFilter::TF_Bilinear;
+	Texture->AddressX = TextureAddress::TA_Clamp;
+	Texture->AddressY = TextureAddress::TA_Clamp;
+	Texture->LODGroup = TEXTUREGROUP_UI;
+	Texture->NeverStream = true;
+
+	const FColor RingColor8 = RingColor.ToFColor(true);
+	const FColor OutsideColor8 = OutsideColor.ToFColor(true);
+
+	// 원 안쪽은 완전 투명(배경 캡처가 그대로 보임), 테두리는 불투명 골드 링, 그 바깥은 불투명 배경색으로
+	// 네모난 캡처 텍스처의 모서리를 가린다. 삼각형 텍스처와 같은 4x4 슈퍼샘플링으로 두 경계 모두 부드럽게 만든다
+	const float Radius = Size * 0.5f;
+	const float RingInner = FMath::Max(Radius - RingThicknessPx, 0.f);
+
+	constexpr int32 SubSamples = 4;
+	FTexture2DMipMap& Mip = Texture->GetPlatformData()->Mips[0];
+	uint8* Pixels = static_cast<uint8*>(Mip.BulkData.Lock(LOCK_READ_WRITE));
+	for (int32 Y = 0; Y < Size; ++Y)
+	{
+		for (int32 X = 0; X < Size; ++X)
+		{
+			int32 InsideCount = 0;
+			int32 RingCount = 0;
+			int32 OutsideCount = 0;
+
+			for (int32 SY = 0; SY < SubSamples; ++SY)
+			{
+				for (int32 SX = 0; SX < SubSamples; ++SX)
+				{
+					const float PX = X + (SX + 0.5f) / SubSamples;
+					const float PY = Y + (SY + 0.5f) / SubSamples;
+					const float Dist = FVector2D(PX - Radius, PY - Radius).Size();
+
+					if (Dist <= RingInner)
+						++InsideCount;
+					else if (Dist <= Radius)
+						++RingCount;
+					else
+						++OutsideCount;
+				}
+			}
+
+			const int32 TotalSamples = SubSamples * SubSamples;
+			const float RingWeight = static_cast<float>(RingCount) / TotalSamples;
+			const float OutsideWeight = static_cast<float>(OutsideCount) / TotalSamples;
+
+			uint8* Pixel = Pixels + (Y * Size + X) * 4; // BGRA
+			Pixel[0] = static_cast<uint8>(RingColor8.B * RingWeight + OutsideColor8.B * OutsideWeight);
+			Pixel[1] = static_cast<uint8>(RingColor8.G * RingWeight + OutsideColor8.G * OutsideWeight);
+			Pixel[2] = static_cast<uint8>(RingColor8.R * RingWeight + OutsideColor8.R * OutsideWeight);
+			Pixel[3] = static_cast<uint8>(255.f * (RingWeight + OutsideWeight));
+		}
+	}
+	Mip.BulkData.Unlock();
+	Texture->UpdateResource();
+
+	return Texture;
+}
+
 void UUI_Minimap::ApplyTriangleBrush(UImage* Icon, const FLinearColor& Color)
 {
 	if (!Icon || !TriangleTexture)
@@ -86,6 +155,84 @@ void UUI_Minimap::ApplyTriangleBrush(UImage* Icon, const FLinearColor& Color)
 
 	Icon->SetBrush(Brush);
 	Icon->SetColorAndOpacity(Color);
+}
+
+void UUI_Minimap::NativeOnInitialized()
+{
+	Super::NativeOnInitialized();
+
+	// BindWidgetOptional은 이 시점에 이미 해석돼 있으므로 MarkerCanvas를 바로 써도 된다.
+	// WBP를 건드리지 않고 배경/마스크를 코드로 끼워 넣어야, 에디터를 열지 않고도(현재처럼) 바로 확인할 수 있다
+	BuildMapBackground();
+}
+
+void UUI_Minimap::BuildMapBackground()
+{
+	if (!bUseGeneratedMapBackground || !MarkerCanvas || NativeMapBackground)
+		return;
+
+	const FVector2D MapSize(MinimapRadius * 2.f, MinimapRadius * 2.f);
+
+	auto CenterInCanvas = [](UWidget* Widget, const FVector2D& Size)
+	{
+		UCanvasPanelSlot* Slot = Cast<UCanvasPanelSlot>(Widget->Slot);
+		if (!Slot)
+			return;
+
+		Slot->SetAnchors(FAnchors(0.5f, 0.5f));
+		Slot->SetAlignment(FVector2D(0.5f, 0.5f));
+		Slot->SetAutoSize(true);
+		Slot->SetPosition(FVector2D::ZeroVector);
+
+		if (UImage* Image = Cast<UImage>(Widget))
+		{
+			Image->SetDesiredSizeOverride(Size);
+		}
+	};
+
+	// 인덱스 0 = 맨 아래(배경), 1 = 그 위(원형 마스크). 기존에 WBP에서 바인딩된 QuestMarkerIcon/PortalMarkerIcon은
+	// 이미 들어있던 자식이라 인덱스가 밀려 올라갈 뿐, 항상 배경/마스크보다 위(나중에 그려짐)에 남는다.
+	// 배경은 회전하므로 같은 크기의 자르는 상자(NativeMapClip)에 넣어 미니맵 사각형 밖으로 나가지 않게 한다
+	NativeMapClip = WidgetTree->ConstructWidget<USizeBox>(USizeBox::StaticClass(), TEXT("NativeMapClip"));
+	NativeMapClip->SetWidthOverride(MapSize.X);
+	NativeMapClip->SetHeightOverride(MapSize.Y);
+	NativeMapClip->SetClipping(EWidgetClipping::ClipToBounds);
+	NativeMapClip->SetVisibility(ESlateVisibility::HitTestInvisible);
+	MarkerCanvas->InsertChildAt(0, NativeMapClip);
+	CenterInCanvas(NativeMapClip, MapSize);
+
+	NativeMapBackground = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("NativeMapBackground"));
+	NativeMapClip->SetContent(NativeMapBackground);
+	NativeMapBackground->SetDesiredSizeOverride(MapSize);
+
+	// 지도는 UMinimapBaker가 첫 굽기를 끝낸 뒤 UpdateMapBackground가 연결한다.
+	// 그때까지는 빈 사각형 대신 마스크의 바깥쪽 색으로 채워 둔다
+	FSlateBrush PlaceholderBrush;
+	PlaceholderBrush.DrawAs = ESlateBrushDrawType::Image;
+	PlaceholderBrush.TintColor = MapMaskOutsideColor;
+	NativeMapBackground->SetBrush(PlaceholderBrush);
+
+	if (!CircleMaskTexture)
+	{
+		CircleMaskTexture = CreateCircleMaskTexture(MapMaskTextureSize, MapMaskRingThickness, MapMaskRingColor, MapMaskOutsideColor);
+	}
+
+	NativeMapMask = WidgetTree->ConstructWidget<UImage>(UImage::StaticClass(), TEXT("NativeMapMask"));
+	MarkerCanvas->InsertChildAt(1, NativeMapMask);
+	CenterInCanvas(NativeMapMask, MapSize);
+	NativeMapMask->SetVisibility(ESlateVisibility::HitTestInvisible);
+
+	if (CircleMaskTexture)
+	{
+		FSlateBrush MaskBrush;
+		MaskBrush.DrawAs = ESlateBrushDrawType::Image;
+		MaskBrush.ImageType = ESlateBrushImageType::FullColor;
+		// 브러시 크기가 텍스처 크기(256)로 남으면 DesiredSizeOverride보다 커져서 링이 미니맵 틀 밖으로 삐져나온다
+		MaskBrush.ImageSize = MapSize;
+		MaskBrush.TintColor = FLinearColor::White;
+		MaskBrush.SetResourceObject(CircleMaskTexture);
+		NativeMapMask->SetBrush(MaskBrush);
+	}
 }
 
 void UUI_Minimap::InitMinimap(APy_Grey* InOwnerPlayer)
@@ -161,6 +308,19 @@ void UUI_Minimap::InitMinimap(APy_Grey* InOwnerPlayer)
 	{
 		PortalMarkerIcon->SetVisibility(ESlateVisibility::Collapsed);
 	}
+
+	// 간략 지도 굽기: 플레이어의 캡처 컴포넌트를 빌려 쓴다 (굽는 순간에만 찍고 평소에는 꺼져 있음)
+	if (bUseGeneratedMapBackground && NativeMapBackground && InOwnerPlayer && InOwnerPlayer->GetMinimapCaptureComponent())
+	{
+		UMinimapBaker::FSettings BakeSettings;
+		BakeSettings.Resolution = MapBakeResolution;
+		BakeSettings.BakeWorldSize = MapBakeWorldSize;
+		// 다시 굽는 데 1초 남짓 걸리므로, 그동안 달려도 보이는 반경이 구운 영역 밖으로 나가지 않을 만큼 여유(25m)를 둔다
+		BakeSettings.RebakeDistance = FMath::Max(MapBakeWorldSize * 0.5f - MinimapWorldRadius - 2500.f, 500.f);
+
+		MapBaker = NewObject<UMinimapBaker>(this);
+		MapBaker->Init(InOwnerPlayer->GetMinimapCaptureComponent(), InOwnerPlayer, BakeSettings);
+	}
 }
 
 void UUI_Minimap::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
@@ -169,6 +329,8 @@ void UUI_Minimap::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 
 	if (!OwnerPlayer.IsValid())
 		return;
+
+	UpdateMapBackground();
 
 	FVector QuestTargetLocation;
 	const bool bHasQuestTarget = ResolveQuestTargetLocation(QuestTargetLocation);
@@ -181,9 +343,50 @@ void UUI_Minimap::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 		bPortalSearchAttempted = true;
 	}
 
-	const bool bHasPortalTarget = CachedPortalTarget.IsValid();
+	// 퀘스트 마커가 떠 있으면(목표 자체든, 목표 레벨로 가는 포탈이든) 그것만 보여준다.
+	// 돌아가는 길 마커는 퀘스트 안내가 없을 때만 (목표 레벨에 도착하면 퀘스트 위치에만 마커가 남는다)
+	const bool bHasPortalTarget = !bHasQuestTarget && CachedPortalTarget.IsValid();
 	UpdateDirectionalMarker(PortalMarkerIcon, bHasPortalTarget,
 		bHasPortalTarget ? CachedPortalTarget->GetActorLocation() : FVector::ZeroVector);
+}
+
+void UUI_Minimap::UpdateMapBackground()
+{
+	if (!NativeMapBackground || !MapBaker)
+		return;
+
+	const FVector PlayerLoc = OwnerPlayer->GetActorLocation();
+	MapBaker->Tick(PlayerLoc);
+
+	UTexture2D* MapTexture = MapBaker->GetMapTexture();
+	if (!MapTexture)
+		return;
+
+	// 구운 지도에서 플레이어 주변(보이는 반경)만 잘라 보여준다. 지도가 다시 구워지면 중심이 바뀌므로 매 틱 다시 계산
+	const FVector2D CenterUV = MapBaker->WorldToUV(PlayerLoc);
+	const float HalfUV = MinimapWorldRadius / FMath::Max(MapBaker->GetMapWorldSize(), 1.f);
+
+	FSlateBrush Brush = NativeMapBackground->GetBrush();
+	if (ShownMapTexture != MapTexture)
+	{
+		Brush = FSlateBrush();
+		Brush.DrawAs = ESlateBrushDrawType::Image;
+		Brush.ImageType = ESlateBrushImageType::FullColor;
+		Brush.ImageSize = FVector2D(MinimapRadius * 2.f, MinimapRadius * 2.f);
+		Brush.TintColor = FLinearColor::White;
+		Brush.SetResourceObject(MapTexture);
+		ShownMapTexture = MapTexture;
+	}
+	Brush.SetUVRegion(FBox2f(
+		FVector2f(CenterUV.X - HalfUV, CenterUV.Y - HalfUV),
+		FVector2f(CenterUV.X + HalfUV, CenterUV.Y + HalfUV)));
+	NativeMapBackground->SetBrush(Brush);
+
+	// 지도는 항상 정북(월드 +X가 위) 고정으로 구워지므로, 마커와 같은 "플레이어 진행방향이 항상 위" 착시는
+	// 배경 이미지 자체를 플레이어 Yaw 반대로 돌려서 만든다. 마커들도 같은 관례(RelativeAngleDeg)로 위치를 계산한다
+	FWidgetTransform BgTransform = NativeMapBackground->GetRenderTransform();
+	BgTransform.Angle = -OwnerPlayer->GetActorRotation().Yaw + IconRotationOffsetDegrees;
+	NativeMapBackground->SetRenderTransform(BgTransform);
 }
 
 void UUI_Minimap::UpdateDirectionalMarker(UImage* MarkerIcon, bool bHasTarget, const FVector& TargetLocation)

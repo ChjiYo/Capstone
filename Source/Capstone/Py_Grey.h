@@ -41,6 +41,11 @@ protected:
 	UPROPERTY(Category = Collision, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	UBoxComponent* WeaponBox;
 
+	// 미니맵 지도 굽기용 촬영 카메라. 평소에는 꺼져 있고, UMinimapBaker가 플레이어 주변을 굽을 때만
+	// 위에서 정사영으로 한 번 찍는다 (조명 없는 색 + 높이 → 간략 지도로 변환)
+	UPROPERTY(Category = Minimap, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	class USceneCaptureComponent2D* MinimapCaptureComponent;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 	TSubclassOf<class UUI_HpBar> PlayerHpBarClass;
 
@@ -410,6 +415,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Death")
 	bool IsDead() const { return bIsDead; }
+
+	// UUI_Minimap의 지도 굽기(UMinimapBaker)가 위에서 내려다보는 촬영에 쓰는 캡처 컴포넌트
+	class USceneCaptureComponent2D* GetMinimapCaptureComponent() const { return MinimapCaptureComponent; }
 
 
 	// 특정 포션 아이템을 사용(회복 + 소모). 인벤토리 슬롯 클릭 등 UI에서도 호출할 수 있도록 public

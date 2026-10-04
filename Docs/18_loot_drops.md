@@ -18,10 +18,10 @@
 
 ### 고블린 토벌 보상
 
-`BP_Hans`의 두 번째 퀘스트(`고블린 토벌`: 고블린 `Goblin` 4마리 처치)는 블루프린트에 보상 아이템이 비어 있었다(경험치 200 + 골드 3000). `UQuestComponent::ResolveReward`가 **보상 아이템이 비어 있는 처치(Kill) 퀘스트의 대상이 `Goblin`이면 고블린 소드 ×1을 보충**한다.
+`BP_Hans`의 두 번째 퀘스트(`고블린 토벌`: 고블린 `Goblin` 4마리 처치)의 블루프린트 보상은 경험치 200 + 골드 3000 + `HpPotion` ×1이다. `UQuestComponent::ResolveRewardItems`가 **처치(Kill) 퀘스트의 대상이 `Goblin`이면 블루프린트의 보상 아이템에 고블린 소드 ×1을 더해서** 돌려준다 (블루프린트가 이미 소드를 주고 있으면 중복해서 주지 않는다).
 
-- 보상 지급(`GrantReward`)과 퀘스트 수락창의 보상 줄(`UUI_Quest::BuildRewardText`)이 같은 함수를 써서 화면에 보이는 것과 실제로 받는 것이 어긋나지 않는다. 수락창에는 `경험치 +200 · 골드 +3000 · 고블린 소드 x1`으로 나온다.
-- 에디터에서 `RewardItemID`를 직접 채우면 그 값이 우선한다 (코드는 비어 있을 때만 보충).
+- 처음에는 "보상 아이템이 비어 있을 때만 소드를 채운다"로 만들었는데, 실제 블루프린트에는 `HpPotion`이 들어 있어서 소드가 한 번도 지급되지 않았다 (플레이 로그로 확인). 그래서 덮어쓰기/비어 있을 때만 채우기가 아니라 **항상 더하기**로 바꿨다.
+- 보상 지급(`GrantReward`)과 퀘스트 수락창의 보상 줄(`UUI_Quest::BuildRewardText`)이 같은 함수를 써서 화면에 보이는 것과 실제로 받는 것이 어긋나지 않는다. 수락창에는 `경험치 +200 · 골드 +3000 · 체력 포션 x1 · 고블린 소드 x1`으로 나온다.
 
 ## 2. 코드 구성
 
@@ -35,8 +35,8 @@ Source/Capstone/
   ItemBase.h/.cpp        ItemCount, 아이콘 스프라이트, SpawnLoot(), 가방 가득 참 검사
   Monster.h/.cpp         FMonsterDrop / DropTable / DropLoot() — 죽을 때 항목마다 따로 굴린다
   Mon_Golem/Bird/Larvae  생성자에서 DropTable 기본값
-  QuestComponent.*       ResolveReward() (보상 보충)
-  UI_Quest.cpp           보상 줄이 ResolveReward를 쓰고, 아이템 ID 대신 이름을 보여준다
+  QuestComponent.*       ResolveRewardItems() (보상 아이템 보충)
+  UI_Quest.cpp           보상 줄이 ResolveRewardItems를 쓰고, 아이템 ID 대신 이름을 보여준다
   UI_InventorySlot.cpp   설명 칸에 Description 줄
   Py_Grey.cpp            줍기에 실패하면(가방 가득) CurrItem을 유지
 ```
@@ -48,10 +48,10 @@ Source/Capstone/
 ## 3. 조정하는 법
 
 - 확률/개수: 몬스터 클래스 생성자의 `DropTable.Emplace(ItemID, 확률, 최소, 최대)`, 또는 몬스터 블루프린트의 `Drop Items > Drop Table`에서 덮어쓴다.
-- 판매가/이름/설명: `LootData.cpp`의 `Definitions()`.
+- 판매가/이름/설명: `LootData.cpp`의 `LootDefinitions()`.
 - 아이콘 모양: `LootData.cpp`의 `Build*Shapes` (좌표는 아이콘 한가운데가 (0,0), 가장자리 ±0.5, y가 위쪽).
 - 새 전리품 추가: `LootData.h`에 ID 선언 → `LootData.cpp`에 정의/아이콘 → 몬스터 생성자에 `DropTable.Emplace`.
-- 고블린 소드 보상 규칙: `QuestComponent.cpp`의 `ResolveReward`.
+- 고블린 소드 보상 규칙: `QuestComponent.cpp`의 `ResolveRewardItems`.
 
 ## 4. 에디터 작업 (사용자)
 
